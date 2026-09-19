@@ -184,7 +184,8 @@ input,select,textarea{font-size:16px;}
 .role-sel{height:34px;padding:0 6px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);color:var(--c-text);outline:none;max-width:110px;}
 .role-sel:focus{border-color:var(--c-primary);}
 .role-admin{background:#fce8e6;color:#c5221f;}
-.role-scheduler{background:#e8f0fe;color:#1a73e8;}
+.role-supervisor{background:#e8f0fe;color:#1a73e8;}
+.role-scheduler{background:#e0f7fa;color:#00695c;}
 .role-pm{background:#f3e8fd;color:#7b1fa2;}
 .role-viewer{background:#e6f4ea;color:#188038;}
 .status-active{color:var(--c-success);font-weight:600;}
@@ -276,7 +277,6 @@ input,select,textarea{font-size:16px;}
         </select>
         <select id="cal-filter-eng" onchange="applyFilter()"><option value="">全部工程師</option></select>
         <select id="cal-filter-type" onchange="applyFilter()"><option value="">全部類別</option></select>
-        <select id="cal-filter-file" onchange="applyFilter()"><option value="">全部來源檔案</option></select>
         <button class="btn btn-outline btn-sm" onclick="clearFilters()">清除</button>
       </div>
       <div class="filter-chips" id="filter-chips"></div>
@@ -361,7 +361,8 @@ input,select,textarea{font-size:16px;}
           <select id="new-role">
             <option value="viewer">現場（查詢）</option>
             <option value="pm">PM（查詢，自動帶自己行程）</option>
-            <option value="scheduler">主管（上傳＋查詢）</option>
+            <option value="scheduler">排程（上傳＋查詢）</option>
+            <option value="supervisor">主管（上傳＋查詢）</option>
             <option value="admin">管理員（全部）</option>
           </select>
         </div>
@@ -483,11 +484,12 @@ function showApp(uname,role,engineerName){
   });
 }
 
-var ROLE_LABEL={admin:'管理員',scheduler:'主管',pm:'PM',viewer:'現場'};
-var ROLE_ORDER=['admin','scheduler','pm','viewer'];
-var ROLE_CLASS={admin:'role-admin',scheduler:'role-scheduler',pm:'role-pm',viewer:'role-viewer'};
+var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',viewer:'現場'};
+var ROLE_ORDER=['admin','supervisor','scheduler','pm','viewer'];
+var ROLE_CLASS={admin:'role-admin',supervisor:'role-supervisor',scheduler:'role-scheduler',pm:'role-pm',viewer:'role-viewer'};
+var ROLE_WRITE=['admin','supervisor','scheduler'];
 function roleLabel(r){return ROLE_LABEL[r]||r;}
-function canWrite(r){return r==='admin'||r==='scheduler';}
+function canWrite(r){return ROLE_WRITE.indexOf(r)>=0;}
 
 function doLogin(){
   var u=document.getElementById('inp-user').value.trim();
@@ -669,7 +671,6 @@ function loadMonth(){
     allRows=r.rows||[];
     populateEngDropdown(allRows);
     populateTypeDropdown(allRows);
-    populateFileDropdown(allRows);
     autoFilterEngineer();
     applyFilter();
   }).catch(function(){
@@ -715,18 +716,7 @@ function populateTypeDropdown(rows){
   sel.innerHTML='<option value="">全部類別</option>'+types.map(function(t){return '<option value="'+he(t)+'"'+(t===cur?' selected':'')+'>'+he(t)+'</option>';}).join('');
 }
 
-function populateFileDropdown(rows){
-  var seen={},files=[];
-  rows.forEach(function(r){var f=r.source_file;if(f&&!seen[f]){seen[f]=true;files.push(f);}});
-  files.sort();
-  var sel=document.getElementById('cal-filter-file'),cur=sel.value;
-  sel.innerHTML='<option value="">全部來源檔案</option>'+files.map(function(f){
-    var label=f.length>24?f.slice(0,22)+'…':f;
-    return '<option value="'+he(f)+'"'+(f===cur?' selected':'')+'>'+he(label)+'</option>';
-  }).join('');
-}
-
-var FILTER_IDS=['cal-filter-region','cal-filter-eng','cal-filter-type','cal-filter-file'];
+var FILTER_IDS=['cal-filter-region','cal-filter-eng','cal-filter-type'];
 function toggleFilters(){document.getElementById('cal-filters').classList.toggle('open');}
 function clearFilters(){
   FILTER_IDS.forEach(function(id){document.getElementById(id).value='';});
@@ -748,13 +738,11 @@ function applyFilter(){
   var region=document.getElementById('cal-filter-region').value;
   var eng=document.getElementById('cal-filter-eng').value;
   var type=document.getElementById('cal-filter-type').value;
-  var file=document.getElementById('cal-filter-file').value;
   renderFilterChips();
   filteredRows=allRows.filter(function(r){
     if(region&&(r.region||'')!==region)return false;
     if(eng&&r.engineer!==eng)return false;
     if(type&&r.type!==type)return false;
-    if(file&&(r.source_file||'')!==file)return false;
     return true;
   });
   renderCalendar(curYear,curMonth,filteredRows);
