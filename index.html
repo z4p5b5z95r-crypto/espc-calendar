@@ -159,6 +159,9 @@ input,select,textarea{font-size:16px;}
 .type-section-header{font-weight:600;font-size:13px;margin-bottom:4px;border-bottom:1px solid var(--c-border);padding-bottom:3px;}
 .detail-row{font-size:13px;color:var(--c-text-2);margin-bottom:3px;line-height:1.7;}
 .detail-row span{color:var(--c-text);}
+.tel-a{color:var(--c-primary);text-decoration:none;white-space:nowrap;}
+.tel-no{color:var(--c-text-2);font-size:.92em;margin-left:4px;}
+.tel-a:active .tel-no{color:var(--c-primary);}
 .proj-footer{font-size:13px;color:var(--c-text-2);margin-top:6px;padding-top:6px;border-top:1px solid var(--c-border);line-height:1.9;}
 .proj-footer span{color:var(--c-text);}
 .empty-day{color:var(--c-text-2);font-size:14px;text-align:center;padding:28px;}
@@ -497,13 +500,14 @@ function gas(fn) {
 var PHONE_MAP={};
 var STAFF_LIST=[];
 function withPhone(name){if(!name)return '';var ph=PHONE_MAP[name.trim()];return ph?name+'（'+ph+'）':name;}
-/** 有電話就做成可直接撥號的連結 */
+/** 姓名（電話），整串可直接點擊撥號；沒登記電話就只顯示姓名 */
 function telLink(name){
   if(!name)return '';
-  var ph=PHONE_MAP[String(name).trim()];
+  name=String(name).trim();
+  var ph=PHONE_MAP[name];
   if(!ph)return he(name);
-  return '<a href="tel:'+he(ph.replace(/-/g,''))+'" style="color:var(--c-primary);text-decoration:none">'
-    +he(name)+'</a>';
+  return '<a href="tel:'+he(ph.replace(/-/g,''))+'" class="tel-a">'
+    +he(name)+'<span class="tel-no">'+he(ph)+'</span></a>';
 }
 var STAFF_VER='';
 function applyStaff(list){
