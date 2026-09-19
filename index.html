@@ -356,7 +356,7 @@ input,select,textarea{font-size:16px;}
         <h3 style="border:none;padding:0;margin:0;flex:1 1 auto;">人員通訊錄</h3>
         <input id="staff-search" type="search" placeholder="搜尋姓名或電話" oninput="renderStaffTable()"
                style="flex:1 1 180px;padding:8px 10px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;outline:none;min-height:38px;">
-        <button class="btn btn-outline btn-sm" onclick="staffReload()">&#8635;</button>
+        <button class="btn btn-outline btn-sm" onclick="staffReload(true)">&#8635;</button>
       </div>
       <div class="seg" id="staff-region-filter">
         <button class="seg-btn active" data-r="" onclick="staffSetRegion(this)">全部</button>
@@ -461,26 +461,51 @@ function gas(fn) {
 var PHONE_MAP={};
 var STAFF_LIST=[];
 function withPhone(name){if(!name)return '';var ph=PHONE_MAP[name.trim()];return ph?name+'（'+ph+'）':name;}
-function loadStaff(cb){
-  gas('getStaff',TOKEN).then(function(r){
-    if(r.ok){
-      STAFF_LIST=r.staff||[];
-      PHONE_MAP={};
-      STAFF_LIST.forEach(function(s){if(s.name)PHONE_MAP[s.name]=s.phone||'';});
+var STAFF_VER='';
+function applyStaff(list){
+  STAFF_LIST=list||[];
+  PHONE_MAP={};
+  STAFF_LIST.forEach(function(s){if(s.name)PHONE_MAP[s.name]=s.phone||'';});
+}
+
+function loadStaff(cb,force){
+  var c=force?null:cacheGet('staff');
+  if(c&&c.staff){applyStaff(c.staff);STAFF_VER=c.version||'';if(cb){cb();cb=null;}}
+
+  gas('getStaff',TOKEN,c?c.version:'').then(function(r){
+    if(r&&r.ok&&!r.unchanged){
+      applyStaff(r.staff||[]);
+      STAFF_VER=r.version||'';
+      cacheSet('staff',{version:STAFF_VER,staff:STAFF_LIST,t:Date.now()});
+      if(document.getElementById('panel-staff').classList.contains('active'))renderStaffTable();
     }
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
 
 // ─── Session ──────────────────────────────────────────────────────────────────
-var TOKEN=sessionStorage.getItem('espc_token')||'';
-var ROLE=sessionStorage.getItem('espc_role')||'';
-var UNAME=sessionStorage.getItem('espc_user')||'';
+/* 登入狀態存在 localStorage：關掉瀏覽器、重開手機都會記得，
+   直到使用者自己按「登出」或後端 session 過期（90 天，持續使用會自動續期） */
+function ss(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+function ssSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function ssDel(k){try{localStorage.removeItem(k);}catch(e){}}
+
+var TOKEN=ss('espc_token');
+var ROLE=ss('espc_role');
+var UNAME=ss('espc_user');
 var currentFileName='';
 var parsedRows=[];
 
-function saveSession(t,r,u){TOKEN=t;ROLE=r;UNAME=u;sessionStorage.setItem('espc_token',t);sessionStorage.setItem('espc_role',r);sessionStorage.setItem('espc_user',u);}
-function clearSession(){TOKEN='';ROLE='';UNAME='';['espc_token','espc_role','espc_user','espc_eng'].forEach(function(k){sessionStorage.removeItem(k);});}
+function saveSession(t,r,u){TOKEN=t;ROLE=r;UNAME=u;ssSet('espc_token',t);ssSet('espc_role',r);ssSet('espc_user',u);}
+function clearSession(){
+  TOKEN='';ROLE='';UNAME='';
+  ['espc_token','espc_role','espc_user','espc_eng','espc_eng_p',SYNC_KEY].forEach(ssDel);
+  try{
+    var del=[],i;
+    for(i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(CK)===0)del.push(k);}
+    del.forEach(function(k){localStorage.removeItem(k);});
+  }catch(e){}
+}
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function toast(msg,type,dur){
@@ -499,10 +524,19 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('inp-pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
   document.getElementById('inp-user').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('inp-pw').focus();});
   if(TOKEN){
+    // 已登入過 → 先蓋掉登入畫面，避免閃爍
+    document.getElementById('login-screen').innerHTML=
+      '<div class="loading"><div class="spinner"></div> 載入中…</div>';
     gas('getMe',TOKEN).then(function(r){
-      if(r.ok) showApp(r.username,r.role,r.engineerName||'');
-      else showLogin();
-    }).catch(showLogin);
+      if(r&&r.ok) showApp(r.username,r.role,r.engineerName||'');
+      else{clearSession();location.reload();}
+    }).catch(function(){
+      // 純網路錯誤不要清掉登入狀態，讓使用者重試即可
+      document.getElementById('login-screen').innerHTML=
+        '<div style="text-align:center;padding:24px;">'
+        +'<p style="color:var(--c-text-2);font-size:14px;margin-bottom:16px;">連線失敗，請確認網路後重試</p>'
+        +'<button class="btn btn-primary" onclick="location.reload()">重新載入</button></div>';
+    });
   }else showLogin();
 });
 
@@ -517,13 +551,17 @@ function showApp(uname,role,engineerName){
   document.getElementById('tab-admin-btn').style.display=role==='admin'?'':'none';
   document.getElementById('staff-add-card').style.display=canWrite(role)?'':'none';
   document.getElementById('danger-zone').style.display=role==='admin'?'block':'none';
-  if(engineerName){sessionStorage.setItem('espc_eng',engineerName);localStorage.setItem('espc_eng_p',engineerName);}
+  if(engineerName){ssSet('espc_eng',engineerName);ssSet('espc_eng_p',engineerName);}else{ssDel('espc_eng');}
   ntRenderUI();
   startNotifyLoop();
-  loadStaff(function(){
-    var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();
-    loadToday();
-  });
+  var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();
+  // 跨日後第一次開啟 → 強制重抓；同一天內開啟 → 先吃快取再背景比對
+  var t=todayStr_(),last='';
+  try{last=localStorage.getItem(SYNC_KEY)||'';}catch(e){}
+  var newDay=(last!==t);
+  try{localStorage.setItem(SYNC_KEY,t);}catch(e){}
+  if(newDay)cachePrune(false);
+  loadStaff(function(){ loadToday(newDay); },newDay);
 }
 
 var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',viewer:'現場'};
@@ -571,6 +609,48 @@ function projColor(name){
   if(!name)return '#9e9e9e';
   if(!projColorMap[name]){projColorMap[name]=PROJ_COLORS[projColorIdx%PROJ_COLORS.length];projColorIdx++;}
   return projColorMap[name];
+}
+
+// ─── 本機快取 ─────────────────────────────────────────────────────────────────
+// 策略：先用快取立即上畫面，同時在背景跟伺服器比對版本；
+// 版本一樣伺服器只回「未變更」（幾乎沒流量），不一樣才換新資料重畫。
+var CK='espc_c_';
+
+function cacheGet(key){
+  try{var v=localStorage.getItem(CK+key);return v?JSON.parse(v):null;}catch(e){return null;}
+}
+function cacheSet(key,obj){
+  try{localStorage.setItem(CK+key,JSON.stringify(obj));}
+  catch(e){cachePrune(true);try{localStorage.setItem(CK+key,JSON.stringify(obj));}catch(e2){}}
+}
+/** 清掉最舊的月份快取（空間不足或定期整理時呼叫）*/
+function cachePrune(aggressive){
+  try{
+    var keys=[],i;
+    for(i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&k.indexOf(CK+'m_')===0)keys.push(k);
+    }
+    keys.sort();
+    var keep=aggressive?2:8;
+    while(keys.length>keep)localStorage.removeItem(keys.shift());
+  }catch(e){}
+}
+/** 資料版本變了 → 所有月份快取一次失效 */
+function cacheCheckVersion(v){
+  if(!v)return;
+  var cur='';try{cur=localStorage.getItem(CK+'ver')||'';}catch(e){}
+  if(cur&&cur!==v){
+    try{
+      var del=[],i;
+      for(i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k&&k.indexOf(CK+'m_')===0)del.push(k);
+      }
+      del.forEach(function(k){localStorage.removeItem(k);});
+    }catch(e){}
+  }
+  try{localStorage.setItem(CK+'ver',v);}catch(e){}
 }
 
 // ─── 每日提醒通知 ─────────────────────────────────────────────────────────────
@@ -683,7 +763,7 @@ function buildNotifyText(t,rows){
 
 function fireDailyNotify(t){
   function go(rows){
-    var eng=(localStorage.getItem('espc_eng_p')||'').trim();
+    var eng=ss('espc_eng_p').trim();
     var mine=eng?rows.filter(function(r){return String(r.engineer||'').trim()===eng;}):rows;
     var c=ntCfg();
     if(!mine.length&&!c.notifyEmpty)return;
@@ -737,7 +817,28 @@ function startNotifyLoop(){
   registerSW();
   ntTick();
   setInterval(ntTick,30000);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)ntTick();});
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden)return;
+    ntTick();
+    dailySync();
+  });
+}
+
+/** 每日背景更新：每天第一次開啟（或跨日後回到前景）時，靜默重抓一次最新資料 */
+var SYNC_KEY='espc_last_sync';
+function dailySync(){
+  if(!TOKEN)return;
+  var t=todayStr_();
+  var last='';try{last=localStorage.getItem(SYNC_KEY)||'';}catch(e){}
+  if(last===t)return;
+  try{localStorage.setItem(SYNC_KEY,t);}catch(e){}
+  cachePrune(false);
+  // 跨日了，今日頁一定要重算
+  todayLoadedFor='';
+  loadStaff(null,true);
+  loadToday(true);
+  if(document.getElementById('panel-calendar').classList.contains('active'))loadMonth(true);
+  else{allRows=[];}
 }
 
 // ─── 今日焦點 ─────────────────────────────────────────────────────────────────
@@ -756,25 +857,49 @@ function todayRange_(t){
   return monthEnd>min15?monthEnd:min15;
 }
 
+function paintToday(t,all){
+  var eng=autoEngName();
+  var mine=eng?all.filter(function(x){return String(x.engineer||'').trim()===eng;}):all;
+  // 對不到工程師姓名時，改顯示全部行程
+  var matched=!eng||mine.length>0;
+  todayRows=matched?mine:all;
+  todayUnmatched=matched?'':eng;
+  todayLoadedFor=t;
+  lsSet(NT_CACHE,{date:t,rows:all.filter(function(x){return x.date===t;})});
+  renderToday(t,todayUnmatched);
+}
+
 function loadToday(force){
   var t=todayStr_();
-  if(!force&&todayLoadedFor===t){renderToday(t,todayUnmatched);return;}
   var parts=t.split('-');
   document.getElementById('today-date').textContent=parseInt(parts[1])+'月'+parseInt(parts[2])+'日 週'+DAYS_ZH[new Date(t).getDay()];
-  document.getElementById('today-now').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  gas('getData',TOKEN,{dateFrom:t,dateTo:todayRange_(t)}).then(function(r){
-    if(!r.ok){document.getElementById('today-now').innerHTML='<div class="today-empty">'+he(r.error||'載入失敗')+'</div>';return;}
-    var all=r.rows||[];
-    var eng=autoEngName();
-    var mine=eng?all.filter(function(x){return String(x.engineer||'').trim()===eng;}):all;
-    // 對不到工程師姓名時，改顯示全部行程
-    var matched=!eng||mine.length>0;
-    todayRows=matched?mine:all;
-    todayUnmatched=matched?'':eng;
-    todayLoadedFor=t;
-    lsSet(NT_CACHE,{date:t,rows:all.filter(function(x){return x.date===t;})});
-    renderToday(t,todayUnmatched);
-  }).catch(function(){document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';});
+
+  if(!force&&todayLoadedFor===t){renderToday(t,todayUnmatched);return;}
+
+  var key='today';
+  var c=force?null:cacheGet(key);
+  if(c&&c.date===t&&c.rows){
+    paintToday(t,c.rows);                     // 立即上畫面
+  }else{
+    document.getElementById('today-now').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+    c=null;
+  }
+
+  var opts={dateFrom:t,dateTo:todayRange_(t)};
+  if(c&&c.version)opts.version=c.version;
+
+  gas('getData',TOKEN,opts).then(function(r){
+    if(!r||!r.ok){
+      if(!c)document.getElementById('today-now').innerHTML='<div class="today-empty">'+he(r&&r.error||'載入失敗')+'</div>';
+      return;
+    }
+    cacheCheckVersion(r.version);
+    if(r.unchanged)return;
+    cacheSet(key,{date:t,version:r.version||'',rows:r.rows||[],t:Date.now()});
+    paintToday(t,r.rows||[]);
+  }).catch(function(){
+    if(!c)document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';
+  });
 }
 
 function groupByProject_(rows){
@@ -883,28 +1008,48 @@ function initCalendar(){var n=new Date();curYear=n.getFullYear();curMonth=n.getM
 function moveMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}loadMonth();}
 function goToday(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
 
-function loadMonth(){
+function paintMonth(rows){
+  allRows=rows||[];
+  populateEngDropdown(allRows);
+  populateTypeDropdown(allRows);
+  autoFilterEngineer();
+  applyFilter();
+}
+
+function loadMonth(force){
   document.getElementById('month-label').textContent=curYear+'年 '+MONTHS_ZH[curMonth];
-  document.getElementById('cal-container').innerHTML='<div class="loading"><div class="spinner"></div> 載入中…</div>';
+  var mkey='m_'+curYear+'-'+p2(curMonth+1);
   var first=curYear+'-'+p2(curMonth+1)+'-01';
   var lastDay=new Date(curYear,curMonth+1,0).getDate();
   var last=curYear+'-'+p2(curMonth+1)+'-'+p2(lastDay);
-  gas('getData',TOKEN,{dateFrom:first,dateTo:last}).then(function(r){
-    if(!r.ok){toast(r.error||'載入失敗','error');return;}
-    allRows=r.rows||[];
-    populateEngDropdown(allRows);
-    populateTypeDropdown(allRows);
-    autoFilterEngineer();
-    applyFilter();
+
+  var c=force?null:cacheGet(mkey);
+  if(c&&c.rows){
+    paintMonth(c.rows);                       // 立即上畫面，不轉圈
+  }else{
+    document.getElementById('cal-container').innerHTML='<div class="loading"><div class="spinner"></div> 載入中…</div>';
+  }
+
+  var opts={dateFrom:first,dateTo:last};
+  if(c&&c.version)opts.version=c.version;     // 帶著手上的版本去問
+
+  gas('getData',TOKEN,opts).then(function(r){
+    if(!r||!r.ok){if(!c)toast(r&&r.error||'載入失敗','error');return;}
+    cacheCheckVersion(r.version);
+    if(r.unchanged)return;                    // 資料沒變，畫面維持快取內容
+    cacheSet(mkey,{version:r.version||'',rows:r.rows||[],t:Date.now()});
+    paintMonth(r.rows||[]);
   }).catch(function(){
-    document.getElementById('cal-container').innerHTML='<div class="loading">載入失敗，請重試</div>';
-    toast('載入資料失敗','error');
+    if(!c){
+      document.getElementById('cal-container').innerHTML='<div class="loading">載入失敗，請重試</div>';
+      toast('載入資料失敗','error');
+    }
   });
 }
 
 /** 只有 PM 角色會自動帶出自己的行程；對不到姓名時顯示全部 */
 function autoEngName(){
-  return ROLE==='pm' ? (sessionStorage.getItem('espc_eng')||'').trim() : '';
+  return ROLE==='pm' ? ss('espc_eng').trim() : '';
 }
 
 function autoFilterEngineer(){
@@ -1249,7 +1394,7 @@ function doUpload(){
       document.getElementById('parse-area').innerHTML='';
       parsedRows=[];currentFileName='';
       todayLoadedFor='';allRows=[];
-      loadMonth();loadUploadHistory();
+      loadMonth(true);loadToday(true);loadUploadHistory();
     }else toast(r.error||'上傳失敗','error');
     if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}
   }).catch(function(){toast('上傳失敗，請稍後再試','error');if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}});
@@ -1360,7 +1505,7 @@ function adminResetPw(username){
 function adminClearAll(){
   if(!confirm('確定要清除所有排程資料？此操作無法還原！'))return;
   gas('clearAllData',TOKEN).then(function(r){
-    if(r.ok){toast('已清除所有資料','success');allRows=[];filteredRows=[];todayRows=[];todayLoadedFor='';renderCalendar(curYear,curMonth,[]);loadUploadHistory();}
+    if(r.ok){toast('已清除所有資料','success');allRows=[];filteredRows=[];todayRows=[];todayLoadedFor='';cachePrune(true);cacheCheckVersion('reset-'+Date.now());renderCalendar(curYear,curMonth,[]);loadToday(true);loadUploadHistory();}
     else toast(r.error||'操作失敗','error');
   }).catch(function(){toast('操作失敗','error');});
 }
@@ -1385,9 +1530,9 @@ function doChangePassword(){
 }
 
 // ─── 人員通訊錄 ───────────────────────────────────────────────────────────────
-function staffReload(){
-  document.getElementById('staff-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  loadStaff(renderStaffTable);
+function staffReload(force){
+  if(force)document.getElementById('staff-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  loadStaff(renderStaffTable,!!force);
 }
 
 var staffRegion='';
@@ -1453,7 +1598,7 @@ function staffSave(){
       toast('已儲存','success');
       ['staff-name','staff-phone','staff-note'].forEach(function(id){document.getElementById(id).value='';});
       document.getElementById('staff-region').value='';
-      loadStaff(function(){renderStaffTable();applyFilter();});
+      loadStaff(function(){renderStaffTable();applyFilter();},true);
     }else toast(r.error||'儲存失敗','error');
   }).catch(function(){toast('操作失敗','error');});
 }
@@ -1461,7 +1606,7 @@ function staffSave(){
 function staffDelete(name){
   if(!confirm('確定要刪除「'+name+'」？'))return;
   gas('deleteStaff',TOKEN,name).then(function(r){
-    if(r.ok){toast('已刪除','success');loadStaff(function(){renderStaffTable();applyFilter();});}
+    if(r.ok){toast('已刪除','success');loadStaff(function(){renderStaffTable();applyFilter();},true);}
     else toast(r.error||'刪除失敗','error');
   }).catch(function(){toast('操作失敗','error');});
 }
