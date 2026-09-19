@@ -1217,7 +1217,7 @@ function showDetail(dateStr){
       var reps=[],repSeen={};trows.forEach(function(r){if(r.applicant&&!repSeen[r.applicant]){repSeen[r.applicant]=true;reps.push(r.applicant);}});
       if(reps.length)html+='<div class="detail-row">&#128100; 申報人員：<span>'+he(reps.map(withPhone).join('、'))+'</span></div>';
       var rns=[],rnSeen={};trows.forEach(function(r){if(r.reportNum&&!rnSeen[r.reportNum]){rnSeen[r.reportNum]=true;rns.push(r.reportNum);}});
-      if(rns.length)html+='<div class="detail-row">&#128203; 報告編號：<span>'+he(rns.join(' / '))+'</span></div>';
+      if(rns.length)html+='<div class="detail-row">&#128203; 申報代碼：<span>'+he(rns.join(' / '))+'</span></div>';
       html+='</div>';
     });
     var cars=[],carSeen={};
@@ -1321,20 +1321,32 @@ function parseESPCSheet(raw,sheetName,fname){
         car:sv(row[15]),staff:staff,region:region});
     }
   }else{
-    var lastDate=null;
+    // 這種格式大量使用合併儲存格：值只存在群組第一列，之後的列是空的。
+    // 日期、申報代碼、採樣時間、工程師、公務車都會這樣，需要往下延續。
+    var lastDate=null,lastEng='',lastReport='',lastSamp='',lastCar='';
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
-      if(row[2]!=null){var ds=parseDate(row[2]);if(ds)lastDate=ds;}
+      if(row[2]!=null){var ds=parseDate(row[2]);if(ds){lastDate=ds;lastReport='';lastSamp='';lastCar='';}}
       if(!lastDate)continue;
       if(parseInt(lastDate.slice(0,4))<2020)continue;
-      var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
+
+      var eng=sv(row[3]);
+      if(eng&&/工程師|engineer/i.test(eng))continue;
+      if(eng)lastEng=eng; else eng=lastEng;
+      if(!eng)continue;
+
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
+
+      var rpt=sv(row[12]);if(rpt)lastReport=rpt; else rpt=lastReport;
+      var samp=sv(row[9]);if(samp)lastSamp=samp; else samp=lastSamp;
+      var car=sv(row[14]);if(car)lastCar=car; else car=lastCar;
+
       var staff=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
       results.push({date:lastDate,engineer:eng,project:proj,type:type,
         location:sv(row[7]),qty:parseFloat(String(row[8]!=null?row[8]:''))||0,
-        sampTime:sv(row[9]),equipment:sv(row[10]),
-        applicant:sv(row[11]),reportNum:sv(row[12]),notes:sv(row[13]),
-        car:sv(row[14]),staff:staff,region:region});
+        sampTime:samp,equipment:sv(row[10]),
+        applicant:sv(row[11]),reportNum:rpt,notes:sv(row[13]),
+        car:car,staff:staff,region:region});
     }
   }
   return results;
@@ -1365,7 +1377,7 @@ function renderParseResult(rows,filename){
       +'</span></div>';
     html+='<div class="data-table-wrap"><table class="data-table"><thead><tr>'
       +'<th>日期</th><th>工程師</th><th>地點</th><th>專案</th><th>類別</th>'
-      +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th>'
+      +'<th>採樣時間</th><th>儀器</th><th>申報代碼</th><th>地區</th>'
       +'</tr></thead><tbody>';
     rows.slice(0,100).forEach(function(r){
       html+='<tr><td>'+he(r.date)+'</td>'
@@ -1435,10 +1447,12 @@ function renderUploadHistory(records){
       +'<div class="hist-dot" style="background:'+(isOld?'var(--c-text-2)':'var(--c-success)')+'"></div>'
       +'<div style="flex:1;min-width:0;">'
       +'<div><span class="hist-name'+(isOld?' superseded':'')+'">'+he(rec.filename)+'</span>'
+      +(rec.region?'<span class="region-pill" style="margin-left:6px">'+he(rec.region)+'</span>':'')
+      +(rec.month?'<span class="region-pill none" style="margin-left:4px">'+he(rec.month)+'</span>':'')
       +'<span class="status-badge '+(isOld?'status-super-b':'status-active-b')+'">'+(isOld?'已被取代':'最新')+'</span></div>'
       +'<div class="hist-meta">'+he(dateRange)+' | '+he(rec.uploaded_by)+' | '+he(uploadTime)
       +(rec.days?' | '+rec.days+' 天':'')
-      +(isOld?'<br><span style="color:var(--c-text-2)">資料已被新檔覆蓋</span>':'')+'</div>'
+      +(isOld?'<br><span style="color:var(--c-text-2)">已被同地區、同月份的新檔取代</span>':'')+'</div>'
       +'</div>';
     // 只有「最新」的記錄才需要刪除鈕；已被取代的資料早就被覆蓋掉了
     if(canEdit&&!isOld){
