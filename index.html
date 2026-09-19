@@ -1251,7 +1251,17 @@ function processFile(file){
   currentFileName=file.name;
   currentFileMtime=file.lastModified?new Date(file.lastModified).toISOString():'';
   document.getElementById('parse-area').innerHTML='<div class="loading"><div class="spinner"></div> 解析中…</div>';
-  readExcel(file).then(function(rows){parsedRows=rows;renderParseResult(rows,file.name);}).catch(function(err){
+  readExcel(file).then(function(rows){
+    parsedRows=rows;
+    var valid=rows.filter(function(r){return r.engineer&&r.date;});
+    // 地區認得出來就直接上傳，不用再按一次
+    if(valid.length&&rows[0].region){
+      renderParseResult(rows,file.name,true);
+      doUpload();
+    }else{
+      renderParseResult(rows,file.name,false);
+    }
+  }).catch(function(err){
     document.getElementById('parse-area').innerHTML='';toast('解析失敗：'+(err.message||err),'error');
   });
 }
@@ -1359,12 +1369,17 @@ function setUploadRegion(v){
   document.getElementById('region-hint').textContent=v?'':'請選擇這份檔案所屬的地區';
 }
 
-function renderParseResult(rows,filename){
+function renderParseResult(rows,filename,uploading){
   var valid=rows.filter(function(r){return r.engineer&&r.date;});
   var detected=rows.length?(rows[0].region||''):'';
   var html='<div class="parse-result"><div class="parse-result-header"><h3>'+he(filename)+'</h3>'
     +'<span class="badge '+(valid.length>0?'badge-success':'badge-warn')+'">'+valid.length+' 筆有效 / '+rows.length+' 筆</span></div>';
   if(rows.length>0){
+    if(uploading){
+      html+='<div style="padding:14px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:10px;">'
+        +'<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div>'
+        +'<span style="font-size:14px;">地區「'+he(detected)+'」，上傳中…</span></div>';
+    }else{
     html+='<div style="padding:12px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
       +'<label style="font-size:13px;font-weight:500;">地區</label>'
       +'<select onchange="setUploadRegion(this.value)" style="height:40px;padding:0 10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;background:var(--c-surface);">'
@@ -1375,6 +1390,7 @@ function renderParseResult(rows,filename){
       +'<span style="font-size:12px;color:var(--c-text-2);flex:1 1 100%;">'
       +(detected?'已依檔名自動判斷為「'+he(detected)+'」，可手動修改。':'檔名看不出地區，請手動選擇。')
       +'</span></div>';
+    }
     html+='<div class="data-table-wrap"><table class="data-table"><thead><tr>'
       +'<th>日期</th><th>工程師</th><th>地點</th><th>專案</th><th>類別</th>'
       +'<th>採樣時間</th><th>儀器</th><th>申報代碼</th><th>地區</th>'
@@ -1387,42 +1403,65 @@ function renderParseResult(rows,filename){
         +'<td>'+he(r.reportNum)+'</td><td class="region-cell">'+(r.region?he(r.region):'—')+'</td></tr>';
     });
     if(rows.length>100)html+='<tr><td colspan="9" style="text-align:center;color:var(--c-text-2);padding:8px">…僅顯示前 100 筆</td></tr>';
-    html+='</tbody></table></div>'
-      +'<div class="upload-actions">'
-      +'<button class="btn btn-primary" onclick="doUpload()">上傳至雲端</button>'
-      +'<button class="btn btn-outline" onclick="document.getElementById(\'parse-area\').innerHTML=\'\'">取消</button>'
-      +'</div>';
+    html+='</tbody></table></div>';
+    if(!uploading){
+      html+='<div class="upload-actions">'
+        +'<button class="btn btn-primary" onclick="doUpload()">確認上傳</button>'
+        +'<button class="btn btn-outline" onclick="document.getElementById(\'parse-area\').innerHTML=\'\'">取消</button>'
+        +'</div>';
+    }
   }else{
     html+='<div style="padding:20px;color:var(--c-text-2)">找不到有效資料，請確認檔案格式。</div>';
   }
   document.getElementById('parse-area').innerHTML=html+'</div>';
 }
 
+function showUploadDone(filename,r){
+  var html='<div class="parse-result"><div style="padding:18px 16px;display:flex;align-items:flex-start;gap:12px;">'
+    +'<div style="width:26px;height:26px;border-radius:50%;background:var(--c-success);color:#fff;'
+    +'display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">&#10003;</div>'
+    +'<div style="flex:1;min-width:0;">'
+    +'<div style="font-size:15px;font-weight:600;margin-bottom:3px;">已儲存</div>'
+    +'<div style="font-size:13px;color:var(--c-text-2);line-height:1.7;word-break:break-all;">'
+    +he(filename)+'<br>寫入 '+r.saved+' 筆排程';
+  if(r.skipped)html+='<br><span style="color:var(--c-warn)">另有 '+r.skipped+' 天因現有資料較新而保留</span>';
+  html+='</div></div></div></div>';
+  document.getElementById('parse-area').innerHTML=html;
+  setTimeout(function(){
+    var el=document.getElementById('parse-area');
+    if(el&&el.innerHTML===html)el.innerHTML='';
+  },8000);
+}
+
 function doUpload(){
   if(!parsedRows||!parsedRows.length){toast('沒有可上傳的資料','error');return;}
   if(!parsedRows[0].region){toast('請先選擇地區（台北／台中／高雄）','error');return;}
+  var fname=currentFileName;
   var btn=document.querySelector('#parse-area .btn-primary');
   if(btn){btn.disabled=true;btn.textContent='上傳中…';}
-  gas('saveData',TOKEN,parsedRows,currentFileName,currentFileMtime).then(function(r){
-    if(r.ok){
-      if(r.saved===0&&r.skipped){
-        toast('這份檔案比現有資料舊（共 '+r.skipped+' 天），未做任何變更','error',5000);
-        if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}
-        return;
-      }
-      var msg='成功上傳 '+r.saved+' 筆，同日期舊資料已更新';
-      if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
-      toast(msg,'success',r.skipped?5000:3000);
-      document.getElementById('parse-area').innerHTML='';
-      parsedRows=[];currentFileName='';currentFileMtime='';
-      todayLoadedFor='';allRows=[];
-      loadMonth(true);loadToday(true);loadUploadHistory();
-    }else toast(r.error||'上傳失敗','error');
-    if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}
-  }).catch(function(){toast('上傳失敗，請稍後再試','error');if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}});
+
+  function restore(){if(btn){btn.disabled=false;btn.textContent='確認上傳';}}
+
+  gas('saveData',TOKEN,parsedRows,fname,currentFileMtime).then(function(r){
+    if(!r||!r.ok){toast(r&&r.error||'上傳失敗','error');restore();return;}
+    if(r.saved===0&&r.skipped){
+      toast('這份檔案比現有資料舊（共 '+r.skipped+' 天），未做任何變更','error',5000);
+      renderParseResult(parsedRows,fname,false);
+      return;
+    }
+    var msg='已儲存 '+r.saved+' 筆';
+    if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
+    toast(msg,'success',r.skipped?5000:3000);
+    showUploadDone(fname,r);
+    parsedRows=[];currentFileName='';currentFileMtime='';
+    todayLoadedFor='';allRows=[];
+    loadMonth(true);loadToday(true);loadUploadHistory();
+  }).catch(function(){
+    toast('上傳失敗，請稍後再試','error');
+    renderParseResult(parsedRows,fname,false);
+  });
 }
 
-// ─── Upload History ───────────────────────────────────────────────────────────
 function loadUploadHistory(){
   var el=document.getElementById('upload-history-list');if(!el)return;
   el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
@@ -1430,6 +1469,15 @@ function loadUploadHistory(){
     if(!r.ok){el.innerHTML='<p style="color:var(--c-error);padding:12px">'+he(r.error)+'</p>';return;}
     renderUploadHistory(r.records);
   }).catch(function(){el.innerHTML='<p style="color:var(--c-error);padding:12px">載入失敗</p>';});
+}
+
+/** ISO 時間轉成台灣時區的「YYYY-MM-DD HH:mm」 */
+function fmtStamp(v){
+  if(!v)return '';
+  var d=new Date(v);
+  if(isNaN(d))return String(v).slice(0,16).replace('T',' ');
+  return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())
+    +' '+p2(d.getHours())+':'+p2(d.getMinutes());
 }
 
 function renderUploadHistory(records){
@@ -1442,7 +1490,8 @@ function renderUploadHistory(records){
     var isOld=rec.status==='superseded';
     if(isOld)oldCount++;
     var dateRange=rec.date_from===rec.date_to?rec.date_from:(rec.date_from+' ~ '+rec.date_to);
-    var uploadTime=rec.upload_time?rec.upload_time.slice(0,16).replace('T',' '):'';
+    var uploadTime=fmtStamp(rec.upload_time);
+    var fileTime=fmtStamp(rec.source_mtime);
     html+='<div class="history-row" style="'+(isOld?'opacity:0.6;':'')+'">'
       +'<div class="hist-dot" style="background:'+(isOld?'var(--c-text-2)':'var(--c-success)')+'"></div>'
       +'<div style="flex:1;min-width:0;">'
@@ -1450,8 +1499,10 @@ function renderUploadHistory(records){
       +(rec.region?'<span class="region-pill" style="margin-left:6px">'+he(rec.region)+'</span>':'')
       +(rec.month?'<span class="region-pill none" style="margin-left:4px">'+he(rec.month)+'</span>':'')
       +'<span class="status-badge '+(isOld?'status-super-b':'status-active-b')+'">'+(isOld?'已被取代':'最新')+'</span></div>'
-      +'<div class="hist-meta">'+he(dateRange)+' | '+he(rec.uploaded_by)+' | '+he(uploadTime)
-      +(rec.days?' | '+rec.days+' 天':'')
+      +'<div class="hist-meta">'+he(dateRange)+(rec.days?' | '+rec.days+' 天':'')+' | '+he(rec.uploaded_by)+'<br>'
+      +'<span title="Excel 檔案本身的最後修改時間，取代與否以此為準">檔案更新：'
+      +(fileTime?he(fileTime):'<span style="color:var(--c-text-2)">未記錄</span>')+'</span>'
+      +'　<span style="color:var(--c-text-2)">上傳：'+he(uploadTime)+'</span>'
       +(isOld?'<br><span style="color:var(--c-text-2)">已被同地區、同月份的新檔取代</span>':'')+'</div>'
       +'</div>';
     // 只有「最新」的記錄才需要刪除鈕；已被取代的資料早就被覆蓋掉了
