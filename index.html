@@ -497,6 +497,14 @@ function gas(fn) {
 var PHONE_MAP={};
 var STAFF_LIST=[];
 function withPhone(name){if(!name)return '';var ph=PHONE_MAP[name.trim()];return ph?name+'（'+ph+'）':name;}
+/** 有電話就做成可直接撥號的連結 */
+function telLink(name){
+  if(!name)return '';
+  var ph=PHONE_MAP[String(name).trim()];
+  if(!ph)return he(name);
+  return '<a href="tel:'+he(ph.replace(/-/g,''))+'" style="color:var(--c-primary);text-decoration:none">'
+    +he(name)+'</a>';
+}
 var STAFF_VER='';
 function applyStaff(list){
   STAFF_LIST=list||[];
@@ -1015,14 +1023,15 @@ function renderToday(t,unmatchedEng){
         +'<div class="now-meta">';
       if(locs.length)html+='點位：<b>'+he(locs.join(' / '))+'</b><br>';
       if(st)html+='申報採樣時間：<b>'+he(st)+'</b><br>';
-      if(engs.length)html+='工程師：<b>'+he(engs.join('、'))+'</b><br>';
+      // 工程師直接做成可撥號連結，下面就不再重複一顆按鈕
+      if(engs.length)html+='工程師：<b>'+engs.map(telLink).join('、')+'</b><br>';
       if(cars.length)html+='公務車：<b>'+he(cars.join('、'))+'</b><br>';
       if(notes.length)html+='備註：<b>'+he(notes.join('；'))+'</b>';
       html+='</div>';
-      var calls=staff.concat(engs.filter(function(e){return staff.indexOf(e)<0;}));
-      if(calls.length){
+      // 只列現場人員；工程師已在上方，不重複顯示
+      if(staff.length){
         html+='<div class="call-row">';
-        calls.forEach(function(p){
+        staff.forEach(function(p){
           var ph=PHONE_MAP[p];
           if(ph)html+='<a class="call-btn" href="tel:'+he(ph.replace(/-/g,''))+'">&#128222; '+he(p)+'</a>';
           else html+='<span class="call-btn" style="color:var(--c-text-2)">'+he(p)+'</span>';
@@ -1321,7 +1330,9 @@ function showDetail(dateStr,onlyIdx){
   if(!events.length){html='<div class="empty-day">此日無排程</div>';}
   else events.forEach(function(ev){
     html+='<div class="proj-card" style="border-color:'+ev.color+'">';
-    html+='<div class="proj-card-title" style="color:'+ev.color+'">'+he(ev.project)+'</div>';
+    var pno=uniq_(ev.rows,'projectNo')[0]||'';
+    html+='<div class="proj-card-title" style="color:'+ev.color+'">'+he(ev.project)
+      +(pno?' <span style="font-size:12px;font-weight:500;opacity:.8">'+he(pno)+'</span>':'')+'</div>';
     var typeMap={};
     ev.rows.forEach(function(r){var t=r.type||'（未知類型）';if(!typeMap[t])typeMap[t]=[];typeMap[t].push(r);});
     Object.keys(typeMap).forEach(function(type){
@@ -1334,9 +1345,9 @@ function showDetail(dateStr,onlyIdx){
       var instrs=[],instrSeen={};trows.forEach(function(r){if(r.equipment&&!instrSeen[r.equipment]){instrSeen[r.equipment]=true;instrs.push(r.equipment);}});
       if(instrs.length)html+='<div class="detail-row">&#128300; 採樣儀器：<span>'+he(instrs.join(' '))+'</span></div>';
       var reps=[],repSeen={};trows.forEach(function(r){if(r.applicant&&!repSeen[r.applicant]){repSeen[r.applicant]=true;reps.push(r.applicant);}});
-      if(reps.length)html+='<div class="detail-row">&#128100; 申報人員：<span>'+he(reps.map(withPhone).join('、'))+'</span></div>';
+      if(reps.length)html+='<div class="detail-row">&#128100; 申報人員：<span>'+reps.map(telLink).join('、')+'</span></div>';
       var rns=[],rnSeen={};trows.forEach(function(r){if(r.reportNum&&!rnSeen[r.reportNum]){rnSeen[r.reportNum]=true;rns.push(r.reportNum);}});
-      if(rns.length)html+='<div class="detail-row">&#128203; 申報代碼：<span>'+he(rns.join(' / '))+'</span></div>';
+      if(rns.length)html+='<div class="detail-row">&#128203; 報告編號：<span>'+he(rns.join(' / '))+'</span></div>';
       html+='</div>';
     });
     var cars=[],carSeen={};
@@ -1349,9 +1360,9 @@ function showDetail(dateStr,onlyIdx){
     var engs=[],engSeen={};ev.rows.forEach(function(r){if(r.engineer&&!engSeen[r.engineer]){engSeen[r.engineer]=true;engs.push(r.engineer);}});
     var region=ev.rows[0]&&ev.rows[0].region?ev.rows[0].region:'';
     html+='<div class="proj-footer">';
-    if(engs.length)html+='&#128119; 負責工程師：<span>'+he(engs.join('、'))+'</span><br>';
+    if(engs.length)html+='&#128119; 負責工程師：<span>'+engs.map(telLink).join('、')+'</span><br>';
     if(cars.length)html+='&#128663; 公務車：<span>'+he(cars.join('、'))+'</span><br>';
-    if(staffArr.length)html+='&#128101; 現場執行人員：<span>'+he(staffArr.map(withPhone).join('、'))+'</span><br>';
+    if(staffArr.length)html+='&#128101; 現場執行人員：<span>'+staffArr.map(telLink).join('、')+'</span><br>';
     if(notes.length)html+='&#9888; 備註：<span>'+he(notes.join('；'))+'</span><br>';
     if(region)html+='&#128204; 地區：<span>'+he(region)+'</span>';
     html+='</div></div>';
@@ -1443,35 +1454,41 @@ function parseESPCSheet(raw,sheetName,fname){
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
       var staff=[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean);
       var notes=[sv(row[13]),sv(row[14])].filter(Boolean).join('；');
-      results.push({date:dateStr,engineer:eng,project:proj,type:type,
+      results.push({date:dateStr,engineer:eng,project:proj,projectNo:sv(row[4]),type:type,
         location:sv(row[8]),qty:parseFloat(String(row[9]!=null?row[9]:''))||0,
         sampTime:sv(row[10]),equipment:sv(row[11]),
         applicant:sv(row[12]),reportNum:sv(row[7]),notes:notes,
         car:sv(row[15]),staff:staff,region:region});
     }
   }else{
-    // 這種格式大量使用合併儲存格：值只存在群組第一列，之後的列是空的。
-    // 日期、申報代碼、採樣時間、工程師、公務車都會這樣，需要往下延續。
-    var lastDate=null,lastEng='',lastReport='',lastSamp='',lastCar='';
+    // 日期是合併儲存格，只出現在群組第一列，需要往下延續。
+    // 工程師「不可」延續：工程師空白的列是休假／註記列，不是行程。
+    // 申報代碼等欄位只在同一個專案內延續，換專案或換日期就重來。
+    var lastDate=null,lastProj='',lastReport='',lastSamp='',lastCar='',lastNo='';
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
-      if(row[2]!=null){var ds=parseDate(row[2]);if(ds){lastDate=ds;lastReport='';lastSamp='';lastCar='';}}
+      if(row[2]!=null){
+        var ds=parseDate(row[2]);
+        if(ds){lastDate=ds;lastProj='';lastReport='';lastSamp='';lastCar='';lastNo='';}
+      }
       if(!lastDate)continue;
       if(parseInt(lastDate.slice(0,4))<2020)continue;
 
       var eng=sv(row[3]);
-      if(eng&&/工程師|engineer/i.test(eng))continue;
-      if(eng)lastEng=eng; else eng=lastEng;
-      if(!eng)continue;
+      if(!eng||/工程師|engineer/i.test(eng))continue;
 
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
+      if(proj&&proj!==lastProj){lastProj=proj;lastReport='';lastSamp='';lastCar='';lastNo='';}
 
+      // 欄位對照（依 Excel 標題列）：
+      //   E 專案編號 / J 申報採樣時間 / K 採樣儀器 / L 申報人員 / M 報告編號 / N 備註
+      var no=sv(row[4]);if(no)lastNo=no; else no=lastNo;
       var rpt=sv(row[12]);if(rpt)lastReport=rpt; else rpt=lastReport;
       var samp=sv(row[9]);if(samp)lastSamp=samp; else samp=lastSamp;
       var car=sv(row[14]);if(car)lastCar=car; else car=lastCar;
 
       var staff=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
-      results.push({date:lastDate,engineer:eng,project:proj,type:type,
+      results.push({date:lastDate,engineer:eng,project:proj,projectNo:no,type:type,
         location:sv(row[7]),qty:parseFloat(String(row[8]!=null?row[8]:''))||0,
         sampTime:samp,equipment:sv(row[10]),
         applicant:sv(row[11]),reportNum:rpt,notes:sv(row[13]),
@@ -1511,17 +1528,18 @@ function renderParseResult(rows,filename,uploading){
       +'</span></div>';
     }
     html+='<div class="data-table-wrap"><table class="data-table"><thead><tr>'
-      +'<th>日期</th><th>工程師</th><th>地點</th><th>專案</th><th>類別</th>'
-      +'<th>採樣時間</th><th>儀器</th><th>申報代碼</th><th>地區</th>'
+      +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>地點</th>'
+      +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th>'
       +'</tr></thead><tbody>';
     rows.slice(0,100).forEach(function(r){
       html+='<tr><td>'+he(r.date)+'</td>'
         +'<td>'+(r.engineer?he(r.engineer):'<span style="color:var(--c-error)">—</span>')+'</td>'
-        +'<td>'+he(r.location)+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
+        +'<td>'+he(r.projectNo)+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
+        +'<td>'+he(r.location)+'</td>'
         +'<td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
         +'<td>'+he(r.reportNum)+'</td><td class="region-cell">'+(r.region?he(r.region):'—')+'</td></tr>';
     });
-    if(rows.length>100)html+='<tr><td colspan="9" style="text-align:center;color:var(--c-text-2);padding:8px">…僅顯示前 100 筆</td></tr>';
+    if(rows.length>100)html+='<tr><td colspan="10" style="text-align:center;color:var(--c-text-2);padding:8px">…僅顯示前 100 筆</td></tr>';
     html+='</tbody></table></div>';
     if(!uploading){
       html+='<div class="upload-actions">'
