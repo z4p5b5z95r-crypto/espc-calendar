@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ESPC 監測行程行事曆</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="theme-color" content="#1a73e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ESPC 行程">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -190,7 +196,19 @@ input,select,textarea{font-size:16px;}
 .role-viewer{background:#e6f4ea;color:#188038;}
 .status-active{color:var(--c-success);font-weight:600;}
 .status-inactive{color:var(--c-error);}
-.pw-card{max-width:420px;}
+.pw-card{max-width:460px;}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--c-border);}
+.set-label{font-size:14px;flex:1;min-width:0;}
+.set-hint{display:block;font-size:12px;color:var(--c-text-2);margin-top:3px;line-height:1.5;}
+.switch{position:relative;display:inline-block;width:48px;height:28px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:#c4c7c5;border-radius:28px;transition:.2s;cursor:pointer;}
+.slider::before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+.switch input:checked+.slider{background:var(--c-primary);}
+.switch input:checked+.slider::before{transform:translateX(20px);}
+.nt-status{font-size:12px;color:var(--c-text-2);line-height:1.7;margin:12px 0;}
+.nt-status.warn{color:#9a6700;background:#fef7e0;border-radius:var(--radius);padding:9px 11px;}
+.nt-status.bad{color:var(--c-error);background:#fce8e6;border-radius:var(--radius);padding:9px 11px;}
 .actions-cell{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
 
 .toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
@@ -241,7 +259,7 @@ input,select,textarea{font-size:16px;}
     <button class="tab-btn" id="tab-upload-btn" onclick="switchTab('upload',this)">上傳排程</button>
     <button class="tab-btn" id="tab-staff-btn" onclick="switchTab('staff',this)">人員通訊錄</button>
     <button class="tab-btn" id="tab-admin-btn" onclick="switchTab('admin',this)">帳號管理</button>
-    <button class="tab-btn" onclick="switchTab('password',this)">修改密碼</button>
+    <button class="tab-btn" onclick="switchTab('password',this)">設定</button>
   </div>
 
   <div id="panel-today" class="tab-panel active">
@@ -378,6 +396,29 @@ input,select,textarea{font-size:16px;}
 
   <div id="panel-password" class="tab-panel">
     <div class="section-card pw-card">
+      <h3>每日行程提醒</h3>
+      <div class="set-row">
+        <div class="set-label">開啟提醒<span class="set-hint">時間一到跳出系統通知，只顯示你自己的行程</span></div>
+        <label class="switch"><input type="checkbox" id="nt-on" onchange="notifToggle(this)"><span class="slider"></span></label>
+      </div>
+      <div class="set-row">
+        <div class="set-label">提醒時間</div>
+        <input type="time" id="nt-time" value="08:30" onchange="notifSaveUI()"
+               style="height:40px;padding:0 8px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:15px;background:var(--c-surface);color:var(--c-text);">
+      </div>
+      <div class="set-row">
+        <div class="set-label">六日不提醒</div>
+        <label class="switch"><input type="checkbox" id="nt-weekend" onchange="notifSaveUI()"><span class="slider"></span></label>
+      </div>
+      <div class="set-row" style="border-bottom:none;">
+        <div class="set-label">沒有行程時仍提醒<span class="set-hint">關閉的話，當天沒排程就不會跳通知</span></div>
+        <label class="switch"><input type="checkbox" id="nt-empty" onchange="notifSaveUI()"><span class="slider"></span></label>
+      </div>
+      <div id="nt-status" class="nt-status"></div>
+      <button class="btn btn-outline btn-sm" onclick="notifTest()">發送測試通知</button>
+    </div>
+
+    <div class="section-card pw-card">
       <h3>修改密碼</h3>
       <div class="form-group"><label>目前密碼</label><input id="pw-old" type="password" autocomplete="current-password" placeholder="請輸入目前密碼"></div>
       <div class="form-group"><label>新密碼</label><input id="pw-new" type="password" autocomplete="new-password" placeholder="至少6字元"></div>
@@ -476,7 +517,9 @@ function showApp(uname,role,engineerName){
   document.getElementById('tab-admin-btn').style.display=role==='admin'?'':'none';
   document.getElementById('staff-add-card').style.display=canWrite(role)?'':'none';
   document.getElementById('danger-zone').style.display=role==='admin'?'block':'none';
-  if(engineerName) sessionStorage.setItem('espc_eng',engineerName);
+  if(engineerName){sessionStorage.setItem('espc_eng',engineerName);localStorage.setItem('espc_eng_p',engineerName);}
+  ntRenderUI();
+  startNotifyLoop();
   loadStaff(function(){
     var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();
     loadToday();
@@ -530,6 +573,173 @@ function projColor(name){
   return projColorMap[name];
 }
 
+// ─── 每日提醒通知 ─────────────────────────────────────────────────────────────
+var NT_KEY='espc_notify',NT_CACHE='espc_today_cache',SW_REG=null;
+
+function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+function ntCfg(){
+  var c=lsGet(NT_KEY,null);
+  if(!c)c={};
+  if(c.on===undefined)c.on=false;
+  if(!c.time)c.time='08:30';
+  if(c.skipWeekend===undefined)c.skipWeekend=true;
+  if(c.notifyEmpty===undefined)c.notifyEmpty=false;
+  if(!c.last)c.last='';
+  return c;
+}
+
+function registerSW(){
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.register('sw.js').then(function(reg){SW_REG=reg;})
+    .catch(function(){});
+}
+
+function ntSupported(){return ('Notification' in window);}
+
+function ntRenderUI(){
+  var c=ntCfg();
+  document.getElementById('nt-on').checked=!!c.on;
+  document.getElementById('nt-time').value=c.time;
+  document.getElementById('nt-weekend').checked=!!c.skipWeekend;
+  document.getElementById('nt-empty').checked=!!c.notifyEmpty;
+  var el=document.getElementById('nt-status');
+  el.className='nt-status';
+  if(!ntSupported()){
+    el.className='nt-status bad';
+    el.textContent='這個瀏覽器不支援系統通知。iPhone 請用 Safari 開啟，並先「加入主畫面」。';
+    return;
+  }
+  var isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(Notification.permission==='denied'){
+    el.className='nt-status bad';
+    el.textContent='通知權限已被封鎖。請到瀏覽器或系統設定中，允許本網站傳送通知。';
+    return;
+  }
+  if(isIOS&&!isStandalone){
+    el.className='nt-status warn';
+    el.textContent='iPhone 需先「加入主畫面」才能收到通知：Safari 下方「分享」→「加入主畫面」，之後從主畫面圖示開啟本站再開啟提醒。';
+    return;
+  }
+  if(!c.on){el.textContent='目前未開啟。開啟後，每天到設定時間就會跳出當日行程通知。';return;}
+  el.textContent='已開啟，每天 '+c.time+' 提醒'+(c.skipWeekend?'（六、日不提醒）':'')
+    +'。提醒需要本頁保持開啟或在背景執行；若 App 已完全關閉，下次開啟時會補提醒當天行程。';
+}
+
+function notifSaveUI(){
+  var c=ntCfg();
+  c.time=document.getElementById('nt-time').value||'08:30';
+  c.skipWeekend=document.getElementById('nt-weekend').checked;
+  c.notifyEmpty=document.getElementById('nt-empty').checked;
+  lsSet(NT_KEY,c);
+  ntRenderUI();
+}
+
+function notifToggle(el){
+  var c=ntCfg();
+  if(!el.checked){c.on=false;lsSet(NT_KEY,c);ntRenderUI();return;}
+  if(!ntSupported()){el.checked=false;ntRenderUI();return;}
+  Notification.requestPermission().then(function(p){
+    if(p==='granted'){
+      c.on=true;c.last='';lsSet(NT_KEY,c);
+      toast('已開啟每日提醒','success');
+      registerSW();
+    }else{
+      c.on=false;lsSet(NT_KEY,c);
+      el.checked=false;
+      toast('未取得通知權限','error');
+    }
+    ntRenderUI();
+  }).catch(function(){el.checked=false;ntRenderUI();});
+}
+
+function showNotification(title,body){
+  var opts={body:body,tag:'espc-daily',icon:'icon.png',badge:'icon.png'};
+  if(SW_REG&&SW_REG.showNotification){
+    try{SW_REG.showNotification(title,opts);return true;}catch(e){}
+  }
+  if(navigator.serviceWorker&&navigator.serviceWorker.controller){
+    navigator.serviceWorker.controller.postMessage({type:'notify',title:title,body:body});
+    return true;
+  }
+  try{new Notification(title,opts);return true;}catch(e){return false;}
+}
+
+function buildNotifyText(t,rows){
+  var parts=t.split('-');
+  var head=parseInt(parts[1])+'/'+parseInt(parts[2])+'（'+DAYS_ZH[new Date(t).getDay()]+'）';
+  if(!rows.length)return{title:head+' 今日無排程',body:'今天沒有安排監測行程。'};
+  var lines=[];
+  groupByProject_(rows).forEach(function(g){
+    var types=Object.keys(g.types).join('、');
+    var loc=uniq_(g.rows,'location')[0]||'';
+    var st=uniq_(g.rows,'sampTime')[0]||'';
+    lines.push('• '+g.project+(types?'（'+types+'）':'')+(loc?'\n　'+loc:'')+(st?'　'+st:''));
+  });
+  return{title:head+' 今日 '+lines.length+' 項行程',body:lines.join('\n')};
+}
+
+function fireDailyNotify(t){
+  function go(rows){
+    var eng=(localStorage.getItem('espc_eng_p')||'').trim();
+    var mine=eng?rows.filter(function(r){return String(r.engineer||'').trim()===eng;}):rows;
+    var c=ntCfg();
+    if(!mine.length&&!c.notifyEmpty)return;
+    var msg=buildNotifyText(t,mine);
+    showNotification(msg.title,msg.body);
+  }
+  if(TOKEN){
+    gas('getData',TOKEN,{dateFrom:t,dateTo:t}).then(function(r){
+      if(r&&r.ok){lsSet(NT_CACHE,{date:t,rows:r.rows||[]});go(r.rows||[]);}
+      else{var cc=lsGet(NT_CACHE,null);go(cc&&cc.date===t?cc.rows:[]);}
+    }).catch(function(){var cc=lsGet(NT_CACHE,null);go(cc&&cc.date===t?cc.rows:[]);});
+  }else{
+    var cc=lsGet(NT_CACHE,null);
+    if(cc&&cc.date===t)go(cc.rows);
+    else showNotification('ESPC 監測行程','請開啟 App 查看今日行程。');
+  }
+}
+
+function ntTick(){
+  var c=ntCfg();
+  if(!c.on||!ntSupported()||Notification.permission!=='granted')return;
+  var now=new Date();
+  var t=todayStr_();
+  if(c.last===t)return;
+  var dow=now.getDay();
+  if(c.skipWeekend&&(dow===0||dow===6))return;
+  var hm=(c.time||'08:30').split(':');
+  var target=new Date(now);
+  target.setHours(parseInt(hm[0],10)||0,parseInt(hm[1],10)||0,0,0);
+  if(now<target)return;
+  c.last=t;lsSet(NT_KEY,c);
+  fireDailyNotify(t);
+}
+
+function notifTest(){
+  if(!ntSupported()){toast('此瀏覽器不支援通知','error');return;}
+  if(Notification.permission!=='granted'){
+    Notification.requestPermission().then(function(p){
+      if(p==='granted')notifTest();else toast('未取得通知權限','error');
+    });
+    return;
+  }
+  var t=todayStr_();
+  var rows=todayRows.filter(function(r){return r.date===t;});
+  var msg=buildNotifyText(t,rows);
+  if(showNotification(msg.title,msg.body))toast('已發送測試通知','success');
+  else toast('無法發送通知','error');
+}
+
+function startNotifyLoop(){
+  registerSW();
+  ntTick();
+  setInterval(ntTick,30000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)ntTick();});
+}
+
 // ─── 今日焦點 ─────────────────────────────────────────────────────────────────
 var todayRows=[],todayUnmatched='';
 
@@ -562,6 +772,7 @@ function loadToday(force){
     todayRows=matched?mine:all;
     todayUnmatched=matched?'':eng;
     todayLoadedFor=t;
+    lsSet(NT_CACHE,{date:t,rows:all.filter(function(x){return x.date===t;})});
     renderToday(t,todayUnmatched);
   }).catch(function(){document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';});
 }

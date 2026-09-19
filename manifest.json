@@ -1,0 +1,20 @@
+{
+  "name": "ESPC 監測行程行事曆",
+  "short_name": "ESPC 行程",
+  "description": "ESPC 環境監測採樣行程行事曆",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1a73e8",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
