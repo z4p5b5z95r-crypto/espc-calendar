@@ -158,6 +158,8 @@ input,select,textarea{font-size:16px;}
 
 .history-card{background:var(--c-surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .history-row{padding:12px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:flex-start;gap:10px;}
+.hist-del{flex-shrink:0;color:var(--c-error);align-self:center;}
+.hist-del:hover{background:#fce8e6;border-color:rgba(217,48,37,.4);}
 .history-row:last-child{border-bottom:none;}
 .hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
 .hist-name{font-size:14px;font-weight:500;}
@@ -493,7 +495,7 @@ function ssDel(k){try{localStorage.removeItem(k);}catch(e){}}
 var TOKEN=ss('espc_token');
 var ROLE=ss('espc_role');
 var UNAME=ss('espc_user');
-var currentFileName='';
+var currentFileName='',currentFileMtime='';
 var parsedRows=[];
 
 function saveSession(t,r,u){TOKEN=t;ROLE=r;UNAME=u;ssSet('espc_token',t);ssSet('espc_role',r);ssSet('espc_user',u);}
@@ -1247,6 +1249,7 @@ function handleFileSelect(e){var f=e.target.files[0];if(f)processFile(f);e.targe
 
 function processFile(file){
   currentFileName=file.name;
+  currentFileMtime=file.lastModified?new Date(file.lastModified).toISOString():'';
   document.getElementById('parse-area').innerHTML='<div class="loading"><div class="spinner"></div> 解析中…</div>';
   readExcel(file).then(function(rows){parsedRows=rows;renderParseResult(rows,file.name);}).catch(function(err){
     document.getElementById('parse-area').innerHTML='';toast('解析失敗：'+(err.message||err),'error');
@@ -1388,11 +1391,18 @@ function doUpload(){
   if(!parsedRows[0].region){toast('請先選擇地區（台北／台中／高雄）','error');return;}
   var btn=document.querySelector('#parse-area .btn-primary');
   if(btn){btn.disabled=true;btn.textContent='上傳中…';}
-  gas('saveData',TOKEN,parsedRows,currentFileName).then(function(r){
+  gas('saveData',TOKEN,parsedRows,currentFileName,currentFileMtime).then(function(r){
     if(r.ok){
-      toast('成功上傳 '+r.saved+' 筆，同日期舊資料已更新','success');
+      if(r.saved===0&&r.skipped){
+        toast('這份檔案比現有資料舊（共 '+r.skipped+' 天），未做任何變更','error',5000);
+        if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}
+        return;
+      }
+      var msg='成功上傳 '+r.saved+' 筆，同日期舊資料已更新';
+      if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
+      toast(msg,'success',r.skipped?5000:3000);
       document.getElementById('parse-area').innerHTML='';
-      parsedRows=[];currentFileName='';
+      parsedRows=[];currentFileName='';currentFileMtime='';
       todayLoadedFor='';allRows=[];
       loadMonth(true);loadToday(true);loadUploadHistory();
     }else toast(r.error||'上傳失敗','error');
@@ -1413,9 +1423,12 @@ function loadUploadHistory(){
 function renderUploadHistory(records){
   var el=document.getElementById('upload-history-list');
   if(!records||!records.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">尚無上傳記錄</p>';return;}
+  var canEdit=canWrite(ROLE);
+  var oldCount=0;
   var html='<div class="history-card">';
   records.forEach(function(rec){
     var isOld=rec.status==='superseded';
+    if(isOld)oldCount++;
     var dateRange=rec.date_from===rec.date_to?rec.date_from:(rec.date_from+' ~ '+rec.date_to);
     var uploadTime=rec.upload_time?rec.upload_time.slice(0,16).replace('T',' '):'';
     html+='<div class="history-row" style="'+(isOld?'opacity:0.6;':'')+'">'
@@ -1423,10 +1436,43 @@ function renderUploadHistory(records){
       +'<div style="flex:1;min-width:0;">'
       +'<div><span class="hist-name'+(isOld?' superseded':'')+'">'+he(rec.filename)+'</span>'
       +'<span class="status-badge '+(isOld?'status-super-b':'status-active-b')+'">'+(isOld?'已被取代':'最新')+'</span></div>'
-      +'<div class="hist-meta">'+he(dateRange)+' | '+he(rec.uploaded_by)+' | '+he(uploadTime)+'</div>'
-      +'</div></div>';
+      +'<div class="hist-meta">'+he(dateRange)+' | '+he(rec.uploaded_by)+' | '+he(uploadTime)
+      +(rec.days?' | '+rec.days+' 天':'')
+      +(isOld?'<br><span style="color:var(--c-text-2)">資料已被新檔覆蓋</span>':'')+'</div>'
+      +'</div>';
+    // 只有「最新」的記錄才需要刪除鈕；已被取代的資料早就被覆蓋掉了
+    if(canEdit&&!isOld){
+      html+='<button class="btn btn-outline btn-sm hist-del" title="刪除這次上傳的資料"'
+        +' onclick="deleteUploadRec(\''+he(rec.id)+'\',\''+he(rec.filename).replace(/'/g,"\\'")+'\')">刪除</button>';
+    }
+    html+='</div>';
   });
-  el.innerHTML=html+'</div>';
+  html+='</div>';
+  if(canEdit&&oldCount>1){
+    html+='<div style="text-align:right;margin-top:8px;">'
+      +'<button class="btn btn-outline btn-sm" onclick="purgeOldUploads('+oldCount+')">清除 '+oldCount+' 筆已被取代的記錄</button></div>';
+  }
+  el.innerHTML=html;
+}
+
+function deleteUploadRec(id,filename){
+  if(!confirm('確定要刪除「'+filename+'」？\n\n這會一併移除這次上傳寫入行事曆的所有排程資料，且無法還原。'))return;
+  gas('deleteUpload',TOKEN,id).then(function(r){
+    if(!r||!r.ok){toast(r&&r.error||'刪除失敗','error');return;}
+    toast('已刪除「'+filename+'」及其 '+r.removed+' 筆排程資料','success',4000);
+    todayLoadedFor='';allRows=[];
+    cachePrune(true);cacheCheckVersion('del-'+Date.now());
+    loadUploadHistory();loadMonth(true);loadToday(true);
+  }).catch(function(){toast('操作失敗','error');});
+}
+
+function purgeOldUploads(n){
+  if(!confirm('清除 '+n+' 筆「已被取代」的記錄？\n\n這些記錄的資料早已被新檔覆蓋，只是移除歷史清單，不影響行事曆。'))return;
+  gas('purgeSupersededUploads',TOKEN).then(function(r){
+    if(!r||!r.ok){toast(r&&r.error||'操作失敗','error');return;}
+    toast('已清除 '+r.removed+' 筆記錄','success');
+    loadUploadHistory();
+  }).catch(function(){toast('操作失敗','error');});
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
