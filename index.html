@@ -73,9 +73,7 @@ html,body{height:100%;font-family:'Google Sans','Noto Sans TC',Arial,sans-serif;
 .cal-saturday .cal-day-num{color:#1565c0;}
 .event-chip{display:block;font-size:11px;padding:2px 5px;border-radius:3px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#fff;line-height:1.4;}
 .more-chip{font-size:11px;color:var(--c-text-2);padding:1px 4px;}
-.dot-row{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;}
-.event-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-.dot-count{font-size:11px;color:var(--c-text-2);margin-top:1px;}
+.dot-row,.dot-count{display:none;}
 
 .legend-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:10px 2px 4px;}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;}
@@ -155,16 +153,14 @@ html,body{height:100%;font-family:'Google Sans','Noto Sans TC',Arial,sans-serif;
 @keyframes spin{to{transform:rotate(360deg);}}
 
 @media(max-width:600px){
-  .cal-cell{height:70px;padding:3px;}
-  .cal-day-num{font-size:12px;}
-  .event-chip,.more-chip{display:none;}
-  .dot-row{display:flex;}
+  .cal-cell{height:96px;padding:2px;}
+  .cal-day-num{font-size:11px;padding:1px 2px;margin-bottom:1px;}
+  .cal-cell.today .cal-day-num{width:20px;height:20px;}
+  .event-chip{font-size:9px;padding:1px 3px;border-radius:2px;margin-bottom:1px;line-height:1.35;}
   .cal-header-cell{font-size:11px;padding:6px 2px;}
   .login-card{padding:28px 16px;}
   .tab-panel{padding:8px;}
-}
-@media(min-width:601px){
-  .dot-row,.dot-count{display:none;}
+  .legend-item{font-size:11px;}
 }
 </style>
 </head>
@@ -293,7 +289,8 @@ html,body{height:100%;font-family:'Google Sans','Noto Sans TC',Arial,sans-serif;
 // ════════════════════════════════════════════════════════════
 // 請將下方的部署 ID 換成您自己的 Google Apps Script 部署 ID
 // ════════════════════════════════════════════════════════════
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';      
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
+
 // ─── GAS API（fetch 版）───────────────────────────────────────────────────────
 function gas(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
@@ -502,7 +499,6 @@ function renderCalendar(year,month,rows){
   var prevDays=new Date(year,month,0).getDate();
   var today=new Date();
   var todayStr=today.getFullYear()+'-'+p2(today.getMonth()+1)+'-'+p2(today.getDate());
-  var isMobile=window.innerWidth<=600;
   var html='<div class="cal-grid">';
   DAYS_ZH.forEach(function(d,i){
     var s=i===0?' style="color:#d32f2f"':i===6?' style="color:#1565c0"':'';
@@ -527,15 +523,9 @@ function renderCalendar(year,month,rows){
     var cls='cal-cell'+(isOther?' other-month':'')+(isToday?' today':'')+(dow===0?' cal-sunday':dow===6?' cal-saturday':'');
     html+='<div class="'+cls+'" onclick="showDetail(\''+dateStr+'\')">';
     html+='<div class="cal-day-num">'+day+'</div>';
-    if(!isMobile&&events.length>0){
-      events.slice(0,4).forEach(function(ev){html+='<div class="event-chip" style="background:'+ev.color+'" title="'+he(ev.title)+'">'+he(ev.title)+'</div>';});
-      if(events.length>4)html+='<div class="more-chip">+'+(events.length-4)+' 更多</div>';
-    }
-    if(isMobile&&events.length>0){
-      html+='<div class="dot-row">';
-      events.slice(0,6).forEach(function(ev){html+='<div class="event-dot" style="background:'+ev.color+'"></div>';});
-      html+='</div><div class="dot-count">'+events.length+'件</div>';
-    }
+    events.forEach(function(ev){
+      html+='<div class="event-chip" style="background:'+ev.color+'" title="'+he(ev.title)+'">'+he(ev.title)+'</div>';
+    });
     html+='</div>';
   }
   html+='</div>';
