@@ -250,7 +250,7 @@ input,select,textarea{font-size:16px;}
         <div class="today-date" id="today-date"></div>
         <div class="today-big">今天</div>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="loadToday()">&#8635;</button>
+      <button class="btn btn-outline btn-sm" onclick="loadToday(true)">&#8635;</button>
     </div>
     <div id="today-now"><div class="loading"><div class="spinner"></div></div></div>
     <div id="today-next-wrap" style="display:none;">
@@ -471,8 +471,7 @@ function showLogin(){document.getElementById('login-screen').style.display='flex
 function showApp(uname,role,engineerName){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
-  document.getElementById('topbar-user').textContent=
-    (engineerName?engineerName+' · ':'')+uname+'（'+roleLabel(role)+'）';
+  document.getElementById('topbar-user').textContent=engineerName||uname;
   document.getElementById('tab-upload-btn').style.display=canWrite(role)?'':'none';
   document.getElementById('tab-admin-btn').style.display=role==='admin'?'':'none';
   document.getElementById('staff-add-card').style.display=canWrite(role)?'':'none';
@@ -532,17 +531,28 @@ function projColor(name){
 }
 
 // ─── 今日焦點 ─────────────────────────────────────────────────────────────────
-var todayRows=[];
+var todayRows=[],todayUnmatched='';
 
 function todayStr_(){var n=new Date();return n.getFullYear()+'-'+p2(n.getMonth()+1)+'-'+p2(n.getDate());}
 function addDays_(s,n){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
 
-function loadToday(){
+var todayLoadedFor='';
+
+/** 今日頁範圍：本月剩餘天數，但至少涵蓋到 15 天後 */
+function todayRange_(t){
+  var d=new Date(t+'T00:00:00');
+  var monthEnd=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
+  var min15=addDays_(t,15);
+  return monthEnd>min15?monthEnd:min15;
+}
+
+function loadToday(force){
   var t=todayStr_();
+  if(!force&&todayLoadedFor===t){renderToday(t,todayUnmatched);return;}
   var parts=t.split('-');
   document.getElementById('today-date').textContent=parseInt(parts[1])+'月'+parseInt(parts[2])+'日 週'+DAYS_ZH[new Date(t).getDay()];
   document.getElementById('today-now').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  gas('getData',TOKEN,{dateFrom:t,dateTo:addDays_(t,60)}).then(function(r){
+  gas('getData',TOKEN,{dateFrom:t,dateTo:todayRange_(t)}).then(function(r){
     if(!r.ok){document.getElementById('today-now').innerHTML='<div class="today-empty">'+he(r.error||'載入失敗')+'</div>';return;}
     var all=r.rows||[];
     var eng=autoEngName();
@@ -550,7 +560,9 @@ function loadToday(){
     // 對不到工程師姓名時，改顯示全部行程
     var matched=!eng||mine.length>0;
     todayRows=matched?mine:all;
-    renderToday(t,matched?'':eng);
+    todayUnmatched=matched?'':eng;
+    todayLoadedFor=t;
+    renderToday(t,todayUnmatched);
   }).catch(function(){document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';});
 }
 
@@ -1025,6 +1037,7 @@ function doUpload(){
       toast('成功上傳 '+r.saved+' 筆，同日期舊資料已更新','success');
       document.getElementById('parse-area').innerHTML='';
       parsedRows=[];currentFileName='';
+      todayLoadedFor='';allRows=[];
       loadMonth();loadUploadHistory();
     }else toast(r.error||'上傳失敗','error');
     if(btn){btn.disabled=false;btn.textContent='上傳至雲端';}
@@ -1136,7 +1149,7 @@ function adminResetPw(username){
 function adminClearAll(){
   if(!confirm('確定要清除所有排程資料？此操作無法還原！'))return;
   gas('clearAllData',TOKEN).then(function(r){
-    if(r.ok){toast('已清除所有資料','success');allRows=[];filteredRows=[];renderCalendar(curYear,curMonth,[]);loadUploadHistory();}
+    if(r.ok){toast('已清除所有資料','success');allRows=[];filteredRows=[];todayRows=[];todayLoadedFor='';renderCalendar(curYear,curMonth,[]);loadUploadHistory();}
     else toast(r.error||'操作失敗','error');
   }).catch(function(){toast('操作失敗','error');});
 }
