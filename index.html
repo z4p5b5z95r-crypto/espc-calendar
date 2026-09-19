@@ -65,7 +65,25 @@ input,select,textarea{font-size:16px;}
 .cal-toolbar{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
 .cal-toolbar-nav{display:flex;align-items:center;gap:6px;}
 .cal-toolbar-nav .btn{padding:8px 11px;min-height:38px;}
-.month-label{font-size:18px;font-weight:600;flex:1;text-align:center;white-space:nowrap;}
+.month-label{font-size:18px;font-weight:600;flex:1;text-align:center;white-space:nowrap;
+  border:none;background:transparent;color:var(--c-text);cursor:pointer;padding:8px 6px;
+  border-radius:var(--radius);font-family:inherit;min-height:38px;}
+.month-label:hover{background:var(--c-bg);}
+.month-label::after{content:" \25BE";font-size:12px;color:var(--c-text-2);}
+
+.cal-toolbar{position:relative;}
+.month-picker{display:none;position:absolute;top:44px;left:50%;transform:translateX(-50%);
+  z-index:150;background:var(--c-surface);border:1px solid var(--c-border);border-radius:12px;
+  box-shadow:var(--shadow-md);padding:12px;width:260px;}
+.month-picker.open{display:block;}
+.mp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.mp-head span{font-size:16px;font-weight:600;}
+.mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.mp-btn{border:1px solid transparent;background:var(--c-bg);border-radius:var(--radius);
+  padding:10px 4px;font-size:14px;cursor:pointer;color:var(--c-text);min-height:42px;}
+.mp-btn:hover{background:#e8f0fe;}
+.mp-btn.cur{background:var(--c-primary);color:#fff;font-weight:600;}
+.mp-btn.today-m{border-color:var(--c-primary);color:var(--c-primary);font-weight:600;}
 .cal-filters{display:none;gap:6px;flex-wrap:wrap;padding:8px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);}
 .cal-filters.open{display:flex;}
 .cal-filters select{flex:1 1 130px;min-width:0;padding:8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);outline:none;min-height:38px;}
@@ -84,7 +102,12 @@ input,select,textarea{font-size:16px;}
 .cal-cell:active{background:#e8f0fe;}
 .cal-cell.other-month{background:var(--c-bg);opacity:.5;}
 .cal-cell.today .cal-day-num{background:var(--c-primary);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;}
-.cal-day-num{font-size:13px;font-weight:500;display:inline-block;padding:2px 4px;margin-bottom:2px;}
+.cal-day-row{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:2px;}
+.cal-day-num{font-size:13px;font-weight:500;display:inline-block;padding:2px 4px;}
+.day-count{font-size:10px;color:var(--c-text-2);background:var(--c-bg);border-radius:9px;
+  padding:1px 6px;flex-shrink:0;}
+.event-chip{cursor:pointer;}
+.event-chip:active{opacity:.75;}
 .cal-sunday .cal-day-num{color:#d32f2f;}
 .cal-saturday .cal-day-num{color:#1565c0;}
 .event-chip{display:block;font-size:11px;padding:2px 5px;border-radius:3px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#fff;line-height:1.4;}
@@ -139,6 +162,9 @@ input,select,textarea{font-size:16px;}
 .proj-footer{font-size:13px;color:var(--c-text-2);margin-top:6px;padding-top:6px;border-top:1px solid var(--c-border);line-height:1.9;}
 .proj-footer span{color:var(--c-text);}
 .empty-day{color:var(--c-text-2);font-size:14px;text-align:center;padding:28px;}
+.detail-more{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--c-bg);border-radius:var(--radius);padding:8px 8px 8px 12px;
+  font-size:13px;color:var(--c-text-2);margin-bottom:12px;}
 
 .upload-box{border:2px dashed var(--c-border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--c-surface);}
 .upload-box:hover,.upload-box.drag-over{border-color:var(--c-primary);background:#e8f0fe;}
@@ -283,10 +309,18 @@ input,select,textarea{font-size:16px;}
     <div class="cal-toolbar">
       <div class="cal-toolbar-nav">
         <button class="btn btn-outline btn-sm" onclick="moveMonth(-1)">&#8249;</button>
-        <span class="month-label" id="month-label"></span>
+        <button class="month-label" id="month-label" onclick="toggleMonthPicker(event)" aria-haspopup="true"></button>
         <button class="btn btn-outline btn-sm" onclick="moveMonth(1)">&#8250;</button>
         <button class="btn btn-outline btn-sm" onclick="goToday()">今天</button>
         <button class="btn btn-outline btn-sm" id="filter-toggle" onclick="toggleFilters()">篩選</button>
+      </div>
+      <div class="month-picker" id="month-picker">
+        <div class="mp-head">
+          <button class="btn btn-outline btn-sm" onclick="mpYear(-1)">&#8249;</button>
+          <span id="mp-year"></span>
+          <button class="btn btn-outline btn-sm" onclick="mpYear(1)">&#8250;</button>
+        </div>
+        <div class="mp-grid" id="mp-grid"></div>
       </div>
       <div class="cal-filters" id="cal-filters">
         <select id="cal-filter-region" onchange="applyFilter()">
@@ -521,6 +555,36 @@ function he(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 function p2(n){return String(n).padStart(2,'0');}
 function sv(v){return v!=null?String(v).trim():'';}
 
+// ─── 時間一律用台灣時間（UTC+8）───────────────────────────────────────────────
+// 不管使用者的裝置設定在哪個時區，畫面顯示與「今天」的判斷都以台灣為準。
+var TW_OFFSET_MIN=480;   // UTC+8
+
+/** 把時間平移成「台灣牆上時鐘」，之後用一般的 getFullYear/getHours 讀即為台灣時間 */
+function twDate(d){
+  d=d?new Date(d):new Date();
+  if(isNaN(d))return d;
+  return new Date(d.getTime()+(d.getTimezoneOffset()+TW_OFFSET_MIN)*60000);
+}
+/** 台灣時間的 YYYY-MM-DD */
+function twDateStr(d){
+  var t=twDate(d);
+  return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate());
+}
+/** 由 YYYY-MM-DD 取星期（避免 ISO 字串被當成 UTC 而跨日）*/
+function dowOf(dateStr){
+  var a=String(dateStr).split('-');
+  return new Date(parseInt(a[0],10),parseInt(a[1],10)-1,parseInt(a[2],10)).getDay();
+}
+/** 台灣時間的 YYYY-MM-DD HH:mm */
+function fmtStamp(v){
+  if(!v)return '';
+  var d=new Date(v);
+  if(isNaN(d))return String(v).slice(0,16).replace('T',' ');
+  var t=twDate(d);
+  return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate())
+    +' '+p2(t.getHours())+':'+p2(t.getMinutes());
+}
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('inp-pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
@@ -556,7 +620,7 @@ function showApp(uname,role,engineerName){
   if(engineerName){ssSet('espc_eng',engineerName);ssSet('espc_eng_p',engineerName);}else{ssDel('espc_eng');}
   ntRenderUI();
   startNotifyLoop();
-  var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();
+  var n=twDate();curYear=n.getFullYear();curMonth=n.getMonth();
   // 跨日後第一次開啟 → 強制重抓；同一天內開啟 → 先吃快取再背景比對
   var t=todayStr_(),last='';
   try{last=localStorage.getItem(SYNC_KEY)||'';}catch(e){}
@@ -751,7 +815,7 @@ function showNotification(title,body){
 
 function buildNotifyText(t,rows){
   var parts=t.split('-');
-  var head=parseInt(parts[1])+'/'+parseInt(parts[2])+'（'+DAYS_ZH[new Date(t).getDay()]+'）';
+  var head=parseInt(parts[1])+'/'+parseInt(parts[2])+'（'+DAYS_ZH[dowOf(t)]+'）';
   if(!rows.length)return{title:head+' 今日無排程',body:'今天沒有安排監測行程。'};
   var lines=[];
   groupByProject_(rows).forEach(function(g){
@@ -787,7 +851,7 @@ function fireDailyNotify(t){
 function ntTick(){
   var c=ntCfg();
   if(!c.on||!ntSupported()||Notification.permission!=='granted')return;
-  var now=new Date();
+  var now=twDate();
   var t=todayStr_();
   if(c.last===t)return;
   var dow=now.getDay();
@@ -846,7 +910,7 @@ function dailySync(){
 // ─── 今日焦點 ─────────────────────────────────────────────────────────────────
 var todayRows=[],todayUnmatched='';
 
-function todayStr_(){var n=new Date();return n.getFullYear()+'-'+p2(n.getMonth()+1)+'-'+p2(n.getDate());}
+function todayStr_(){return twDateStr();}
 function addDays_(s,n){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
 
 var todayLoadedFor='';
@@ -874,7 +938,7 @@ function paintToday(t,all){
 function loadToday(force){
   var t=todayStr_();
   var parts=t.split('-');
-  document.getElementById('today-date').textContent=parseInt(parts[1])+'月'+parseInt(parts[2])+'日 週'+DAYS_ZH[new Date(t).getDay()];
+  document.getElementById('today-date').textContent=parseInt(parts[1])+'月'+parseInt(parts[2])+'日 週'+DAYS_ZH[dowOf(t)];
 
   if(!force&&todayLoadedFor===t){renderToday(t,todayUnmatched);return;}
 
@@ -983,7 +1047,7 @@ function renderToday(t,unmatchedEng){
       var c=projColor(g.project);
       var dd=d.split('-');
       out+='<div class="up-row" onclick="openDay(\''+d+'\')">'
-        +'<div class="up-date"><div class="up-d">'+parseInt(dd[2])+'</div><div class="up-w">'+DAYS_ZH[new Date(d).getDay()]+'</div></div>'
+        +'<div class="up-date"><div class="up-d">'+parseInt(dd[2])+'</div><div class="up-w">'+DAYS_ZH[dowOf(d)]+'</div></div>'
         +'<div class="up-bar" style="background:'+c+'"></div>'
         +'<div class="up-body"><div class="up-title">'+he(g.project)+'</div>'
         +'<div class="up-meta">'+he(Object.keys(g.types).join('、'))
@@ -1006,9 +1070,48 @@ var DAYS_ZH=['日','一','二','三','四','五','六'];
 var MONTHS_ZH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 var curYear,curMonth,allRows=[],filteredRows=[];
 
-function initCalendar(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
+// ─── 月份快速選擇 ─────────────────────────────────────────────────────────────
+var mpYearShown=0;
+
+function toggleMonthPicker(e){
+  if(e)e.stopPropagation();
+  var el=document.getElementById('month-picker');
+  if(el.classList.contains('open')){el.classList.remove('open');return;}
+  mpYearShown=curYear;
+  renderMonthPicker();
+  el.classList.add('open');
+}
+function closeMonthPicker(){document.getElementById('month-picker').classList.remove('open');}
+function mpYear(d){mpYearShown+=d;renderMonthPicker();}
+
+function renderMonthPicker(){
+  document.getElementById('mp-year').textContent=mpYearShown+' 年';
+  var n=twDate(),ty=n.getFullYear(),tm=n.getMonth();
+  var html='';
+  for(var m=0;m<12;m++){
+    var cls='mp-btn';
+    if(mpYearShown===curYear&&m===curMonth)cls+=' cur';
+    else if(mpYearShown===ty&&m===tm)cls+=' today-m';
+    html+='<button class="'+cls+'" onclick="pickMonth('+mpYearShown+','+m+')">'+MONTHS_ZH[m]+'</button>';
+  }
+  document.getElementById('mp-grid').innerHTML=html;
+}
+
+function pickMonth(y,m){
+  curYear=y;curMonth=m;
+  closeMonthPicker();
+  loadMonth();
+}
+
+document.addEventListener('click',function(e){
+  var el=document.getElementById('month-picker');
+  if(el&&el.classList.contains('open')&&!el.contains(e.target))closeMonthPicker();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMonthPicker();});
+
+function initCalendar(){var n=twDate();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
 function moveMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}loadMonth();}
-function goToday(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
+function goToday(){var n=twDate();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
 
 function paintMonth(rows){
   allRows=rows||[];
@@ -1147,8 +1250,7 @@ function renderCalendar(year,month,rows){
   var startDow=new Date(year,month,1).getDay();
   var daysInMonth=new Date(year,month+1,0).getDate();
   var prevDays=new Date(year,month,0).getDate();
-  var today=new Date();
-  var todayStr=today.getFullYear()+'-'+p2(today.getMonth()+1)+'-'+p2(today.getDate());
+  var todayStr=twDateStr();
   var html='<div class="cal-grid">';
   DAYS_ZH.forEach(function(d,i){
     var s=i===0?' style="color:#d32f2f"':i===6?' style="color:#1565c0"':'';
@@ -1171,10 +1273,13 @@ function renderCalendar(year,month,rows){
     var dow=i%7,isToday=dateStr===todayStr;
     var events=dateEvents[dateStr]||[];
     var cls='cal-cell'+(isOther?' other-month':'')+(isToday?' today':'')+(dow===0?' cal-sunday':dow===6?' cal-saturday':'');
-    html+='<div class="'+cls+'" onclick="showDetail(\''+dateStr+'\')">';
-    html+='<div class="cal-day-num">'+day+'</div>';
-    events.forEach(function(ev){
-      html+='<div class="event-chip" style="background:'+ev.color+'" title="'+he(ev.title)+'">'+he(ev.title)+'</div>';
+    html+='<div class="'+cls+'" onclick="showDetail(\''+dateStr+'\')" title="'
+      +(events.length?'點格子看當天全部 '+events.length+' 項':'')+'">';
+    html+='<div class="cal-day-row"><span class="cal-day-num">'+day+'</span>'
+      +(events.length>3?'<span class="day-count">'+events.length+'</span>':'')+'</div>';
+    events.forEach(function(ev,ei){
+      html+='<div class="event-chip" style="background:'+ev.color+'" title="'+he(ev.title)+'"'
+        +' onclick="event.stopPropagation();showDetail(\''+dateStr+'\','+ei+')">'+he(ev.title)+'</div>';
     });
     html+='</div>';
   }
@@ -1192,13 +1297,27 @@ var resizeTimer;
 window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){renderCalendar(curYear,curMonth,filteredRows);},200);});
 
 // ─── Detail ───────────────────────────────────────────────────────────────────
-function showDetail(dateStr){
+/**
+ * @param dateStr 日期
+ * @param onlyIdx 有帶就只顯示該筆事件；不帶則顯示當天全部
+ */
+function showDetail(dateStr,onlyIdx){
   var dateEvents=buildDateEvents(filteredRows);
-  var events=dateEvents[dateStr]||[];
+  var all=dateEvents[dateStr]||[];
+  var single=(onlyIdx!=null&&all[onlyIdx]);
+  var events=single?[all[onlyIdx]]:all;
+
   var parts=dateStr.split('-');
-  var dow=new Date(dateStr).getDay();
-  document.getElementById('detail-title').textContent=parts[0]+'年'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日（'+DAYS_ZH[dow]+'）';
+  var dow=dowOf(dateStr);
+  var title=parts[0]+'年'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日（'+DAYS_ZH[dow]+'）';
+  document.getElementById('detail-title').textContent=title;
+
   var html='';
+  // 只看單筆時，上方提供「查看當天全部」的入口
+  if(single&&all.length>1){
+    html+='<div class="detail-more">當天共 '+all.length+' 項行程'
+      +'<button class="btn btn-outline btn-sm" onclick="showDetail(\''+dateStr+'\')">查看全部</button></div>';
+  }
   if(!events.length){html='<div class="empty-day">此日無排程</div>';}
   else events.forEach(function(ev){
     html+='<div class="proj-card" style="border-color:'+ev.color+'">';
@@ -1416,6 +1535,27 @@ function renderParseResult(rows,filename,uploading){
   document.getElementById('parse-area').innerHTML=html+'</div>';
 }
 
+function showOlderFilePrompt(filename,days){
+  var html='<div class="parse-result"><div style="padding:16px;">'
+    +'<div style="font-size:15px;font-weight:600;margin-bottom:6px;">未做任何變更</div>'
+    +'<div style="font-size:13px;color:var(--c-text-2);line-height:1.8;word-break:break-all;">'
+    +he(filename)+'<br>'
+    +'這份檔案的修改時間不比資料庫現有的新，'+(days?'共 '+days+' 天':'')+'因此沒有覆蓋。'
+    +'<br><br>如果是因為解析規則更新、需要用同一份檔案重跑，請按下方按鈕強制覆蓋。</div>'
+    +'<div class="upload-actions" style="padding:14px 0 0;">'
+    +'<button class="btn btn-danger btn-sm" onclick="forceUpload()">強制覆蓋</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'parse-area\').innerHTML=\'\'">取消</button>'
+    +'</div></div></div>';
+  document.getElementById('parse-area').innerHTML=html;
+}
+
+function forceUpload(){
+  if(!confirm('強制覆蓋？\n\n會用這份檔案的內容取代資料庫中同地區、同日期的資料，無法還原。'))return;
+  document.getElementById('parse-area').innerHTML=
+    '<div class="loading"><div class="spinner"></div> 強制覆蓋中…</div>';
+  doUpload(true);
+}
+
 function showUploadDone(filename,r){
   var html='<div class="parse-result"><div style="padding:18px 16px;display:flex;align-items:flex-start;gap:12px;">'
     +'<div style="width:26px;height:26px;border-radius:50%;background:var(--c-success);color:#fff;'
@@ -1433,20 +1573,20 @@ function showUploadDone(filename,r){
   },8000);
 }
 
-function doUpload(){
+function doUpload(force){
   if(!parsedRows||!parsedRows.length){toast('沒有可上傳的資料','error');return;}
   if(!parsedRows[0].region){toast('請先選擇地區（台北／台中／高雄）','error');return;}
   var fname=currentFileName;
+  var rowsSnapshot=parsedRows,mtimeSnapshot=currentFileMtime;
   var btn=document.querySelector('#parse-area .btn-primary');
   if(btn){btn.disabled=true;btn.textContent='上傳中…';}
 
   function restore(){if(btn){btn.disabled=false;btn.textContent='確認上傳';}}
 
-  gas('saveData',TOKEN,parsedRows,fname,currentFileMtime).then(function(r){
+  gas('saveData',TOKEN,rowsSnapshot,fname,mtimeSnapshot,!!force).then(function(r){
     if(!r||!r.ok){toast(r&&r.error||'上傳失敗','error');restore();return;}
-    if(r.saved===0&&r.skipped){
-      toast('這份檔案比現有資料舊（共 '+r.skipped+' 天），未做任何變更','error',5000);
-      renderParseResult(parsedRows,fname,false);
+    if(r.saved===0&&r.canForce){
+      showOlderFilePrompt(fname,r.skipped);
       return;
     }
     var msg='已儲存 '+r.saved+' 筆';
@@ -1458,7 +1598,8 @@ function doUpload(){
     loadMonth(true);loadToday(true);loadUploadHistory();
   }).catch(function(){
     toast('上傳失敗，請稍後再試','error');
-    renderParseResult(parsedRows,fname,false);
+    currentFileName=fname;currentFileMtime=mtimeSnapshot;parsedRows=rowsSnapshot;
+    renderParseResult(rowsSnapshot,fname,false);
   });
 }
 
@@ -1469,15 +1610,6 @@ function loadUploadHistory(){
     if(!r.ok){el.innerHTML='<p style="color:var(--c-error);padding:12px">'+he(r.error)+'</p>';return;}
     renderUploadHistory(r.records);
   }).catch(function(){el.innerHTML='<p style="color:var(--c-error);padding:12px">載入失敗</p>';});
-}
-
-/** ISO 時間轉成台灣時區的「YYYY-MM-DD HH:mm」 */
-function fmtStamp(v){
-  if(!v)return '';
-  var d=new Date(v);
-  if(isNaN(d))return String(v).slice(0,16).replace('T',' ');
-  return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())
-    +' '+p2(d.getHours())+':'+p2(d.getMinutes());
 }
 
 function renderUploadHistory(records){
