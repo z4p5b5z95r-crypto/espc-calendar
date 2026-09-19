@@ -166,6 +166,12 @@ input,select,textarea{font-size:16px;}
 .admin-form .form-group{flex:1 1 130px;margin-bottom:0;}
 .admin-form .form-group label{font-size:12px;}
 .admin-form .form-group input,.admin-form .form-group select{width:100%;padding:10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;outline:none;min-height:44px;}
+.seg{display:flex;gap:4px;background:var(--c-bg);border-radius:20px;padding:3px;margin-bottom:12px;overflow-x:auto;}
+.seg::-webkit-scrollbar{display:none;}
+.seg-btn{flex:1 0 auto;border:none;background:transparent;border-radius:18px;padding:7px 14px;font-size:13px;color:var(--c-text-2);cursor:pointer;white-space:nowrap;min-height:34px;}
+.seg-btn.active{background:var(--c-surface);color:var(--c-primary);font-weight:600;box-shadow:var(--shadow);}
+.region-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;background:#e8f0fe;color:#1558b0;white-space:nowrap;}
+.region-pill.none{background:var(--c-bg);color:var(--c-text-2);}
 .users-table{width:100%;border-collapse:collapse;font-size:13px;}
 .users-table th{background:var(--c-bg);padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--c-border);}
 .users-table td{padding:10px 10px;border-bottom:1px solid var(--c-border);vertical-align:middle;}
@@ -304,6 +310,14 @@ input,select,textarea{font-size:16px;}
       <div class="admin-form">
         <div class="form-group"><label>姓名</label><input id="staff-name" type="text" placeholder="姓名"></div>
         <div class="form-group"><label>電話</label><input id="staff-phone" type="tel" placeholder="09xx-xxx-xxx"></div>
+        <div class="form-group"><label>地區</label>
+          <select id="staff-region">
+            <option value="">未指定</option>
+            <option value="台北">台北</option>
+            <option value="台中">台中</option>
+            <option value="高雄">高雄</option>
+          </select>
+        </div>
         <div class="form-group"><label>備註</label><input id="staff-note" type="text" placeholder="所屬／職務（選填）"></div>
         <button class="btn btn-primary btn-sm" onclick="staffSave()">儲存</button>
       </div>
@@ -315,6 +329,13 @@ input,select,textarea{font-size:16px;}
         <input id="staff-search" type="search" placeholder="搜尋姓名或電話" oninput="renderStaffTable()"
                style="flex:1 1 180px;padding:8px 10px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;outline:none;min-height:38px;">
         <button class="btn btn-outline btn-sm" onclick="staffReload()">&#8635;</button>
+      </div>
+      <div class="seg" id="staff-region-filter">
+        <button class="seg-btn active" data-r="" onclick="staffSetRegion(this)">全部</button>
+        <button class="seg-btn" data-r="台北" onclick="staffSetRegion(this)">台北</button>
+        <button class="seg-btn" data-r="台中" onclick="staffSetRegion(this)">台中</button>
+        <button class="seg-btn" data-r="高雄" onclick="staffSetRegion(this)">高雄</button>
+        <button class="seg-btn" data-r="__none__" onclick="staffSetRegion(this)">未指定</button>
       </div>
       <div id="staff-list" style="overflow-x:auto;"><div class="loading"><div class="spinner"></div></div></div>
     </div>
@@ -1069,20 +1090,35 @@ function staffReload(){
   loadStaff(renderStaffTable);
 }
 
+var staffRegion='';
+function staffSetRegion(btn){
+  staffRegion=btn.getAttribute('data-r');
+  var all=document.querySelectorAll('#staff-region-filter .seg-btn');
+  for(var i=0;i<all.length;i++)all[i].classList.remove('active');
+  btn.classList.add('active');
+  renderStaffTable();
+}
+
 function renderStaffTable(){
   var el=document.getElementById('staff-list');if(!el)return;
   var q=(document.getElementById('staff-search').value||'').trim().toLowerCase();
   var list=STAFF_LIST.filter(function(s){
+    var rg=(s.region||'').trim();
+    if(staffRegion==='__none__'){if(rg)return false;}
+    else if(staffRegion&&rg!==staffRegion)return false;
     if(!q)return true;
-    return (s.name||'').toLowerCase().indexOf(q)>=0||(s.phone||'').toLowerCase().indexOf(q)>=0||(s.note||'').toLowerCase().indexOf(q)>=0;
+    return (s.name||'').toLowerCase().indexOf(q)>=0||(s.phone||'').toLowerCase().indexOf(q)>=0
+        ||(s.note||'').toLowerCase().indexOf(q)>=0||rg.toLowerCase().indexOf(q)>=0;
   });
-  if(!list.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">'+(q?'查無符合的人員':'尚無人員資料')+'</p>';return;}
+  if(!list.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">'+(q||staffRegion?'查無符合的人員':'尚無人員資料')+'</p>';return;}
   var canEdit=(ROLE==='admin'||ROLE==='scheduler');
-  var html='<table class="users-table"><thead><tr><th>姓名</th><th>電話</th><th>備註</th>'+(canEdit?'<th>操作</th>':'')+'</tr></thead><tbody>';
+  var html='<p style="font-size:12px;color:var(--c-text-2);margin-bottom:8px">共 '+list.length+' 位</p>'
+    +'<table class="users-table"><thead><tr><th>姓名</th><th>電話</th><th>地區</th><th>備註</th>'+(canEdit?'<th>操作</th>':'')+'</tr></thead><tbody>';
   list.forEach(function(s){
-    var ph=s.phone||'';
+    var ph=s.phone||'',rg=(s.region||'').trim();
     html+='<tr><td>'+he(s.name)+'</td>'
       +'<td>'+(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'" style="color:var(--c-primary);text-decoration:none">'+he(ph)+'</a>':'—')+'</td>'
+      +'<td>'+(rg?'<span class="region-pill">'+he(rg)+'</span>':'<span class="region-pill none">未指定</span>')+'</td>'
       +'<td>'+he(s.note||'—')+'</td>';
     if(canEdit){
       html+='<td><div class="actions-cell">'
@@ -1101,6 +1137,7 @@ function staffEdit(name){
   if(!s)return;
   document.getElementById('staff-name').value=s.name;
   document.getElementById('staff-phone').value=s.phone||'';
+  document.getElementById('staff-region').value=s.region||'';
   document.getElementById('staff-note').value=s.note||'';
   document.getElementById('staff-add-card').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1108,12 +1145,14 @@ function staffEdit(name){
 function staffSave(){
   var name=document.getElementById('staff-name').value.trim();
   var phone=document.getElementById('staff-phone').value.trim();
+  var region=document.getElementById('staff-region').value;
   var note=document.getElementById('staff-note').value.trim();
   if(!name){toast('請輸入姓名','error');return;}
-  gas('saveStaff',TOKEN,name,phone,note).then(function(r){
+  gas('saveStaff',TOKEN,name,phone,region,note).then(function(r){
     if(r.ok){
       toast('已儲存','success');
       ['staff-name','staff-phone','staff-note'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('staff-region').value='';
       loadStaff(function(){renderStaffTable();applyFilter();});
     }else toast(r.error||'儲存失敗','error');
   }).catch(function(){toast('操作失敗','error');});
