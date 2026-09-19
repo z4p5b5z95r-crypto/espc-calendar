@@ -41,9 +41,9 @@ input,select,textarea{font-size:16px;}
 
 #app-screen{display:none;flex-direction:column;min-height:100vh;}
 .topbar{background:var(--c-primary);color:#fff;padding:0 16px;display:flex;align-items:center;gap:12px;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-md);}
-.topbar h1{font-size:16px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.topbar-user{font-size:12px;opacity:.9;white-space:nowrap;display:none;}
-@media(min-width:500px){.topbar-user{display:block;}}
+.topbar-titles{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.25;}
+.topbar h1{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.topbar-user{font-size:12px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
 .topbar-logout{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:8px 12px;font-size:13px;cursor:pointer;min-height:36px;}
 .topbar-logout:hover{background:rgba(255,255,255,.25);}
 
@@ -98,6 +98,7 @@ input,select,textarea{font-size:16px;}
 .call-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
 .call-btn{display:inline-flex;align-items:center;gap:6px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--c-text);text-decoration:none;min-height:38px;}
 .call-btn:active{background:#e8f0fe;}
+.notice{background:#fef7e0;color:#7a5c00;border-radius:var(--radius);padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:10px;}
 .today-empty{background:var(--c-surface);border-radius:12px;box-shadow:var(--shadow);padding:36px 20px;text-align:center;color:var(--c-text-2);font-size:14px;}
 .upcoming-card{background:var(--c-surface);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;}
 .up-row{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--c-border);cursor:pointer;align-items:flex-start;}
@@ -165,7 +166,10 @@ input,select,textarea{font-size:16px;}
 .admin-form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;}
 .admin-form .form-group{flex:1 1 130px;margin-bottom:0;}
 .admin-form .form-group label{font-size:12px;}
-.admin-form .form-group input,.admin-form .form-group select{width:100%;padding:10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;outline:none;min-height:44px;}
+.admin-form .form-group input,.admin-form .form-group select{width:100%;height:44px;padding:0 10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;line-height:normal;outline:none;background:var(--c-surface);color:var(--c-text);-webkit-appearance:none;appearance:none;}
+.admin-form .form-group select{padding-right:28px;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%235f6368' d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;background-size:14px;}
+.admin-form .form-group input:focus,.admin-form .form-group select:focus{border-color:var(--c-primary);}
+.admin-form .btn{height:44px;min-height:44px;}
 .seg{display:flex;gap:4px;background:var(--c-bg);border-radius:20px;padding:3px;margin-bottom:12px;overflow-x:auto;}
 .seg::-webkit-scrollbar{display:none;}
 .seg-btn{flex:1 0 auto;border:none;background:transparent;border-radius:18px;padding:7px 14px;font-size:13px;color:var(--c-text-2);cursor:pointer;white-space:nowrap;min-height:34px;}
@@ -176,9 +180,12 @@ input,select,textarea{font-size:16px;}
 .users-table th{background:var(--c-bg);padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--c-border);}
 .users-table td{padding:10px 10px;border-bottom:1px solid var(--c-border);vertical-align:middle;}
 .users-table tr:last-child td{border-bottom:none;}
-.role-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.role-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;}
+.role-sel{height:34px;padding:0 6px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);color:var(--c-text);outline:none;max-width:110px;}
+.role-sel:focus{border-color:var(--c-primary);}
 .role-admin{background:#fce8e6;color:#c5221f;}
 .role-scheduler{background:#e8f0fe;color:#1a73e8;}
+.role-pm{background:#f3e8fd;color:#7b1fa2;}
 .role-viewer{background:#e6f4ea;color:#188038;}
 .status-active{color:var(--c-success);font-weight:600;}
 .status-inactive{color:var(--c-error);}
@@ -221,8 +228,10 @@ input,select,textarea{font-size:16px;}
 
 <div id="app-screen">
   <div class="topbar">
-    <h1>ESPC 監測行程</h1>
-    <span class="topbar-user" id="topbar-user"></span>
+    <div class="topbar-titles">
+      <h1>ESPC 監測行程</h1>
+      <span class="topbar-user" id="topbar-user"></span>
+    </div>
     <button class="topbar-logout" onclick="doLogout()">登出</button>
   </div>
   <div class="tabs">
@@ -267,6 +276,7 @@ input,select,textarea{font-size:16px;}
         </select>
         <select id="cal-filter-eng" onchange="applyFilter()"><option value="">全部工程師</option></select>
         <select id="cal-filter-type" onchange="applyFilter()"><option value="">全部類別</option></select>
+        <select id="cal-filter-file" onchange="applyFilter()"><option value="">全部來源檔案</option></select>
         <button class="btn btn-outline btn-sm" onclick="clearFilters()">清除</button>
       </div>
       <div class="filter-chips" id="filter-chips"></div>
@@ -349,9 +359,10 @@ input,select,textarea{font-size:16px;}
         <div class="form-group"><label>密碼</label><input id="new-password" type="password" placeholder="至少6字元"></div>
         <div class="form-group"><label>角色</label>
           <select id="new-role">
-            <option value="viewer">Viewer（查詢）</option>
-            <option value="scheduler">Scheduler（上傳+查詢）</option>
-            <option value="admin">Admin（全部）</option>
+            <option value="viewer">現場（查詢）</option>
+            <option value="pm">PM（查詢，自動帶自己行程）</option>
+            <option value="scheduler">主管（上傳＋查詢）</option>
+            <option value="admin">管理員（全部）</option>
           </select>
         </div>
         <div class="form-group"><label>對應工程師</label><input id="new-engname" type="text" placeholder="姓名（選填）"></div>
@@ -459,10 +470,11 @@ function showLogin(){document.getElementById('login-screen').style.display='flex
 function showApp(uname,role,engineerName){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
-  document.getElementById('topbar-user').textContent=uname+'（'+roleLabel(role)+'）';
-  document.getElementById('tab-upload-btn').style.display=(role==='admin'||role==='scheduler')?'':'none';
+  document.getElementById('topbar-user').textContent=
+    (engineerName?engineerName+' · ':'')+uname+'（'+roleLabel(role)+'）';
+  document.getElementById('tab-upload-btn').style.display=canWrite(role)?'':'none';
   document.getElementById('tab-admin-btn').style.display=role==='admin'?'':'none';
-  document.getElementById('staff-add-card').style.display=(role==='admin'||role==='scheduler')?'':'none';
+  document.getElementById('staff-add-card').style.display=canWrite(role)?'':'none';
   document.getElementById('danger-zone').style.display=role==='admin'?'block':'none';
   if(engineerName) sessionStorage.setItem('espc_eng',engineerName);
   loadStaff(function(){
@@ -471,7 +483,11 @@ function showApp(uname,role,engineerName){
   });
 }
 
-function roleLabel(r){return{admin:'管理員',scheduler:'排程員',viewer:'查詢'}[r]||r;}
+var ROLE_LABEL={admin:'管理員',scheduler:'主管',pm:'PM',viewer:'現場'};
+var ROLE_ORDER=['admin','scheduler','pm','viewer'];
+var ROLE_CLASS={admin:'role-admin',scheduler:'role-scheduler',pm:'role-pm',viewer:'role-viewer'};
+function roleLabel(r){return ROLE_LABEL[r]||r;}
+function canWrite(r){return r==='admin'||r==='scheduler';}
 
 function doLogin(){
   var u=document.getElementById('inp-user').value.trim();
@@ -526,9 +542,13 @@ function loadToday(){
   document.getElementById('today-now').innerHTML='<div class="loading"><div class="spinner"></div></div>';
   gas('getData',TOKEN,{dateFrom:t,dateTo:addDays_(t,60)}).then(function(r){
     if(!r.ok){document.getElementById('today-now').innerHTML='<div class="today-empty">'+he(r.error||'載入失敗')+'</div>';return;}
-    var eng=sessionStorage.getItem('espc_eng')||'';
-    todayRows=(r.rows||[]).filter(function(x){return !eng||x.engineer===eng;});
-    renderToday(t);
+    var all=r.rows||[];
+    var eng=autoEngName();
+    var mine=eng?all.filter(function(x){return String(x.engineer||'').trim()===eng;}):all;
+    // 對不到工程師姓名時，改顯示全部行程
+    var matched=!eng||mine.length>0;
+    todayRows=matched?mine:all;
+    renderToday(t,matched?'':eng);
   }).catch(function(){document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';});
 }
 
@@ -549,14 +569,16 @@ function uniq_(rows,field){
   return out;
 }
 
-function renderToday(t){
+function renderToday(t,unmatchedEng){
   projColor('');
   var mine=todayRows.filter(function(r){return r.date===t;});
   var el=document.getElementById('today-now');
+  var banner=unmatchedEng
+    ? '<div class="notice">找不到「'+he(unmatchedEng)+'」的排程，以下顯示全部行程</div>' : '';
   if(!mine.length){
-    el.innerHTML='<div class="today-empty">今日沒有排程</div>';
+    el.innerHTML=banner+'<div class="today-empty">今日沒有排程</div>';
   }else{
-    var html='';
+    var html=banner;
     groupByProject_(mine).forEach(function(g){
       var c=projColor(g.project);
       var types=Object.keys(g.types).join('、');
@@ -647,13 +669,34 @@ function loadMonth(){
     allRows=r.rows||[];
     populateEngDropdown(allRows);
     populateTypeDropdown(allRows);
-    var storedEng=sessionStorage.getItem('espc_eng')||'';
-    if(storedEng){var sel=document.getElementById('cal-filter-eng');if(sel.value==='')sel.value=storedEng;}
+    populateFileDropdown(allRows);
+    autoFilterEngineer();
     applyFilter();
   }).catch(function(){
     document.getElementById('cal-container').innerHTML='<div class="loading">載入失敗，請重試</div>';
     toast('載入資料失敗','error');
   });
+}
+
+/** 只有 PM 角色會自動帶出自己的行程；對不到姓名時顯示全部 */
+function autoEngName(){
+  return ROLE==='pm' ? (sessionStorage.getItem('espc_eng')||'').trim() : '';
+}
+
+function autoFilterEngineer(){
+  var stored=autoEngName();
+  var sel=document.getElementById('cal-filter-eng');
+  if(!stored){sel.removeAttribute('data-auto');return;}
+  var exists=false;
+  for(var i=0;i<allRows.length;i++){
+    if(String(allRows[i].engineer||'').trim()===stored){exists=true;break;}
+  }
+  if(!exists){
+    // 這個月沒有他的行程 → 清掉自動篩選，顯示全部
+    if(sel.getAttribute('data-auto')==='1'){sel.value='';sel.removeAttribute('data-auto');}
+    return;
+  }
+  if(sel.value===''){sel.value=stored;sel.setAttribute('data-auto','1');}
 }
 
 function populateEngDropdown(rows){
@@ -672,14 +715,26 @@ function populateTypeDropdown(rows){
   sel.innerHTML='<option value="">全部類別</option>'+types.map(function(t){return '<option value="'+he(t)+'"'+(t===cur?' selected':'')+'>'+he(t)+'</option>';}).join('');
 }
 
+function populateFileDropdown(rows){
+  var seen={},files=[];
+  rows.forEach(function(r){var f=r.source_file;if(f&&!seen[f]){seen[f]=true;files.push(f);}});
+  files.sort();
+  var sel=document.getElementById('cal-filter-file'),cur=sel.value;
+  sel.innerHTML='<option value="">全部來源檔案</option>'+files.map(function(f){
+    var label=f.length>24?f.slice(0,22)+'…':f;
+    return '<option value="'+he(f)+'"'+(f===cur?' selected':'')+'>'+he(label)+'</option>';
+  }).join('');
+}
+
+var FILTER_IDS=['cal-filter-region','cal-filter-eng','cal-filter-type','cal-filter-file'];
 function toggleFilters(){document.getElementById('cal-filters').classList.toggle('open');}
 function clearFilters(){
-  ['cal-filter-region','cal-filter-eng','cal-filter-type'].forEach(function(id){document.getElementById(id).value='';});
+  FILTER_IDS.forEach(function(id){document.getElementById(id).value='';});
   applyFilter();
 }
 function removeFilter(id){document.getElementById(id).value='';applyFilter();}
 function renderFilterChips(){
-  var defs=[['cal-filter-region'],['cal-filter-eng'],['cal-filter-type']];
+  var defs=FILTER_IDS.map(function(id){return [id];});
   var html='',n=0;
   defs.forEach(function(d){
     var v=document.getElementById(d[0]).value;
@@ -693,11 +748,13 @@ function applyFilter(){
   var region=document.getElementById('cal-filter-region').value;
   var eng=document.getElementById('cal-filter-eng').value;
   var type=document.getElementById('cal-filter-type').value;
+  var file=document.getElementById('cal-filter-file').value;
   renderFilterChips();
   filteredRows=allRows.filter(function(r){
-    if(region&&r.region!==region)return false;
+    if(region&&(r.region||'')!==region)return false;
     if(eng&&r.engineer!==eng)return false;
     if(type&&r.type!==type)return false;
+    if(file&&(r.source_file||'')!==file)return false;
     return true;
   });
   renderCalendar(curYear,curMonth,filteredRows);
@@ -862,10 +919,12 @@ function readExcel(file){
 }
 
 function detectRegion(fname,sheetName){
+  var s=(fname||'')+' '+(sheetName||'');
+  if(/台中|臺中|中部|中區|taichung|\bTC\b/i.test(s))return '台中';
+  if(/高雄|南部|南區|kaohsiung|\bKH\b/i.test(s))return '高雄';
+  if(/台北|臺北|北部|北區|taipei|\bTP\b/i.test(s))return '台北';
   if(sheetName==='採樣行程')return '高雄';
-  if(/台中|中部/i.test(fname)||/台中|中部/i.test(sheetName))return '台中';
-  if(/高雄|南部|南區/i.test(fname)||/高雄|南部/i.test(sheetName))return '高雄';
-  return '台北';
+  return '';
 }
 
 function parseDate(v){
@@ -922,11 +981,29 @@ function parseESPCSheet(raw,sheetName,fname){
   return results;
 }
 
+function setUploadRegion(v){
+  parsedRows.forEach(function(r){r.region=v;});
+  var cells=document.querySelectorAll('#parse-area .region-cell');
+  for(var i=0;i<cells.length;i++)cells[i].textContent=v||'—';
+  document.getElementById('region-hint').textContent=v?'':'請選擇這份檔案所屬的地區';
+}
+
 function renderParseResult(rows,filename){
   var valid=rows.filter(function(r){return r.engineer&&r.date;});
+  var detected=rows.length?(rows[0].region||''):'';
   var html='<div class="parse-result"><div class="parse-result-header"><h3>'+he(filename)+'</h3>'
     +'<span class="badge '+(valid.length>0?'badge-success':'badge-warn')+'">'+valid.length+' 筆有效 / '+rows.length+' 筆</span></div>';
   if(rows.length>0){
+    html+='<div style="padding:12px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<label style="font-size:13px;font-weight:500;">地區</label>'
+      +'<select onchange="setUploadRegion(this.value)" style="height:40px;padding:0 10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;background:var(--c-surface);">'
+      +'<option value=""'+(detected?'':' selected')+'>請選擇…</option>'
+      +['台北','台中','高雄'].map(function(x){return '<option value="'+x+'"'+(x===detected?' selected':'')+'>'+x+'</option>';}).join('')
+      +'</select>'
+      +'<span id="region-hint" style="font-size:12px;color:var(--c-error);">'+(detected?'':'請選擇這份檔案所屬的地區')+'</span>'
+      +'<span style="font-size:12px;color:var(--c-text-2);flex:1 1 100%;">'
+      +(detected?'已依檔名自動判斷為「'+he(detected)+'」，可手動修改。':'檔名看不出地區，請手動選擇。')
+      +'</span></div>';
     html+='<div class="data-table-wrap"><table class="data-table"><thead><tr>'
       +'<th>日期</th><th>工程師</th><th>地點</th><th>專案</th><th>類別</th>'
       +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th>'
@@ -936,7 +1013,7 @@ function renderParseResult(rows,filename){
         +'<td>'+(r.engineer?he(r.engineer):'<span style="color:var(--c-error)">—</span>')+'</td>'
         +'<td>'+he(r.location)+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
         +'<td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
-        +'<td>'+he(r.reportNum)+'</td><td>'+he(r.region)+'</td></tr>';
+        +'<td>'+he(r.reportNum)+'</td><td class="region-cell">'+(r.region?he(r.region):'—')+'</td></tr>';
     });
     if(rows.length>100)html+='<tr><td colspan="9" style="text-align:center;color:var(--c-text-2);padding:8px">…僅顯示前 100 筆</td></tr>';
     html+='</tbody></table></div>'
@@ -952,6 +1029,7 @@ function renderParseResult(rows,filename){
 
 function doUpload(){
   if(!parsedRows||!parsedRows.length){toast('沒有可上傳的資料','error');return;}
+  if(!parsedRows[0].region){toast('請先選擇地區（台北／台中／高雄）','error');return;}
   var btn=document.querySelector('#parse-area .btn-primary');
   if(btn){btn.disabled=true;btn.textContent='上傳中…';}
   gas('saveData',TOKEN,parsedRows,currentFileName).then(function(r){
@@ -999,7 +1077,7 @@ function adminLoadUsers(){
   document.getElementById('users-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
   gas('listUsers',TOKEN).then(function(r){
     if(!r.ok){document.getElementById('users-list').innerHTML='<p style="color:var(--c-error)">'+he(r.error)+'</p>';return;}
-    var cls={admin:'role-admin',scheduler:'role-scheduler',viewer:'role-viewer'};
+    var cls=ROLE_CLASS;
     var html='<table class="users-table"><thead><tr>'
       +'<th>帳號</th><th>對應工程師</th><th>角色</th><th>狀態</th><th>操作</th>'
       +'</tr></thead><tbody>';
@@ -1008,7 +1086,9 @@ function adminLoadUsers(){
       html+='<tr>'
         +'<td>'+he(u.username)+'</td>'
         +'<td>'+he(u.engineerName||'—')+' <button class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px;min-height:28px" onclick="adminEditEng(\''+he(u.username)+'\',\''+he(u.engineerName||'')+'\')">改</button></td>'
-        +'<td><span class="role-badge '+(cls[u.role]||'')+'">'+roleLabel(u.role)+'</span></td>'
+        +'<td><select class="role-sel" onchange="adminSetRole(\''+he(u.username)+'\',this)">'
+        +ROLE_ORDER.map(function(k){return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
+        +'</select> <span class="role-badge '+(cls[u.role]||'')+'">'+roleLabel(u.role)+'</span></td>'
         +'<td><span class="'+(u.active?'status-active':'status-inactive')+'">'+(u.active?'啟用':'停用')+'</span></td>'
         +'<td><div class="actions-cell">'
         +(isMe?'<span style="font-size:12px;color:var(--c-text-2)">目前帳號</span>':'<button class="btn btn-outline btn-sm" onclick="adminToggle(\''+he(u.username)+'\','+ (!u.active) +')">'+(u.active?'停用':'啟用')+'</button>')
@@ -1029,6 +1109,14 @@ function adminCreateUser(){
     if(r.ok){toast('帳號已建立','success');document.getElementById('new-username').value='';document.getElementById('new-password').value='';document.getElementById('new-engname').value='';adminLoadUsers();}
     else toast(r.error||'建立失敗','error');
   }).catch(function(){toast('操作失敗','error');});
+}
+
+function adminSetRole(username,sel){
+  var role=sel.value;
+  gas('setUserRole',TOKEN,username,role).then(function(r){
+    if(r.ok){toast('角色已改為「'+roleLabel(role)+'」','success');adminLoadUsers();}
+    else{toast(r.error||'變更失敗','error');adminLoadUsers();}
+  }).catch(function(){toast('操作失敗','error');adminLoadUsers();});
 }
 
 function adminToggle(username,active){
