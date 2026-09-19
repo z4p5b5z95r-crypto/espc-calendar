@@ -85,6 +85,32 @@ input,select,textarea{font-size:16px;}
 .more-chip{font-size:11px;color:var(--c-text-2);padding:1px 4px;}
 .dot-row,.dot-count{display:none;}
 
+/* ── 今日焦點 ── */
+.today-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px;}
+.today-date{font-size:13px;color:var(--c-text-2);}
+.today-big{font-size:24px;font-weight:600;margin-top:2px;}
+.today-sub{font-size:13px;color:var(--c-text-2);margin:22px 0 8px;}
+.now-card{border-radius:12px;padding:14px;margin-bottom:10px;border-left:5px solid;background:var(--c-surface);box-shadow:var(--shadow);}
+.now-tag{font-size:12px;font-weight:600;margin-bottom:4px;}
+.now-title{font-size:17px;font-weight:600;line-height:1.35;}
+.now-meta{font-size:13px;color:var(--c-text-2);margin-top:6px;line-height:1.75;}
+.now-meta b{color:var(--c-text);font-weight:500;}
+.call-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.call-btn{display:inline-flex;align-items:center;gap:6px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--c-text);text-decoration:none;min-height:38px;}
+.call-btn:active{background:#e8f0fe;}
+.today-empty{background:var(--c-surface);border-radius:12px;box-shadow:var(--shadow);padding:36px 20px;text-align:center;color:var(--c-text-2);font-size:14px;}
+.upcoming-card{background:var(--c-surface);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;}
+.up-row{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--c-border);cursor:pointer;align-items:flex-start;}
+.up-row:last-child{border-bottom:none;}
+.up-row:active{background:var(--c-bg);}
+.up-date{min-width:36px;text-align:center;flex-shrink:0;}
+.up-d{font-size:17px;font-weight:600;line-height:1.1;}
+.up-w{font-size:11px;color:var(--c-text-2);}
+.up-bar{width:4px;border-radius:2px;align-self:stretch;flex-shrink:0;}
+.up-body{min-width:0;flex:1;}
+.up-title{font-size:14px;font-weight:500;line-height:1.4;}
+.up-meta{font-size:12px;color:var(--c-text-2);margin-top:2px;}
+
 .legend-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:10px 2px 4px;}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;}
 .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
@@ -418,7 +444,10 @@ function showApp(uname,role,engineerName){
   document.getElementById('staff-add-card').style.display=(role==='admin'||role==='scheduler')?'':'none';
   document.getElementById('danger-zone').style.display=role==='admin'?'block':'none';
   if(engineerName) sessionStorage.setItem('espc_eng',engineerName);
-  loadStaff(function(){ initCalendar(); });
+  loadStaff(function(){
+    var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();
+    loadToday();
+  });
 }
 
 function roleLabel(r){return{admin:'管理員',scheduler:'排程員',viewer:'查詢'}[r]||r;}
@@ -445,6 +474,8 @@ function switchTab(name,el){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   document.getElementById('panel-'+name).classList.add('active');
   el.classList.add('active');
+  if(name==='today') loadToday();
+  if(name==='calendar'&&!allRows.length) loadMonth();
   if(name==='admin') adminLoadUsers();
   if(name==='upload') loadUploadHistory();
   if(name==='staff') staffReload();
@@ -459,6 +490,120 @@ function projColor(name){
   if(!name)return '#9e9e9e';
   if(!projColorMap[name]){projColorMap[name]=PROJ_COLORS[projColorIdx%PROJ_COLORS.length];projColorIdx++;}
   return projColorMap[name];
+}
+
+// ─── 今日焦點 ─────────────────────────────────────────────────────────────────
+var todayRows=[];
+
+function todayStr_(){var n=new Date();return n.getFullYear()+'-'+p2(n.getMonth()+1)+'-'+p2(n.getDate());}
+function addDays_(s,n){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
+
+function loadToday(){
+  var t=todayStr_();
+  var parts=t.split('-');
+  document.getElementById('today-date').textContent=parseInt(parts[1])+'月'+parseInt(parts[2])+'日 週'+DAYS_ZH[new Date(t).getDay()];
+  document.getElementById('today-now').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  gas('getData',TOKEN,{dateFrom:t,dateTo:addDays_(t,60)}).then(function(r){
+    if(!r.ok){document.getElementById('today-now').innerHTML='<div class="today-empty">'+he(r.error||'載入失敗')+'</div>';return;}
+    var eng=sessionStorage.getItem('espc_eng')||'';
+    todayRows=(r.rows||[]).filter(function(x){return !eng||x.engineer===eng;});
+    renderToday(t);
+  }).catch(function(){document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';});
+}
+
+function groupByProject_(rows){
+  var m={},order=[];
+  rows.forEach(function(r){
+    var k=r.project||'（未分類）';
+    if(!m[k]){m[k]={project:k,rows:[],types:{}};order.push(k);}
+    m[k].rows.push(r);
+    if(r.type)m[k].types[r.type]=true;
+  });
+  return order.map(function(k){return m[k];});
+}
+
+function uniq_(rows,field){
+  var seen={},out=[];
+  rows.forEach(function(r){var v=r[field];if(v&&!seen[v]){seen[v]=true;out.push(v);}});
+  return out;
+}
+
+function renderToday(t){
+  projColor('');
+  var mine=todayRows.filter(function(r){return r.date===t;});
+  var el=document.getElementById('today-now');
+  if(!mine.length){
+    el.innerHTML='<div class="today-empty">今日沒有排程</div>';
+  }else{
+    var html='';
+    groupByProject_(mine).forEach(function(g){
+      var c=projColor(g.project);
+      var types=Object.keys(g.types).join('、');
+      var locs=uniq_(g.rows,'location');
+      var st=uniq_(g.rows,'sampTime')[0]||'';
+      var engs=uniq_(g.rows,'engineer');
+      var cars=[],carSeen={};
+      g.rows.forEach(function(r){if(r.car)String(r.car).split(/[、，,]/).forEach(function(x){x=x.trim();if(x&&!carSeen[x]){carSeen[x]=true;cars.push(x);}});});
+      var staff=[],stSeen={};
+      g.rows.forEach(function(r){
+        var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
+        ss.forEach(function(p){p=(p||'').trim();if(p&&!stSeen[p]){stSeen[p]=true;staff.push(p);}});
+      });
+      var notes=uniq_(g.rows,'notes');
+      html+='<div class="now-card" style="border-color:'+c+'">'
+        +'<div class="now-tag" style="color:'+c+'">'+he(types||'排程')+'</div>'
+        +'<div class="now-title">'+he(g.project)+'</div>'
+        +'<div class="now-meta">';
+      if(locs.length)html+='點位：<b>'+he(locs.join(' / '))+'</b><br>';
+      if(st)html+='申報採樣時間：<b>'+he(st)+'</b><br>';
+      if(engs.length)html+='工程師：<b>'+he(engs.join('、'))+'</b><br>';
+      if(cars.length)html+='公務車：<b>'+he(cars.join('、'))+'</b><br>';
+      if(notes.length)html+='備註：<b>'+he(notes.join('；'))+'</b>';
+      html+='</div>';
+      var calls=staff.concat(engs.filter(function(e){return staff.indexOf(e)<0;}));
+      if(calls.length){
+        html+='<div class="call-row">';
+        calls.forEach(function(p){
+          var ph=PHONE_MAP[p];
+          if(ph)html+='<a class="call-btn" href="tel:'+he(ph.replace(/-/g,''))+'">&#128222; '+he(p)+'</a>';
+          else html+='<span class="call-btn" style="color:var(--c-text-2)">'+he(p)+'</span>';
+        });
+        html+='</div>';
+      }
+      html+='</div>';
+    });
+    el.innerHTML=html;
+  }
+
+  var future=todayRows.filter(function(r){return r.date>t;});
+  var wrap=document.getElementById('today-next-wrap');
+  if(!future.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  var byDate={},dates=[];
+  future.forEach(function(r){if(!byDate[r.date]){byDate[r.date]=[];dates.push(r.date);}byDate[r.date].push(r);});
+  dates.sort();
+  var out='';
+  dates.slice(0,20).forEach(function(d){
+    groupByProject_(byDate[d]).forEach(function(g){
+      var c=projColor(g.project);
+      var dd=d.split('-');
+      out+='<div class="up-row" onclick="openDay(\''+d+'\')">'
+        +'<div class="up-date"><div class="up-d">'+parseInt(dd[2])+'</div><div class="up-w">'+DAYS_ZH[new Date(d).getDay()]+'</div></div>'
+        +'<div class="up-bar" style="background:'+c+'"></div>'
+        +'<div class="up-body"><div class="up-title">'+he(g.project)+'</div>'
+        +'<div class="up-meta">'+he(Object.keys(g.types).join('、'))
+        +(uniq_(g.rows,'location')[0]?' · '+he(uniq_(g.rows,'location')[0]):'')+'</div></div></div>';
+    });
+  });
+  document.getElementById('today-next').innerHTML=out;
+}
+
+function openDay(dateStr){
+  var rows=todayRows.filter(function(r){return r.date===dateStr;});
+  var saved=filteredRows;
+  filteredRows=rows;
+  showDetail(dateStr);
+  filteredRows=saved;
 }
 
 // ─── Calendar ─────────────────────────────────────────────────────────────────
