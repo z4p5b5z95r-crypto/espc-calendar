@@ -796,8 +796,10 @@ function ntRenderUI(){
     return;
   }
   if(!c.on){el.textContent='目前未開啟。開啟後，每天到設定時間就會跳出當日行程通知。';return;}
-  el.textContent='已開啟，每天 '+c.time+' 提醒'+(c.skipWeekend?'（六、日不提醒）':'')
-    +'。提醒需要本頁保持開啟或在背景執行；若 App 已完全關閉，下次開啟時會補提醒當天行程。';
+  el.className='nt-status warn';
+  el.innerHTML='已開啟，每天 '+he(c.time)+' 提醒'+(c.skipWeekend?'（六、日不提醒）':'')+'。<br>'
+    +'<b>限制：</b>手機系統會在 App 切到背景後數秒內凍結程式，因此只有在'
+    +'<b>該時刻 App 正開著</b>時才會即時跳通知。其餘情況會在你下次開啟 App 時補提醒當天行程。';
 }
 
 function notifSaveUI(){
