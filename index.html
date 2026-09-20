@@ -6,27 +6,36 @@
 <title>ESPC 監測行程</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
-<meta name="theme-color" content="#16161a">
+<meta name="theme-color" content="#F36F21">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ESPC 行程">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
+/* SGS 企業色：橘 #F36F21（主）／灰 #77787B（輔）／白 */
 :root{
-  --bg:#16161a; --card:#1e1e24; --card2:#26262c; --line:#2a2a30;
-  --tx:#fafafa; --tx2:#a1a1aa; --tx3:#71717a;
-  --acc:#4ade80; --accTx:#14532d; --tint:rgba(74,222,128,.18);
-  --err:#f87171; --errBg:rgba(248,113,113,.14);
-  --warn:#fbbf24; --warnBg:rgba(251,191,36,.14);
-  --r:14px; --sh:0 8px 24px rgba(0,0,0,.35);
+  --bg:#f4f4f5; --card:#ffffff; --card2:#ebebec; --line:#e2e2e4;
+  --tx:#1c1c1e; --tx2:#5c5d61; --tx3:#98989c;
+  --brand:#F36F21;          /* SGS 品牌橘：大面積識別用 */
+  --acc:#C44E06;            /* 填色：按鈕、膠囊底（白字對比 4.7:1）*/
+  --accTx:#ffffff;
+  --accT:#B54705;           /* 文字／圖示用（淺底對比 4.9:1）*/
+  --tint:rgba(243,111,33,.12);
+  --err:#c62828; --errBg:rgba(198,40,40,.09);
+  --warn:#a85600; --warnBg:rgba(243,111,33,.13);
+  --r:14px; --sh:0 8px 24px rgba(0,0,0,.12);
 }
-html[data-theme="light"]{
-  --bg:#f4f4f5; --card:#ffffff; --card2:#ececef; --line:#e4e4e7;
-  --tx:#18181b; --tx2:#52525b; --tx3:#a1a1aa;
-  --acc:#16a34a; --accTx:#ffffff; --tint:rgba(22,163,74,.13);
-  --err:#dc2626; --errBg:rgba(220,38,38,.09);
-  --warn:#b45309; --warnBg:rgba(180,83,9,.11);
-  --sh:0 8px 24px rgba(0,0,0,.12);
+html[data-theme="dark"]{
+  --bg:#1a1a1c; --card:#242427; --card2:#2d2d31; --line:#343438;
+  --tx:#fafafa; --tx2:#a8a8ad; --tx3:#77787B;   /* SGS 灰 */
+  --brand:#F36F21;
+  --acc:#C44E06;            /* 按鈕填色，白字對比 4.7:1 */
+  --accTx:#ffffff;
+  --accT:#FF8C4D;           /* 深底上提亮（對比 7.5:1）*/
+  --tint:rgba(243,111,33,.2);
+  --err:#ef5350; --errBg:rgba(239,83,80,.16);
+  --warn:#ffb74d; --warnBg:rgba(255,183,77,.14);
+  --sh:0 8px 24px rgba(0,0,0,.4);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{-webkit-text-size-adjust:100%;}
@@ -35,7 +44,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",Robo
   -webkit-font-smoothing:antialiased;min-height:100vh;}
 button,input,select,textarea{font-family:inherit;color:inherit;}
 button{background:none;border:none;cursor:pointer;color:inherit;}
-a{color:var(--acc);text-decoration:none;}
+a{color:var(--accT);text-decoration:none;}
 input,select,textarea{font-size:16px;}
 ::-webkit-scrollbar{width:0;height:0;}
 
@@ -44,7 +53,7 @@ input,select,textarea{font-size:16px;}
   border-radius:999px;padding:11px 20px;font-size:14px;font-weight:500;
   background:var(--card);border:1px solid var(--line);min-height:44px;transition:.15s;}
 .btn:active{transform:scale(.97);}
-.btn-p{background:var(--acc);color:var(--accTx);border-color:var(--acc);}
+.btn-p{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:600;}
 .btn-d{color:var(--err);border-color:var(--err);}
 .btn-sm{padding:8px 15px;font-size:13px;min-height:38px;}
 .btn-full{width:100%;}
@@ -84,26 +93,26 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
   padding-bottom:calc(20px + env(safe-area-inset-bottom));}
 .lwrap{width:100%;max-width:370px;background:var(--card);border-radius:24px;
   overflow:hidden;box-shadow:var(--sh);}
-.ltop{background:var(--acc);color:var(--accTx);padding:34px 22px 30px;text-align:center;position:relative;}
+.ltop{background:var(--brand);color:var(--accTx);padding:34px 22px 30px;text-align:center;position:relative;}
 .lth{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:999px;
   color:var(--accTx);opacity:.75;display:flex;align-items:center;justify-content:center;}
 .lth:active{background:rgba(255,255,255,.18);}
-.logo{width:66px;height:66px;border-radius:21px;background:rgba(255,255,255,.2);
-  color:var(--accTx);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.logo{width:66px;height:66px;border-radius:21px;background:rgba(255,255,255,.22);
+  color:#ffffff;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
 .logo svg{width:36px;height:36px;}
-.ltop h1{font-size:24px;font-weight:600;letter-spacing:-.01em;}
+.ltop h1{font-size:25px;font-weight:700;letter-spacing:-.01em;}
 .lbody{padding:24px 20px 26px;}
 .lf{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);
   border-radius:999px;padding:0 6px 0 15px;margin-bottom:11px;transition:border-color .15s;}
 .lf:focus-within{border-color:var(--acc);}
 .lfi{color:var(--tx3);display:flex;flex-shrink:0;}
-.lf:focus-within .lfi{color:var(--acc);}
+.lf:focus-within .lfi{color:var(--accT);}
 .lf input{flex:1;min-width:0;background:none;border:none;outline:none;
   padding:14px 0;font-size:16px;color:var(--tx);}
 .lf input::placeholder{color:var(--tx3);}
 .lfe{width:36px;height:36px;border-radius:999px;color:var(--tx3);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.lfe.on{color:var(--acc);}
+.lfe.on{color:var(--accT);}
 .lerr{color:var(--err);font-size:13px;min-height:20px;padding:2px 0 4px 8px;line-height:1.5;}
 .lfoot{text-align:center;font-size:12px;color:var(--tx3);margin-top:18px;line-height:1.8;}
 
@@ -111,7 +120,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 #app{display:none;flex-direction:column;min-height:100vh;padding-bottom:calc(66px + env(safe-area-inset-bottom));}
 .bar{position:sticky;top:0;z-index:40;background:var(--bg);padding-top:env(safe-area-inset-top);}
 .who{display:flex;align-items:center;gap:9px;padding:11px 16px 0;}
-.avt{width:26px;height:26px;border-radius:999px;background:var(--acc);color:var(--accTx);
+.avt{width:26px;height:26px;border-radius:999px;background:var(--brand);color:var(--accTx);
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
 .who-n{font-size:12px;color:var(--tx2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 13px 10px;}
@@ -123,7 +132,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .ib:active{transform:scale(.94);}
 .ib svg,.who svg{display:block;}
 .ib.w{width:auto;padding:0 14px;font-size:13px;gap:5px;}
-.ib.act{background:var(--tint);color:var(--acc);}
+.ib.act{background:var(--tint);color:var(--accT);}
 .bdg{background:var(--acc);color:var(--accTx);font-size:10px;min-width:17px;height:17px;
   border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-weight:600;}
 #page{flex:1;padding:0 12px;}
@@ -132,7 +141,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .fchips{display:flex;gap:6px;padding:0 13px 9px;flex-wrap:wrap;}
 .fchips:empty{display:none;}
 .fc{display:inline-flex;align-items:center;gap:3px;font-size:12px;padding:5px 6px 5px 12px;
-  border-radius:999px;background:var(--tint);color:var(--acc);}
+  border-radius:999px;background:var(--tint);color:var(--accT);}
 .fc button{font-size:12px;padding:2px 4px;color:inherit;line-height:1;}
 
 /* ── 月曆 ── */
@@ -163,7 +172,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .pkg{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 .pkb{padding:12px 0;border-radius:999px;background:var(--card2);font-size:14px;}
 .pkb.cur{background:var(--acc);color:var(--accTx);font-weight:600;}
-.pkb.now{outline:1.5px solid var(--acc);color:var(--acc);font-weight:500;}
+.pkb.now{outline:1.5px solid var(--acc);color:var(--accT);font-weight:500;}
 
 /* ── 行程卡 ── */
 .ev{background:var(--card);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;
@@ -184,7 +193,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .nb{display:flex;align-items:center;padding:9px;border-radius:999px;color:var(--tx3);font-size:12.5px;}
 .nb svg{width:22px;height:22px;}
 .nb em{display:none;font-style:normal;font-weight:600;}
-.nb.on{background:var(--tint);color:var(--acc);padding:9px 17px 9px 14px;gap:7px;}
+.nb.on{background:var(--tint);color:var(--accT);padding:9px 17px 9px 14px;gap:7px;}
 .nb.on em{display:inline;}
 
 /* ── 底部面板 ── */
@@ -203,6 +212,11 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .kr>svg{color:var(--tx3);margin-top:2px;flex-shrink:0;}
 .kk{color:var(--tx3);flex-shrink:0;min-width:62px;}
 .kvv{flex:1;min-width:0;color:var(--tx);line-height:1.7;word-break:break-word;}
+.tsec{background:var(--card);border-radius:var(--r);padding:11px 14px;margin-bottom:8px;}
+.tsh{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;
+  padding-bottom:7px;border-bottom:1px solid var(--line);}
+.tq{background:var(--card2);color:var(--tx2);font-size:11px;font-weight:500;
+  border-radius:999px;padding:1px 8px;}
 .opts{display:flex;flex-wrap:wrap;gap:7px;}
 .ob svg{margin-right:-1px;}
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
@@ -215,7 +229,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .pav{width:36px;height:36px;border-radius:999px;background:var(--card2);color:var(--tx2);
   display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
 .tag{font-size:11px;padding:4px 11px;border-radius:999px;background:var(--card2);color:var(--tx2);white-space:nowrap;}
-.tag.g{background:var(--tint);color:var(--acc);}
+.tag.g{background:var(--tint);color:var(--accT);}
 .link{display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:var(--card);border-radius:var(--r);padding:14px 15px;margin-bottom:7px;width:100%;
   font-size:15px;text-align:left;}
@@ -344,7 +358,16 @@ var ICON={
  sun2:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
  eyeoff:'<path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3 3.6M6.6 6.7A17 17 0 0 0 2 12s3.6 6 10 6a9.7 9.7 0 0 0 3.7-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
- logo:'<rect x="3" y="5" width="18" height="16" rx="3.5"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8.5 14.5h2M13.5 14.5h2M8.5 18h2"/>'
+ logo:'<rect x="3" y="5" width="18" height="16" rx="3.2" fill="currentColor" stroke="none"/>'
+   +'<rect x="3" y="5" width="18" height="5.4" rx="3.2" fill="rgba(0,0,0,.22)" stroke="none"/>'
+   +'<rect x="3" y="8.6" width="18" height="1.8" fill="rgba(0,0,0,.22)" stroke="none"/>'
+   +'<rect x="7.2" y="2.4" width="1.9" height="4.2" rx=".95" fill="currentColor" stroke="none"/>'
+   +'<rect x="14.9" y="2.4" width="1.9" height="4.2" rx=".95" fill="currentColor" stroke="none"/>'
+   +'<g fill="rgba(0,0,0,.28)" stroke="none">'
+   +'<circle cx="7.6" cy="13.4" r="1.15"/><circle cx="11.2" cy="13.4" r="1.15"/>'
+   +'<circle cx="14.8" cy="13.4" r="1.15"/><circle cx="18" cy="13.4" r="1.15"/>'
+   +'<circle cx="7.6" cy="17" r="1.15"/><circle cx="14.8" cy="17" r="1.15"/><circle cx="18" cy="17" r="1.15"/>'
+   +'</g><circle cx="11.2" cy="17" r="1.75" fill="rgba(0,0,0,.42)" stroke="none"/>'
 };
 function ic(n,sz){
   return '<svg viewBox="0 0 24 24" width="'+(sz||20)+'" height="'+(sz||20)+'" fill="none" '
@@ -394,7 +417,7 @@ function applyTheme(){
   var dark=(t==='dark');
   document.documentElement.setAttribute('data-theme',dark?'dark':'light');
   var mt=document.querySelector('meta[name=theme-color]');
-  if(mt)mt.setAttribute('content',dark?'#16161a':'#f4f4f5');
+  if(mt)mt.setAttribute('content',dark?'#1a1a1c':'#F36F21');
   var b=document.querySelector('.lth');
   if(b&&typeof ic==='function')b.innerHTML=ic(dark?'sun2':'moon',19);
 }
@@ -673,8 +696,8 @@ function todayPage(){
           +'<div class="dbox"><b>'+parseInt(dd[2])+'</b><span>'+DW[dowOf(d)]+'</span></div>'
           +'<div class="evb" style="background:'+c+'"></div>'
           +'<div style="min-width:0;flex:1"><div class="evn" style="font-size:14px">'+he(g.project+carTag(g))+'</div>'
-          +'<div class="evm">'+he(g.types.join('、'))
-          +(g.locs[0]?'　·　'+he(g.locs[0]):'')+'</div></div></div>';
+          +'<div class="evm">'+he(typeLabel(g))
+          +(g.locs.length?'　·　'+he(locBrief(g)):'')+'</div></div></div>';
       });
     });
   }
@@ -693,11 +716,11 @@ function evCard(g,d,full){
   var c=pcolor(g.project);
   var h='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')">'
     +'<div class="evb" style="background:'+c+'"></div><div style="min-width:0;flex:1">'
-    +'<div class="evt" style="color:'+c+'">'+he(g.types.join('、'))+'</div>'
+    +'<div class="evt" style="color:'+c+'">'+he(typeLabel(g))+'</div>'
     +'<div class="evn">'+he(g.project)
     +(carTag(g)?'<span style="color:'+c+'">'+he(carTag(g))+'</span>':'')
     +(g.no?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(g.no)+'</span>':'')+'</div>';
-  if(g.locs.length)h+='<div class="evm">點位：'+he(g.locs.join(' / '))+'</div>';
+  if(g.locs.length)h+='<div class="evm">點位：'+he(locBrief(g))+'</div>';
   if(full){
     if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
     if(g.engs.length)h+='<div class="evm">工程師：'+g.engs.map(telLink).join('、')+'</div>';
@@ -754,25 +777,48 @@ function calPage(){
   return h;
 }
 
-/** 同日期同專案合併成一筆 */
+/** 同日期同專案合併成一筆，但保留每個「類別」各自的欄位 */
 function groupBy(list){
   var m={},order=[];
+  function add(arr,v){if(v&&arr.indexOf(v)<0)arr.push(v);}
   list.forEach(function(r){
     var k=r.project||'（未分類）';
     if(!m[k]){m[k]={project:k,rows:[],types:[],locs:[],engs:[],cars:[],staff:[],
-      notes:[],reps:[],eqs:[],nums:[],qty:0,no:'',samp:''};order.push(k);}
+      notes:[],reps:[],eqs:[],nums:[],qty:0,no:'',samp:'',tmap:{},tlist:[]};order.push(k);}
     var g=m[k];g.rows.push(r);
-    function add(arr,v){if(v&&arr.indexOf(v)<0)arr.push(v);}
+
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,r.engineer);
     add(g.notes,r.notes);add(g.reps,r.applicant);add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
-    var q=parseFloat(r.qty);if(!isNaN(q))g.qty+=q;
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
+    var q=parseFloat(r.qty);if(!isNaN(q))g.qty+=q;
     if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
     var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
-    ss.forEach(function(p){add(g.staff,p.trim());});
+    ss.forEach(function(x){add(g.staff,x.trim());});
+
+    // 依類別再分一層，數量／點位／儀器／報告編號各自歸屬
+    var t=r.type||'（未分類）';
+    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qty:0,samp:''};g.tlist.push(t);}
+    var tg=g.tmap[t];
+    add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);add(tg.reps,r.applicant);
+    if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
+    if(!isNaN(q))tg.qty+=q;
   });
   return order.map(function(k){return m[k];});
+}
+
+/** 類別標籤：帶上各自的數量，例如「空品車（1）、PM2.5（2）」 */
+function typeLabel(g){
+  return g.tlist.map(function(t){
+    var tg=g.tmap[t];
+    return t+(tg.qty?'（'+tg.qty+'）':'');
+  }).join('、');
+}
+
+/** 摘要用點位：太多就只顯示第一個並註明還有幾處 */
+function locBrief(g){
+  if(g.locs.length<=1)return g.locs[0]||'';
+  return g.locs[0]+' 等 '+g.locs.length+' 處';
 }
 
 /* ── 通訊錄 ── */
@@ -1058,23 +1104,43 @@ function openEv(d,proj){
   if(!g){openDay(d);return;}
   var dd=d.split('-'),c=pcolor(g.project);
   var h='<div class="shh"><div>'
-    +'<div class="evt" style="color:'+c+'">'+he(g.types.join('、'))+'</div>'
+    +'<div class="evt" style="color:'+c+'">'+he(typeLabel(g))+'</div>'
     +'<h3 style="margin-top:3px">'+he(g.project+carTag(g))+'</h3>'
     +'<p class="hint" style="margin-top:3px">'+parseInt(dd[1])+'月'+parseInt(dd[2])+'日　週'+DW[dowOf(d)]
     +(g.no?'　·　'+he(g.no):'')+'</p></div>'
-    +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">';
-  h+=kr('pin','點位',he(g.locs.join(' / ')))
-    +kr('hash','數量',g.qty?String(g.qty):'')
-    +kr('clock','採樣時間',he(g.samp))
-    +kr('flask','採樣儀器',he(g.eqs.join('　')))
-    +kr('user','申報人員',g.reps.map(telLink).join('、'))
-    +kr('clip','報告編號',he(g.nums.join(' / ')))
-    +kr('helmet','工程師',g.engs.map(telLink).join('、'))
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>';
+
+  if(g.tlist.length<=1){
+    // 只有一個類別 → 直接平舖
+    var t0=g.tmap[g.tlist[0]]||{locs:[],eqs:[],nums:[],reps:[],qty:0,samp:''};
+    h+='<div class="kv">'
+      +kr('pin','點位',he(t0.locs.join(' / ')))
+      +kr('hash','數量',t0.qty?String(t0.qty):'')
+      +kr('clock','採樣時間',he(t0.samp||g.samp))
+      +kr('flask','採樣儀器',he(t0.eqs.join('　')))
+      +kr('user','申報人員',t0.reps.map(telLink).join('、'))
+      +kr('clip','報告編號',he(t0.nums.join(' / ')))
+      +'</div>';
+  }else{
+    // 多個類別 → 每個類別各自一段，數量歸屬一目了然
+    g.tlist.forEach(function(t){
+      var tg=g.tmap[t];
+      h+='<div class="tsec"><div class="tsh" style="color:'+c+'">'+he(t)
+        +(tg.qty?'<span class="tq">'+tg.qty+'</span>':'')+'</div><div class="kv">'
+        +kr('pin','點位',he(tg.locs.join(' / ')))
+        +kr('clock','採樣時間',he(tg.samp))
+        +kr('flask','採樣儀器',he(tg.eqs.join('　')))
+        +kr('user','申報人員',tg.reps.map(telLink).join('、'))
+        +kr('clip','報告編號',he(tg.nums.join(' / ')))
+        +'</div></div>';
+    });
+  }
+
+  var shared=kr('helmet','工程師',g.engs.map(telLink).join('、'))
     +kr('car','公務車',he(g.cars.join('、')))
     +kr('users','現場人員',g.staff.map(telLink).join('、'))
-    +kr('note','備註',he(g.notes.join('；')))
-    +kr('map','地區',he((g.rows[0]&&g.rows[0].region)||''));
-  h+='</div>';
+    +kr('note','備註',he(g.notes.join('；')));
+  if(shared)h+='<div class="kv" style="margin-top:6px">'+shared+'</div>';
   if(gs.length>1){
     h+='<div class="sec">當天其他 '+(gs.length-1)+' 項</div>';
     gs.forEach(function(x){if(x.project!==proj)h+=evCard(x,d,false);});
@@ -1227,7 +1293,7 @@ function doUpload(force){
     if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
     toast(msg,'ok',r.skipped?5000:3000);
     $('parse').innerHTML='<div class="card" style="margin-top:12px;border:1px solid var(--acc)">'
-      +'<div style="font-size:15px;font-weight:600;color:var(--acc)">✓ 已儲存</div>'
+      +'<div style="font-size:15px;font-weight:600;color:var(--accT)">✓ 已儲存</div>'
       +'<p class="hint" style="margin-top:5px;word-break:break-all">'+he(fn)+'<br>寫入 '+r.saved+' 筆排程</p></div>';
     pRows=[];pName='';pMtime='';
     todayFor='';allRows=[];
@@ -1632,7 +1698,7 @@ function ntDiag(){
   function r(l,v,ok){
     return '<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:13px">'
       +'<span style="color:var(--tx3)">'+l+'</span><b style="color:'
-      +(ok===true?'var(--acc)':ok===false?'var(--err)':'var(--tx)')+'">'+he(v)+'</b></div>';
+      +(ok===true?'var(--accT)':ok===false?'var(--err)':'var(--tx)')+'">'+he(v)+'</b></div>';
   }
   var why=!c.on?'提醒開關沒開。'
     :perm!=='granted'?'沒有通知權限，請重新開啟開關授權。'
