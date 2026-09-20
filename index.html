@@ -307,7 +307,7 @@ html[data-theme="dark"] .glass::after{
 .lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
   background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:7px;}
-.pavw{position:relative;flex-shrink:0;padding-top:17px;}
+.pavw{position:relative;flex-shrink:0;padding-top:17px;padding-left:5px;margin-left:-5px;}
 /* 職安帽用 emoji；因無法改色，效期狀態以右上角小圓點表示 */
 .hat{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:3px;
   font-size:1em;line-height:1;margin-left:5px;vertical-align:-2px;flex-shrink:0;padding:0;}
@@ -315,6 +315,7 @@ html[data-theme="dark"] .glass::after{
 /* 內文用的小圖案：跟著文字大小走 */
 .mki{width:1.25em;height:1.25em;display:block;flex-shrink:0;
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
+.mke{font-size:1.15em;line-height:1;display:block;flex-shrink:0;}
 .hat svg:not(.mki){width:1.05em;height:1.05em;color:var(--accT);}
 .hat:active{transform:scale(.88);}
 .hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
@@ -341,6 +342,10 @@ html[data-theme="dark"] .glass::after{
 .pavdot.good{background:#2eaa5e;}
 .pavdot.warn{background:#f5a623;}
 .pavdot.bad{background:#e53935;}
+/* 儲槽：圓圈左側 */
+.pavtank{position:absolute;left:-9px;bottom:-1px;font-size:21px;line-height:1;padding:0;z-index:5;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+.pavtank:active{transform:scale(.9);}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.32));}
@@ -677,7 +682,8 @@ var todayRows=[],todayFor='';
 var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 // 職安類型建議清單，可自行輸入其他值
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
-  '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管'];
+  '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
+  '貯存系統污染監測人員'];
 var F={rg:'',en:'',ty:[]};
 var tab='today',sub='';
 
@@ -777,14 +783,16 @@ var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24">'
 /** 依證照種類判斷要掛哪些標記
  *  safety：職安業務主管類 → 戴工地帽
  *  mask  ：缺氧／侷限空間 → 防毒面罩
- *  kit   ：急救人員       → 急救箱 */
+ *  kit   ：急救人員       → 急救箱
+ *  tank  ：貯存系統污染監測 → 儲槽 */
 function certBadges(name){
-  var b={safety:false,mask:false,kit:false};
+  var b={safety:false,mask:false,kit:false,tank:false};
   safetyList(name).forEach(function(o){
     var t=o.type||'';
     if(/職安|職業安全|安全衛生|營造業[甲乙丙]種/.test(t))b.safety=true;
     if(/缺氧|侷限空間|局限空間/.test(t))b.mask=true;
     if(/急救/.test(t))b.kit=true;
+    if(/貯存系統|儲存系統|貯槽|儲槽/.test(t))b.tank=true;
   });
   return b;
 }
@@ -812,6 +820,9 @@ function avatarHat(name){
     h+='<button class="pavhat'+(b.mask?' up':'')+'" title="職安人員"'
       +' onclick="event.stopPropagation();showSafety(\''+esc(n)+'\')">⛑️'+hatDot(o)+'</button>';
   }
+  if(b.tank)                                                      // 儲槽掛在圓圈左側
+    h+='<button class="pavtank" title="貯存系統污染監測人員"'
+      +' onclick="event.stopPropagation();showSafety(\''+esc(n)+'\')">🛢️</button>';
   if(b.kit)h+=KIT_SVG.replace('<svg','<svg'+badgeClick(n));       // 急救箱壓在最上層
   // 沒戴帽子的人，燈號單獨放在圓圈右上角（全身只會有一顆）
   if(!b.safety&&o)h+='<span class="pavdot '+dotClass(o)+'"></span>';
@@ -825,6 +836,7 @@ function hatMark(n){
   var b=certBadges(n),inner='';
   if(b.safety)inner+='⛑️';                                        // 職安業務主管
   if(b.mask)inner+=MASK_SVG.replace('class="pavmask"','class="mki"');
+  if(b.tank)inner+='<span class="mke">🛢️</span>';
   if(b.kit)inner+=KIT_SVG.replace('class="pavkit"','class="mki"');
   if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
