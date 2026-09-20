@@ -3,767 +3,1314 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ESPC 監測行程行事曆</title>
+<title>ESPC 監測行程</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
-<meta name="theme-color" content="#1a73e8">
+<meta name="theme-color" content="#16161a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ESPC 行程">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.2.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --c-primary:#1a73e8;--c-primary-dark:#1558b0;
-  --c-surface:#fff;--c-bg:#f1f3f4;
-  --c-border:#dadce0;--c-text:#202124;--c-text-2:#5f6368;
-  --c-error:#d93025;--c-success:#188038;--c-warn:#f29900;
-  --radius:8px;--shadow:0 1px 3px rgba(0,0,0,.12);--shadow-md:0 4px 12px rgba(0,0,0,.15);
+  --bg:#16161a; --card:#1e1e24; --card2:#26262c; --line:#2a2a30;
+  --tx:#fafafa; --tx2:#a1a1aa; --tx3:#71717a;
+  --acc:#4ade80; --accTx:#14532d; --tint:rgba(74,222,128,.18);
+  --err:#f87171; --errBg:rgba(248,113,113,.14);
+  --warn:#fbbf24; --warnBg:rgba(251,191,36,.14);
+  --r:14px; --sh:0 8px 24px rgba(0,0,0,.35);
 }
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
-html,body{height:100%;font-family:'Google Sans','Noto Sans TC',Arial,sans-serif;font-size:15px;color:var(--c-text);background:var(--c-bg);}
+html[data-theme="light"]{
+  --bg:#f4f4f5; --card:#ffffff; --card2:#ececef; --line:#e4e4e7;
+  --tx:#18181b; --tx2:#52525b; --tx3:#a1a1aa;
+  --acc:#16a34a; --accTx:#ffffff; --tint:rgba(22,163,74,.13);
+  --err:#dc2626; --errBg:rgba(220,38,38,.09);
+  --warn:#b45309; --warnBg:rgba(180,83,9,.11);
+  --sh:0 8px 24px rgba(0,0,0,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--tx);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;min-height:100vh;}
+button,input,select,textarea{font-family:inherit;color:inherit;}
+button{background:none;border:none;cursor:pointer;color:inherit;}
+a{color:var(--acc);text-decoration:none;}
 input,select,textarea{font-size:16px;}
-.cal-grid{touch-action:pan-y;}
+::-webkit-scrollbar{width:0;height:0;}
 
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;}
-.login-card{background:var(--c-surface);border-radius:16px;padding:40px 32px;box-shadow:var(--shadow-md);width:100%;max-width:380px;}
-.login-card h1{font-size:22px;font-weight:600;text-align:center;margin-bottom:8px;color:var(--c-primary);}
-.login-card p{font-size:13px;color:var(--c-text-2);text-align:center;margin-bottom:28px;}
-.form-group{margin-bottom:16px;}
-.form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;}
-.form-group input{width:100%;padding:12px 14px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:16px;outline:none;transition:border .2s;}
-.form-group input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(26,115,232,.18);}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;min-height:44px;white-space:nowrap;}
-.btn-primary{background:var(--c-primary);color:#fff;}
-.btn-primary:hover{background:var(--c-primary-dark);}
-.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
-.btn-outline{background:transparent;color:var(--c-primary);border:1px solid var(--c-border);}
-.btn-outline:hover{background:var(--c-bg);}
-.btn-danger{background:var(--c-error);color:#fff;}
-.btn-danger:hover{background:#b31412;}
-.btn-sm{padding:7px 14px;font-size:13px;min-height:36px;}
+/* ── 通用元件 ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:999px;padding:11px 20px;font-size:14px;font-weight:500;
+  background:var(--card);border:1px solid var(--line);min-height:44px;transition:.15s;}
+.btn:active{transform:scale(.97);}
+.btn-p{background:var(--acc);color:var(--accTx);border-color:var(--acc);}
+.btn-d{color:var(--err);border-color:var(--err);}
+.btn-sm{padding:8px 15px;font-size:13px;min-height:38px;}
 .btn-full{width:100%;}
-.err-msg{color:var(--c-error);font-size:13px;margin-top:8px;min-height:18px;}
+.btn:disabled{opacity:.5;}
+.fld{width:100%;background:var(--card);border:1px solid var(--line);border-radius:999px;
+  padding:12px 16px;font-size:16px;outline:none;min-height:46px;}
+.fld:focus{border-color:var(--acc);}
+select.fld{appearance:none;padding-right:38px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+.lb{font-size:12px;color:var(--tx3);margin:0 0 7px 6px;}
+.sec{font-size:12px;color:var(--tx3);margin:20px 6px 9px;}
+.sec:first-child{margin-top:8px;}
+.card{background:var(--card);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.muted{color:var(--tx2);font-size:13px;}
+.hint{font-size:12px;color:var(--tx3);line-height:1.7;}
+.note{background:var(--warnBg);color:var(--warn);border-radius:var(--r);padding:11px 14px;
+  font-size:13px;line-height:1.7;margin-bottom:10px;}
+.note.bad{background:var(--errBg);color:var(--err);}
+.spin{width:22px;height:22px;border:2px solid var(--line);border-top-color:var(--acc);
+  border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.load{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--tx3);font-size:13px;}
+.empty{text-align:center;color:var(--tx3);font-size:14px;padding:36px 20px;}
+.sw{width:46px;height:27px;border-radius:999px;background:var(--line);position:relative;flex-shrink:0;transition:.18s;}
+.sw.on{background:var(--acc);}
+.sw::after{content:"";position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;
+  top:3px;left:3px;transition:.18s;}
+.sw.on::after{transform:translateX(19px);}
 
-#app-screen{display:none;flex-direction:column;min-height:100vh;}
-.topbar{background:var(--c-primary);color:#fff;padding:0 16px;display:flex;align-items:center;gap:12px;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-md);}
-.topbar-titles{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.25;}
-.topbar h1{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.topbar-user{font-size:12px;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
-.topbar-logout{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:8px 12px;font-size:13px;cursor:pointer;min-height:36px;}
-.topbar-logout:hover{background:rgba(255,255,255,.25);}
+/* ── 登入 ── */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.lcard{width:100%;max-width:360px;}
+.lcard h1{font-size:26px;font-weight:600;margin-bottom:6px;}
+.lcard p{font-size:13px;color:var(--tx3);margin-bottom:26px;}
+.lcard .fld{margin-bottom:11px;}
+.lerr{color:var(--err);font-size:13px;min-height:19px;margin:4px 0 8px 6px;}
 
-.tabs{background:var(--c-surface);border-bottom:1px solid var(--c-border);display:flex;overflow-x:auto;position:sticky;top:56px;z-index:99;-webkit-overflow-scrolling:touch;}
-.tabs::-webkit-scrollbar{display:none;}
-.tab-btn{flex:0 0 auto;padding:14px 18px;font-size:14px;font-weight:500;color:var(--c-text-2);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;min-height:48px;}
-.tab-btn.active{color:var(--c-primary);border-bottom-color:var(--c-primary);}
-.tab-btn:hover:not(.active){background:var(--c-bg);}
+/* ── 外框 ── */
+#app{display:none;flex-direction:column;min-height:100vh;padding-bottom:calc(66px + env(safe-area-inset-bottom));}
+.bar{position:sticky;top:0;z-index:40;background:var(--bg);padding-top:env(safe-area-inset-top);}
+.who{display:flex;align-items:center;gap:9px;padding:11px 16px 0;}
+.avt{width:26px;height:26px;border-radius:999px;background:var(--acc);color:var(--accTx);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.who-n{font-size:12px;color:var(--tx2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 13px 10px;}
+.ttl{font-size:24px;font-weight:600;padding:3px 5px;border-radius:999px;letter-spacing:-.01em;}
+.ttl.tap::after{content:" ▾";font-size:13px;color:var(--tx3);font-weight:400;}
+.rb{display:flex;gap:5px;align-items:center;}
+.ib{background:var(--card2);width:36px;height:36px;border-radius:999px;font-size:15px;
+  color:var(--tx2);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ib:active{transform:scale(.94);}
+.ib.w{width:auto;padding:0 14px;font-size:13px;gap:5px;}
+.ib.act{background:var(--tint);color:var(--acc);}
+.bdg{background:var(--acc);color:var(--accTx);font-size:10px;min-width:17px;height:17px;
+  border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-weight:600;}
+#page{flex:1;padding:0 12px;}
 
-.tab-panel{display:none;padding:12px;max-width:1400px;margin:0 auto;width:100%;}
-.tab-panel.active{display:block;}
+/* ── 篩選標籤 ── */
+.fchips{display:flex;gap:6px;padding:0 13px 9px;flex-wrap:wrap;}
+.fchips:empty{display:none;}
+.fc{display:inline-flex;align-items:center;gap:3px;font-size:12px;padding:5px 6px 5px 12px;
+  border-radius:999px;background:var(--tint);color:var(--acc);}
+.fc button{font-size:12px;padding:2px 4px;color:inherit;line-height:1;}
 
-.cal-toolbar{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
-.cal-toolbar-nav{display:flex;align-items:center;gap:6px;}
-.cal-toolbar-nav .btn{padding:8px 11px;min-height:38px;}
-.month-label{font-size:18px;font-weight:600;flex:1;text-align:center;white-space:nowrap;
-  border:none;background:transparent;color:var(--c-text);cursor:pointer;padding:8px 6px;
-  border-radius:var(--radius);font-family:inherit;min-height:38px;}
-.month-label:hover{background:var(--c-bg);}
-.month-label::after{content:" \25BE";font-size:12px;color:var(--c-text-2);}
+/* ── 月曆 ── */
+.dow{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--tx3);
+  text-align:center;padding:2px 0 5px;}
+.dow .sun{color:var(--err);}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cell{height:74px;padding:3px 2px;border-radius:10px;overflow:hidden;cursor:pointer;}
+.cell:active{background:var(--card);}
+.cell.tdy{outline:1.5px solid var(--acc);outline-offset:-1px;}
+.dn{font-size:11px;text-align:center;line-height:1.35;font-weight:500;}
+.dn.out{color:var(--tx3);font-weight:400;}
+.dn.sun{color:var(--err);}
+.evc{display:block;font-size:9.5px;line-height:1.5;padding:0 4px;margin-top:2px;
+  border-radius:999px;color:#fff;overflow:hidden;white-space:nowrap;}
+@media(min-width:420px){.cell{height:84px;}.evc{font-size:10.5px;}}
+.legend{display:flex;flex-wrap:wrap;gap:9px;padding:14px 4px 4px;}
+.lg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);}
+.lgd{width:8px;height:8px;border-radius:999px;flex-shrink:0;}
 
-.cal-toolbar{position:relative;}
-.month-picker{display:none;position:absolute;top:44px;left:50%;transform:translateX(-50%);
-  z-index:150;background:var(--c-surface);border:1px solid var(--c-border);border-radius:12px;
-  box-shadow:var(--shadow-md);padding:12px;width:260px;}
-.month-picker.open{display:block;}
-.mp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
-.mp-head span{font-size:16px;font-weight:600;}
-.mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.mp-btn{border:1px solid transparent;background:var(--c-bg);border-radius:var(--radius);
-  padding:10px 4px;font-size:14px;cursor:pointer;color:var(--c-text);min-height:42px;}
-.mp-btn:hover{background:#e8f0fe;}
-.mp-btn.cur{background:var(--c-primary);color:#fff;font-weight:600;}
-.mp-btn.today-m{border-color:var(--c-primary);color:var(--c-primary);font-weight:600;}
-.cal-filters{display:none;gap:6px;flex-wrap:wrap;padding:8px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);}
-.cal-filters.open{display:flex;}
-.cal-filters select{flex:1 1 130px;min-width:0;padding:8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);outline:none;min-height:38px;}
-.cal-filters select:focus{border-color:var(--c-primary);}
-.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
-.filter-chips:empty{display:none;}
-.filter-chip{display:inline-flex;align-items:center;gap:5px;background:#e8f0fe;color:var(--c-primary);font-size:12px;padding:4px 6px 4px 10px;border-radius:14px;}
-.filter-chip button{border:none;background:transparent;color:inherit;cursor:pointer;font-size:12px;line-height:1;padding:2px 3px;}
-.filter-count{display:inline-block;background:var(--c-primary);color:#fff;border-radius:9px;font-size:11px;padding:1px 6px;margin-left:5px;}
-@media(max-width:480px){.cal-filters select{flex:1 1 100%;}}
+/* ── 年月選擇 ── */
+.pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
+  background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;
+  display:none;box-shadow:var(--sh);max-width:400px;margin:0 auto;}
+.pk.open{display:block;}
+.pkh{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.pkh span{font-size:16px;font-weight:600;}
+.pkg{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.pkb{padding:12px 0;border-radius:999px;background:var(--card2);font-size:14px;}
+.pkb.cur{background:var(--acc);color:var(--accTx);font-weight:600;}
+.pkb.now{outline:1.5px solid var(--acc);color:var(--acc);font-weight:500;}
 
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid var(--c-border);border-top:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;background:var(--c-surface);box-shadow:var(--shadow);}
-.cal-header-cell{background:var(--c-bg);padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:var(--c-text-2);border-right:1px solid var(--c-border);border-bottom:1px solid var(--c-border);}
-.cal-cell{height:115px;overflow:hidden;padding:4px;border-right:1px solid var(--c-border);border-bottom:1px solid var(--c-border);background:var(--c-surface);cursor:pointer;transition:background .1s;}
-.cal-cell:hover{background:#f8f9ff;}
-.cal-cell:active{background:#e8f0fe;}
-.cal-cell.other-month{background:var(--c-bg);opacity:.5;}
-.cal-cell.today .cal-day-num{background:var(--c-primary);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;}
-.cal-day-row{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:2px;}
-.cal-day-num{font-size:13px;font-weight:500;display:inline-block;padding:2px 4px;}
-.day-count{font-size:10px;color:var(--c-text-2);background:var(--c-bg);border-radius:9px;
-  padding:1px 6px;flex-shrink:0;}
-.event-chip{cursor:pointer;}
-.event-chip:active{opacity:.75;}
-.cal-sunday .cal-day-num{color:#d32f2f;}
-.cal-saturday .cal-day-num{color:#1565c0;}
-.event-chip{display:block;font-size:11px;padding:2px 5px;border-radius:3px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#fff;line-height:1.4;}
-.more-chip{font-size:11px;color:var(--c-text-2);padding:1px 4px;}
-.dot-row,.dot-count{display:none;}
+/* ── 行程卡 ── */
+.ev{background:var(--card);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;
+  display:flex;gap:11px;cursor:pointer;}
+.ev:active{opacity:.75;}
+.evb{width:3.5px;border-radius:999px;flex-shrink:0;}
+.evt{font-size:11.5px;font-weight:500;}
+.evn{font-size:15px;font-weight:600;line-height:1.35;margin-top:2px;}
+.evm{font-size:12.5px;color:var(--tx2);margin-top:3px;line-height:1.6;}
+.dbox{min-width:30px;text-align:center;flex-shrink:0;}
+.dbox b{font-size:18px;font-weight:600;line-height:1;display:block;}
+.dbox span{font-size:10px;color:var(--tx3);}
 
-/* ── 今日焦點 ── */
-.today-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px;}
-.today-date{font-size:13px;color:var(--c-text-2);}
-.today-big{font-size:24px;font-weight:600;margin-top:2px;}
-.today-sub{font-size:13px;color:var(--c-text-2);margin:22px 0 8px;}
-.now-card{border-radius:12px;padding:14px;margin-bottom:10px;border-left:5px solid;background:var(--c-surface);box-shadow:var(--shadow);}
-.now-tag{font-size:12px;font-weight:600;margin-bottom:4px;}
-.now-title{font-size:17px;font-weight:600;line-height:1.35;}
-.now-meta{font-size:13px;color:var(--c-text-2);margin-top:6px;line-height:1.75;}
-.now-meta b{color:var(--c-text);font-weight:500;}
-.call-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
-.call-btn{display:inline-flex;align-items:center;gap:6px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--c-text);text-decoration:none;min-height:38px;}
-.call-btn:active{background:#e8f0fe;}
-.notice{background:#fef7e0;color:#7a5c00;border-radius:var(--radius);padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:10px;}
-.today-empty{background:var(--c-surface);border-radius:12px;box-shadow:var(--shadow);padding:36px 20px;text-align:center;color:var(--c-text-2);font-size:14px;}
-.upcoming-card{background:var(--c-surface);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;}
-.up-row{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--c-border);cursor:pointer;align-items:flex-start;}
-.up-row:last-child{border-bottom:none;}
-.up-row:active{background:var(--c-bg);}
-.up-date{min-width:36px;text-align:center;flex-shrink:0;}
-.up-d{font-size:17px;font-weight:600;line-height:1.1;}
-.up-w{font-size:11px;color:var(--c-text-2);}
-.up-bar{width:4px;border-radius:2px;align-self:stretch;flex-shrink:0;}
-.up-body{min-width:0;flex:1;}
-.up-title{font-size:14px;font-weight:500;line-height:1.4;}
-.up-meta{font-size:12px;color:var(--c-text-2);margin-top:2px;}
+/* ── 底部列 ── */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;
+  justify-content:space-around;background:var(--card);border-top:1px solid var(--line);
+  padding:8px 10px calc(10px + env(safe-area-inset-bottom));}
+.nb{display:flex;align-items:center;padding:9px;border-radius:999px;color:var(--tx3);font-size:12.5px;}
+.nb i{font-size:22px;line-height:1;width:22px;text-align:center;}
+.nb em{display:none;font-style:normal;font-weight:600;}
+.nb.on{background:var(--tint);color:var(--acc);padding:9px 17px 9px 14px;gap:7px;}
+.nb.on em{display:inline;}
 
-.legend-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:10px 2px 4px;}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;}
-.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+/* ── 底部面板 ── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:70;display:none;align-items:flex-end;}
+.ov.open{display:flex;}
+.sheet{background:var(--bg);width:100%;max-width:520px;margin:0 auto;
+  border-radius:22px 22px 0 0;padding:16px 16px calc(26px + env(safe-area-inset-bottom));
+  max-height:88vh;overflow-y:auto;animation:up .22s ease;}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+.shh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.shh h3{font-size:19px;font-weight:600;line-height:1.3;}
+.kv{font-size:13.5px;color:var(--tx2);line-height:2;}
+.kv b{color:var(--tx);font-weight:500;}
+.opts{display:flex;flex-wrap:wrap;gap:7px;}
+.ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
+  border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--tx2);}
+.ob.on{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:500;}
 
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;}
-.overlay.open{display:flex;}
-@media(min-width:640px){.overlay{align-items:center;justify-content:center;}}
-.detail-sheet{background:var(--c-surface);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 16px 40px;max-height:85vh;overflow-y:auto;animation:slideUp .25s ease;position:relative;}
-@media(min-width:640px){.detail-sheet{border-radius:16px;max-height:78vh;}}
-@keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:none;opacity:1;}}
-.detail-sheet h3{font-size:16px;font-weight:600;margin-bottom:14px;padding-right:36px;}
-.detail-close{position:absolute;top:18px;right:14px;background:var(--c-bg);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
-.proj-card{border-radius:10px;border-left:5px solid;padding:12px 14px;margin-bottom:10px;background:var(--c-bg);}
-.proj-card-title{font-weight:700;font-size:14px;margin-bottom:8px;}
-.type-section{margin-bottom:8px;}
-.type-section-header{font-weight:600;font-size:13px;margin-bottom:4px;border-bottom:1px solid var(--c-border);padding-bottom:3px;}
-.detail-row{font-size:13px;color:var(--c-text-2);margin-bottom:3px;line-height:1.7;}
-.detail-row span{color:var(--c-text);}
-.tel-a{color:var(--c-primary);text-decoration:none;white-space:nowrap;}
-.tel-no{color:var(--c-text-2);font-size:.92em;margin-left:4px;}
-.tel-a:active .tel-no{color:var(--c-primary);}
-.proj-footer{font-size:13px;color:var(--c-text-2);margin-top:6px;padding-top:6px;border-top:1px solid var(--c-border);line-height:1.9;}
-.proj-footer span{color:var(--c-text);}
-.empty-day{color:var(--c-text-2);font-size:14px;text-align:center;padding:28px;}
-.detail-more{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  background:var(--c-bg);border-radius:var(--radius);padding:8px 8px 8px 12px;
-  font-size:13px;color:var(--c-text-2);margin-bottom:12px;}
+/* ── 清單 ── */
+.lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;background:var(--card);
+  border-radius:var(--r);margin-bottom:7px;}
+.pav{width:36px;height:36px;border-radius:999px;background:var(--card2);color:var(--tx2);
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.tag{font-size:11px;padding:4px 11px;border-radius:999px;background:var(--card2);color:var(--tx2);white-space:nowrap;}
+.tag.g{background:var(--tint);color:var(--acc);}
+.link{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--card);border-radius:var(--r);padding:14px 15px;margin-bottom:7px;width:100%;
+  font-size:15px;text-align:left;}
+.link i{font-size:19px;color:var(--tx3);}
+.link:active{opacity:.7;}
 
-.upload-box{border:2px dashed var(--c-border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--c-surface);}
-.upload-box:hover,.upload-box.drag-over{border-color:var(--c-primary);background:#e8f0fe;}
-#file-input{display:none;}
-.parse-result{margin-top:16px;background:var(--c-surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.parse-result-header{padding:12px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-.parse-result-header h3{font-size:14px;font-weight:600;word-break:break-all;}
-.badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
-.badge-success{background:#e6f4ea;color:var(--c-success);}
-.badge-warn{background:#fef7e0;color:var(--c-warn);}
-.data-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.data-table{width:100%;border-collapse:collapse;font-size:13px;}
-.data-table th{background:var(--c-bg);padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--c-border);white-space:nowrap;}
-.data-table td{padding:8px 10px;border-bottom:1px solid var(--c-border);white-space:nowrap;}
-.data-table tr:last-child td{border-bottom:none;}
-.upload-actions{padding:14px 16px;display:flex;gap:8px;flex-wrap:wrap;}
+/* ── 上傳 ── */
+.drop{border:1.5px dashed var(--line);border-radius:18px;padding:36px 20px;text-align:center;cursor:pointer;}
+.drop:active,.drop.over{border-color:var(--acc);background:var(--tint);}
+.drop i{font-size:38px;color:var(--tx3);}
+#fi{display:none;}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tbl th{background:var(--card2);padding:9px 11px;text-align:left;font-weight:500;
+  color:var(--tx2);white-space:nowrap;font-size:11.5px;}
+.tbl td{padding:9px 11px;border-top:1px solid var(--line);white-space:nowrap;}
+.scroll{overflow-x:auto;border-radius:var(--r);background:var(--card);}
 
-.history-card{background:var(--c-surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.history-row{padding:12px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:flex-start;gap:10px;}
-.hist-del{flex-shrink:0;color:var(--c-error);align-self:center;}
-.hist-del:hover{background:#fce8e6;border-color:rgba(217,48,37,.4);}
-.history-row:last-child{border-bottom:none;}
-.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
-.hist-name{font-size:14px;font-weight:500;}
-.hist-name.superseded{text-decoration:line-through;color:var(--c-text-2);}
-.hist-meta{font-size:12px;color:var(--c-text-2);margin-top:3px;}
-.status-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:6px;}
-.status-active-b{background:#e6f4ea;color:var(--c-success);}
-.status-super-b{background:#f1f3f4;color:var(--c-text-2);}
-
-.section-card{background:var(--c-surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:16px;}
-.section-card h3{font-size:15px;font-weight:600;margin-bottom:12px;border-bottom:1px solid var(--c-border);padding-bottom:8px;}
-.admin-form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;}
-.admin-form .form-group{flex:1 1 130px;margin-bottom:0;}
-.admin-form .form-group label{font-size:12px;}
-.admin-form .form-group input,.admin-form .form-group select{width:100%;height:44px;padding:0 10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;line-height:normal;outline:none;background:var(--c-surface);color:var(--c-text);-webkit-appearance:none;appearance:none;}
-.admin-form .form-group select{padding-right:28px;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%235f6368' d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;background-size:14px;}
-.admin-form .form-group input:focus,.admin-form .form-group select:focus{border-color:var(--c-primary);}
-.admin-form .btn{height:44px;min-height:44px;}
-.seg{display:flex;gap:4px;background:var(--c-bg);border-radius:20px;padding:3px;margin-bottom:12px;overflow-x:auto;}
-.seg::-webkit-scrollbar{display:none;}
-.seg-btn{flex:1 0 auto;border:none;background:transparent;border-radius:18px;padding:7px 14px;font-size:13px;color:var(--c-text-2);cursor:pointer;white-space:nowrap;min-height:34px;}
-.seg-btn.active{background:var(--c-surface);color:var(--c-primary);font-weight:600;box-shadow:var(--shadow);}
-.region-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;background:#e8f0fe;color:#1558b0;white-space:nowrap;}
-.region-pill.none{background:var(--c-bg);color:var(--c-text-2);}
-.team-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;
-  background:#f3e8fd;color:#6a1b9a;white-space:nowrap;font-weight:500;}
-.users-table{width:100%;border-collapse:collapse;font-size:13px;}
-.users-table th{background:var(--c-bg);padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--c-border);}
-.users-table td{padding:10px 10px;border-bottom:1px solid var(--c-border);vertical-align:middle;}
-.users-table tr:last-child td{border-bottom:none;}
-.role-badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;}
-.role-sel{height:34px;padding:0 6px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);color:var(--c-text);outline:none;max-width:110px;}
-.role-sel:focus{border-color:var(--c-primary);}
-.role-admin{background:#fce8e6;color:#c5221f;}
-.role-supervisor{background:#e8f0fe;color:#1a73e8;}
-.role-scheduler{background:#e0f7fa;color:#00695c;}
-.role-pm{background:#f3e8fd;color:#7b1fa2;}
-.role-viewer{background:#e6f4ea;color:#188038;}
-.status-active{color:var(--c-success);font-weight:600;}
-.status-inactive{color:var(--c-error);}
-.pw-card{max-width:460px;}
-.set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--c-border);}
-.set-label{font-size:14px;flex:1;min-width:0;}
-.set-hint{display:block;font-size:12px;color:var(--c-text-2);margin-top:3px;line-height:1.5;}
-.switch{position:relative;display:inline-block;width:48px;height:28px;flex-shrink:0;}
-.switch input{opacity:0;width:0;height:0;}
-.slider{position:absolute;inset:0;background:#c4c7c5;border-radius:28px;transition:.2s;cursor:pointer;}
-.slider::before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
-.switch input:checked+.slider{background:var(--c-primary);}
-.switch input:checked+.slider::before{transform:translateX(20px);}
-.nt-status{font-size:12px;color:var(--c-text-2);line-height:1.7;margin:12px 0;}
-.nt-status.warn{color:#9a6700;background:#fef7e0;border-radius:var(--radius);padding:9px 11px;}
-.nt-status.bad{color:var(--c-error);background:#fce8e6;border-radius:var(--radius);padding:9px 11px;}
-.nt-diag{display:none;margin-top:12px;background:var(--c-bg);border-radius:var(--radius);padding:10px 12px;}
-.nt-diag.open{display:block;}
-.dg-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;
-  border-bottom:1px solid var(--c-border);}
-.dg-row:last-of-type{border-bottom:none;}
-.dg-row span{color:var(--c-text-2);}
-.dg-ok{color:var(--c-success);}
-.dg-bad{color:var(--c-error);}
-.dg-why{font-size:12px;color:var(--c-text-2);line-height:1.7;margin-top:10px;
-  padding-top:10px;border-top:1px solid var(--c-border);}
-.actions-cell{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
-
-.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
-.toast{background:#323232;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:var(--shadow-md);animation:fadeIn .2s ease;max-width:90vw;text-align:center;}
-.toast.success{background:var(--c-success);}
-.toast.error{background:var(--c-error);}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
-.loading{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--c-text-2);}
-.spinner{width:24px;height:24px;border:3px solid var(--c-border);border-top-color:var(--c-primary);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-@media(max-width:600px){
-  .cal-cell{height:96px;padding:2px;}
-  .cal-day-num{font-size:11px;padding:1px 2px;margin-bottom:1px;}
-  .cal-cell.today .cal-day-num{width:20px;height:20px;}
-  .event-chip{font-size:9px;padding:1px 3px;border-radius:2px;margin-bottom:1px;line-height:1.35;}
-  .cal-header-cell{font-size:11px;padding:6px 2px;}
-  .login-card{padding:28px 16px;}
-  .tab-panel{padding:8px;}
-  .legend-item{font-size:11px;}
-}
+/* ── 提示 ── */
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 32px);max-width:420px;}
+.ts{background:var(--tx);color:var(--bg);padding:13px 18px;border-radius:14px;font-size:13.5px;
+  box-shadow:var(--sh);animation:up .2s ease;line-height:1.6;text-align:center;}
+.ts.ok{background:var(--acc);color:var(--accTx);}
+.ts.no{background:var(--err);color:#fff;}
 </style>
 </head>
 <body>
 
-<div id="login-screen">
-  <div class="login-card">
+<div id="login">
+  <div class="lcard">
     <h1>ESPC 監測行程</h1>
-    <p>行事曆系統 — 請登入</p>
-    <div class="form-group"><label>帳號</label><input id="inp-user" type="text" autocomplete="username" placeholder="請輸入帳號"></div>
-    <div class="form-group"><label>密碼</label><input id="inp-pw" type="password" autocomplete="current-password" placeholder="請輸入密碼"></div>
-    <div class="err-msg" id="login-err"></div>
-    <button class="btn btn-primary btn-full" id="login-btn" style="margin-top:8px" onclick="doLogin()">登入</button>
+    <p>請登入以查看排程</p>
+    <input class="fld" id="i-u" type="text" autocomplete="username" placeholder="帳號">
+    <input class="fld" id="i-p" type="password" autocomplete="current-password" placeholder="密碼">
+    <div class="lerr" id="l-err"></div>
+    <button class="btn btn-p btn-full" id="l-btn" onclick="doLogin()">登入</button>
   </div>
 </div>
 
-<div id="app-screen">
-  <div class="topbar">
-    <div class="topbar-titles">
-      <h1>ESPC 監測行程</h1>
-      <span class="topbar-user" id="topbar-user"></span>
+<div id="app">
+  <div class="bar">
+    <div class="who">
+      <div class="avt" id="u-av"></div>
+      <div class="who-n" id="u-nm"></div>
+      <button class="ib" onclick="doLogout()" title="登出" style="width:32px;height:32px"><i class="ti ti-logout" style="font-size:15px"></i></button>
     </div>
-    <button class="topbar-logout" onclick="doLogout()">登出</button>
-  </div>
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('today',this)">今日</button>
-    <button class="tab-btn" onclick="switchTab('calendar',this)">行事曆</button>
-    <button class="tab-btn" id="tab-upload-btn" onclick="switchTab('upload',this)">上傳排程</button>
-    <button class="tab-btn" id="tab-staff-btn" onclick="switchTab('staff',this)">人員通訊錄</button>
-    <button class="tab-btn" id="tab-admin-btn" onclick="switchTab('admin',this)">帳號管理</button>
-    <button class="tab-btn" onclick="switchTab('password',this)">設定</button>
+    <div class="hd">
+      <button class="ttl" id="h-ttl" onclick="onTitle()"></button>
+      <div class="rb" id="h-rb"></div>
+    </div>
+    <div class="fchips" id="fchips"></div>
   </div>
 
-  <div id="panel-today" class="tab-panel active">
-    <div class="today-head">
-      <div>
-        <div class="today-date" id="today-date"></div>
-        <div class="today-big">今天</div>
-      </div>
-      <button class="btn btn-outline btn-sm" onclick="loadToday(true)">&#8635;</button>
-    </div>
-    <div id="today-now"><div class="loading"><div class="spinner"></div></div></div>
-    <div id="today-next-wrap" style="display:none;">
-      <div class="today-sub">接下來</div>
-      <div class="upcoming-card" id="today-next"></div>
-    </div>
-  </div>
+  <div class="pk" id="pk"></div>
+  <div id="page"></div>
 
-  <div id="panel-calendar" class="tab-panel">
-    <div class="cal-toolbar">
-      <div class="cal-toolbar-nav">
-        <button class="btn btn-outline btn-sm" onclick="moveMonth(-1)">&#8249;</button>
-        <button class="month-label" id="month-label" onclick="toggleMonthPicker(event)" aria-haspopup="true"></button>
-        <button class="btn btn-outline btn-sm" onclick="moveMonth(1)">&#8250;</button>
-        <button class="btn btn-outline btn-sm" onclick="goToday()">今天</button>
-        <button class="btn btn-outline btn-sm" id="filter-toggle" onclick="toggleFilters()">篩選</button>
-      </div>
-      <div class="month-picker" id="month-picker">
-        <div class="mp-head">
-          <button class="btn btn-outline btn-sm" onclick="mpYear(-1)">&#8249;</button>
-          <span id="mp-year"></span>
-          <button class="btn btn-outline btn-sm" onclick="mpYear(1)">&#8250;</button>
-        </div>
-        <div class="mp-grid" id="mp-grid"></div>
-      </div>
-      <div class="cal-filters" id="cal-filters">
-        <select id="cal-filter-region" onchange="applyFilter()">
-          <option value="">全部地區</option>
-          <option value="台北">台北</option>
-          <option value="台中">台中</option>
-          <option value="高雄">高雄</option>
-        </select>
-        <select id="cal-filter-eng" onchange="applyFilter()"><option value="">全部工程師</option></select>
-        <select id="cal-filter-type" onchange="applyFilter()"><option value="">全部類別</option></select>
-        <button class="btn btn-outline btn-sm" onclick="clearFilters()">清除</button>
-      </div>
-      <div class="filter-chips" id="filter-chips"></div>
-    </div>
-    <div id="cal-container"><div class="loading"><div class="spinner"></div> 載入中…</div></div>
-  </div>
-
-  <div id="panel-upload" class="tab-panel">
-    <div class="upload-box" id="drop-zone"
-         onclick="document.getElementById('file-input').click()"
-         ondragover="event.preventDefault();this.classList.add('drag-over')"
-         ondragleave="this.classList.remove('drag-over')"
-         ondrop="handleDrop(event)">
-      <div style="font-size:52px;margin-bottom:12px">&#128196;</div>
-      <p style="font-size:15px;color:var(--c-text-2)">點擊或拖曳 Excel 檔案</p>
-      <small style="font-size:13px;color:var(--c-text-2);margin-top:6px;display:block">
-        .xlsx / .xls，支援台北、台中、高雄格式<br>每次上傳自動更新同日期資料，不重複
-      </small>
-    </div>
-    <input id="file-input" type="file" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
-    <div id="parse-area"></div>
-    <div style="margin-top:28px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <h3 style="font-size:15px;font-weight:600;">上傳記錄</h3>
-        <button class="btn btn-outline btn-sm" onclick="loadUploadHistory()">&#8635; 重新整理</button>
-      </div>
-      <div id="upload-history-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-    <div id="danger-zone" style="display:none;margin-top:28px;">
-      <div class="section-card" style="border:1px solid rgba(217,48,37,.2);">
-        <h3 style="color:var(--c-error)">危險操作</h3>
-        <p style="font-size:13px;color:var(--c-text-2);margin-bottom:12px">清除所有排程資料，此操作無法還原。</p>
-        <button class="btn btn-danger btn-sm" onclick="adminClearAll()">清除全部資料</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="panel-staff" class="tab-panel">
-    <div class="section-card" id="staff-add-card">
-      <h3>新增／更新人員</h3>
-      <div class="admin-form">
-        <div class="form-group"><label>姓名</label><input id="staff-name" type="text" placeholder="姓名"></div>
-        <div class="form-group"><label>電話</label><input id="staff-phone" type="tel" placeholder="09xx-xxx-xxx"></div>
-        <div class="form-group"><label>地區</label>
-          <select id="staff-region">
-            <option value="">未指定</option>
-            <option value="台北">台北</option>
-            <option value="台中">台中</option>
-            <option value="高雄">高雄</option>
-          </select>
-        </div>
-        <div class="form-group"><label>組別</label>
-          <input id="staff-team" type="text" list="team-list" placeholder="EIA-T、SP-C…" autocapitalize="characters">
-          <datalist id="team-list"></datalist>
-        </div>
-        <div class="form-group"><label>備註</label><input id="staff-note" type="text" placeholder="職務（選填）"></div>
-        <button class="btn btn-primary btn-sm" onclick="staffSave()">儲存</button>
-      </div>
-      <p style="font-size:12px;color:var(--c-text-2);margin-top:10px">姓名相同時會覆蓋原本的電話與備註。</p>
-    </div>
-    <div class="section-card">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <h3 style="border:none;padding:0;margin:0;flex:1 1 auto;">人員通訊錄</h3>
-        <input id="staff-search" type="search" placeholder="搜尋姓名或電話" oninput="renderStaffTable()"
-               style="flex:1 1 180px;padding:8px 10px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;outline:none;min-height:38px;">
-        <select id="staff-team-filter" onchange="renderStaffTable()"
-                style="flex:0 1 130px;height:38px;padding:0 8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);color:var(--c-text);outline:none;">
-          <option value="">全部組別</option>
-        </select>
-        <button class="btn btn-outline btn-sm" onclick="staffReload(true)">&#8635;</button>
-      </div>
-      <div class="seg" id="staff-region-filter">
-        <button class="seg-btn active" data-r="" onclick="staffSetRegion(this)">全部</button>
-        <button class="seg-btn" data-r="台北" onclick="staffSetRegion(this)">台北</button>
-        <button class="seg-btn" data-r="台中" onclick="staffSetRegion(this)">台中</button>
-        <button class="seg-btn" data-r="高雄" onclick="staffSetRegion(this)">高雄</button>
-        <button class="seg-btn" data-r="__none__" onclick="staffSetRegion(this)">未指定</button>
-      </div>
-      <div id="staff-list" style="overflow-x:auto;"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-
-  <div id="panel-admin" class="tab-panel">
-    <div class="section-card">
-      <h3>新增帳號</h3>
-      <div class="admin-form">
-        <div class="form-group"><label>帳號</label><input id="new-username" type="text" placeholder="帳號"></div>
-        <div class="form-group"><label>密碼</label><input id="new-password" type="password" placeholder="至少6字元"></div>
-        <div class="form-group"><label>角色</label>
-          <select id="new-role">
-            <option value="viewer">現場（查詢）</option>
-            <option value="pm">PM（查詢，自動帶自己行程）</option>
-            <option value="scheduler">排程（上傳＋查詢）</option>
-            <option value="supervisor">主管（上傳＋查詢）</option>
-            <option value="admin">管理員（全部）</option>
-          </select>
-        </div>
-        <div class="form-group"><label>對應工程師</label><input id="new-engname" type="text" placeholder="姓名（選填）"></div>
-        <button class="btn btn-primary btn-sm" onclick="adminCreateUser()">新增</button>
-      </div>
-    </div>
-    <div class="section-card">
-      <h3>帳號列表</h3>
-      <div id="users-list" style="overflow-x:auto;"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-
-  <div id="panel-password" class="tab-panel">
-    <div class="section-card pw-card">
-      <h3>每日行程提醒</h3>
-      <div class="set-row">
-        <div class="set-label">開啟提醒<span class="set-hint">時間一到跳出系統通知，只顯示你自己的行程</span></div>
-        <label class="switch"><input type="checkbox" id="nt-on" onchange="notifToggle(this)"><span class="slider"></span></label>
-      </div>
-      <div class="set-row">
-        <div class="set-label">提醒時間</div>
-        <input type="time" id="nt-time" value="08:30" onchange="notifSaveUI()"
-               style="height:40px;padding:0 8px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:15px;background:var(--c-surface);color:var(--c-text);">
-      </div>
-      <div class="set-row">
-        <div class="set-label">六日不提醒</div>
-        <label class="switch"><input type="checkbox" id="nt-weekend" onchange="notifSaveUI()"><span class="slider"></span></label>
-      </div>
-      <div class="set-row" style="border-bottom:none;">
-        <div class="set-label">沒有行程時仍提醒<span class="set-hint">關閉的話，當天沒排程就不會跳通知</span></div>
-        <label class="switch"><input type="checkbox" id="nt-empty" onchange="notifSaveUI()"><span class="slider"></span></label>
-      </div>
-      <div id="nt-status" class="nt-status"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" onclick="notifTest()">發送測試通知</button>
-        <button class="btn btn-outline btn-sm" onclick="toggleDiag()">檢查設定</button>
-      </div>
-      <div id="nt-diag" class="nt-diag"></div>
-    </div>
-
-    <div class="section-card pw-card">
-      <h3>修改密碼</h3>
-      <div class="form-group"><label>目前密碼</label><input id="pw-old" type="password" autocomplete="current-password" placeholder="請輸入目前密碼"></div>
-      <div class="form-group"><label>新密碼</label><input id="pw-new" type="password" autocomplete="new-password" placeholder="至少6字元"></div>
-      <div class="form-group"><label>確認密碼</label><input id="pw-confirm" type="password" placeholder="再輸入一次"></div>
-      <div class="err-msg" id="pw-err"></div>
-      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="doChangePassword()">儲存</button>
-    </div>
+  <div class="nav" id="nav">
+    <button class="nb on" data-t="today"><i class="ti ti-sun"></i><em>今日</em></button>
+    <button class="nb" data-t="cal"><i class="ti ti-calendar-month"></i><em>行事曆</em></button>
+    <button class="nb" data-t="book"><i class="ti ti-address-book"></i><em>通訊錄</em></button>
+    <button class="nb" data-t="more"><i class="ti ti-menu-2"></i><em>更多</em></button>
   </div>
 </div>
 
-<div class="overlay" id="detail-overlay" onclick="closeDetail(event)">
-  <div class="detail-sheet" id="detail-sheet">
-    <button class="detail-close" onclick="closeDetailBtn()">&#10005;</button>
-    <h3 id="detail-title"></h3>
-    <div id="detail-body"></div>
-  </div>
-</div>
-<div class="toast-wrap" id="toast-wrap"></div>
+<div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+<input id="fi" type="file" accept=".xlsx,.xls" onchange="onPick(event)">
 
 <script>
-// ════════════════════════════════════════════════════════════
-// 請將下方的部署 ID 換成您自己的 Google Apps Script 部署 ID
-// ════════════════════════════════════════════════════════════
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
+/* ══════════════════════════════════════════════════════════
+   ESPC 監測行程 — 前端
+   後端：Google Apps Script（下方 GAS_URL）
+   ══════════════════════════════════════════════════════════ */
+var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
-// ─── GAS API（fetch 版）───────────────────────────────────────────────────────
-function gas(fn) {
-  var args = Array.prototype.slice.call(arguments, 1);
-  var payload = JSON.stringify({ fn: fn, args: args });
-  // 小請求用 GET（避免 CORS 問題），大資料上傳用 POST
-  if (payload.length < 1800) {
-    return fetch(GAS_URL + '?payload=' + encodeURIComponent(payload))
-      .then(function(r) { return r.json(); });
+function gas(fn){
+  var args=Array.prototype.slice.call(arguments,1);
+  var payload=JSON.stringify({fn:fn,args:args});
+  if(payload.length<1800){
+    return fetch(GAS_URL+'?payload='+encodeURIComponent(payload)).then(function(r){return r.json();});
   }
-  return fetch(GAS_URL, { method: 'POST', body: payload })
-    .then(function(r) { return r.json(); });
+  return fetch(GAS_URL,{method:'POST',body:payload}).then(function(r){return r.json();});
 }
 
-// ─── 人員電話對照（由資料庫載入，非寫死）───────────────────────────────────────
-var PHONE_MAP={};
-var STAFF_LIST=[];
-function withPhone(name){if(!name)return '';var ph=PHONE_MAP[name.trim()];return ph?name+'（'+ph+'）':name;}
-/** 姓名（電話），整串可直接點擊撥號；沒登記電話就只顯示姓名 */
-function telLink(name){
-  if(!name)return '';
-  name=String(name).trim();
-  var ph=PHONE_MAP[name];
-  if(!ph)return he(name);
-  return '<a href="tel:'+he(ph.replace(/-/g,''))+'" class="tel-a">'
-    +he(name)+'<span class="tel-no">'+he(ph)+'</span></a>';
+/* ── 小工具 ── */
+function he(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function p2(n){return String(n).padStart(2,'0');}
+function sv(v){return v!=null?String(v).trim():'';}
+function $(id){return document.getElementById(id);}
+function ls(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+function lsS(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function lsD(k){try{localStorage.removeItem(k);}catch(e){}}
+function jGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function jSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+/* ── 時間一律台灣（UTC+8）── */
+var TWO=480;
+function twDate(d){d=d?new Date(d):new Date();if(isNaN(d))return d;
+  return new Date(d.getTime()+(d.getTimezoneOffset()+TWO)*60000);}
+function twStr(d){var t=twDate(d);return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate());}
+function dowOf(s){var a=String(s).split('-');return new Date(+a[0],+a[1]-1,+a[2]).getDay();}
+function stamp(v){if(!v)return '';var d=new Date(v);
+  if(isNaN(d))return String(v).slice(0,16).replace('T',' ');
+  var t=twDate(d);return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate())+' '+p2(t.getHours())+':'+p2(t.getMinutes());}
+
+var DW=['日','一','二','三','四','五','六'];
+var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+/* ── 主題 ── */
+function applyTheme(){
+  var t=ls('espc_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');
+  var mt=document.querySelector('meta[name=theme-color]');
+  if(mt)mt.setAttribute('content',t==='light'?'#f4f4f5':'#16161a');
 }
-var STAFF_VER='';
-function applyStaff(list){
-  STAFF_LIST=list||[];
-  PHONE_MAP={};
-  STAFF_LIST.forEach(function(s){if(s.name)PHONE_MAP[s.name]=s.phone||'';});
+function toggleTheme(){lsS('espc_theme',(ls('espc_theme')||'dark')==='dark'?'light':'dark');applyTheme();render();}
+applyTheme();
+
+/* ── 提示 ── */
+function toast(msg,kind,ms){
+  var el=document.createElement('div');
+  el.className='ts'+(kind?' '+kind:'');el.textContent=msg;
+  $('toast').appendChild(el);
+  setTimeout(function(){el.remove();},ms||3000);
 }
+
+/* ── 身分 ── */
+var TOKEN=ls('espc_token'),ROLE=ls('espc_role'),UNAME=ls('espc_user'),ENGNAME=ls('espc_eng');
+var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',viewer:'現場'};
+var ROLE_ORDER=['admin','supervisor','scheduler','pm','viewer'];
+var ROLE_WRITE=['admin','supervisor','scheduler'];
+function roleLabel(r){return ROLE_LABEL[r]||r;}
+function canWrite(r){return ROLE_WRITE.indexOf(r)>=0;}
+function saveSession(t,r,u,e){TOKEN=t;ROLE=r;UNAME=u;ENGNAME=e||'';
+  lsS('espc_token',t);lsS('espc_role',r);lsS('espc_user',u);lsS('espc_eng',ENGNAME);}
+function clearSession(){
+  TOKEN=ROLE=UNAME=ENGNAME='';
+  ['espc_token','espc_role','espc_user','espc_eng','espc_sync'].forEach(lsD);
+  try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);
+    if(k&&k.indexOf('espc_c_')===0)localStorage.removeItem(k);}}catch(e){}
+}
+
+/* ── 本機快取（版本比對）── */
+var CK='espc_c_';
+function cGet(k){return jGet(CK+k,null);}
+function cSet(k,o){try{localStorage.setItem(CK+k,JSON.stringify(o));}catch(e){cPrune(true);
+  try{localStorage.setItem(CK+k,JSON.stringify(o));}catch(e2){}}}
+function cPrune(hard){
+  try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
+    if(k&&k.indexOf(CK+'m_')===0)ks.push(k);}
+    ks.sort();while(ks.length>(hard?2:8))localStorage.removeItem(ks.shift());}catch(e){}
+}
+function cVer(v){
+  if(!v)return;
+  var cur=ls(CK+'ver');
+  if(cur&&cur!==v){try{var del=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
+    if(k&&k.indexOf(CK+'m_')===0)del.push(k);}del.forEach(function(k){localStorage.removeItem(k);});}catch(e){}}
+  lsS(CK+'ver',v);
+}
+
+/* ── 資料 ── */
+var NTC='espc_ntc';
+var PHONE={},STAFF=[],STAFF_VER='';
+var allRows=[],rows=[],curY,curM,pkY;
+var todayRows=[],todayFor='';
+var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
+var F={rg:'',en:'',ty:[]};
+var tab='today',sub='';
+
+function telLink(n){
+  if(!n)return '';n=String(n).trim();
+  var ph=PHONE[n];
+  if(!ph)return he(n);
+  return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)+' <span style="color:var(--tx3);font-size:.92em">'+he(ph)+'</span></a>';
+}
+
+/* ── 專案配色 ── */
+var PAL=['#2563eb','#dc2626','#16a34a','#ea580c','#9333ea','#0891b2','#ca8a04','#db2777',
+         '#4f46e5','#059669','#b45309','#7c3aed','#0d9488','#e11d48','#65a30d','#6366f1'];
+var pmap={},pidx=0;
+function pcolor(n){if(!n)return '#71717a';
+  if(!pmap[n]){pmap[n]=PAL[pidx%PAL.length];pidx++;}return pmap[n];}
+
+/* ══ 啟動 ══ */
+window.addEventListener('DOMContentLoaded',function(){
+  $('i-p').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+  $('i-u').addEventListener('keydown',function(e){if(e.key==='Enter')$('i-p').focus();});
+  document.querySelectorAll('.nb').forEach(function(b){
+    b.onclick=function(){go(b.getAttribute('data-t'));};
+  });
+  document.addEventListener('click',function(e){
+    if($('pk').classList.contains('open')&&!$('pk').contains(e.target)&&!e.target.closest('#h-ttl'))
+      $('pk').classList.remove('open');
+  });
+  $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeSheet();});
+
+  if(TOKEN){
+    $('login').innerHTML='<div class="load"><div class="spin"></div> 載入中…</div>';
+    gas('getMe',TOKEN).then(function(r){
+      if(r&&r.ok)boot(r.username,r.role,r.engineerName||'');
+      else{clearSession();location.reload();}
+    }).catch(function(){
+      $('login').innerHTML='<div class="lcard" style="text-align:center">'
+        +'<p class="muted" style="margin-bottom:18px">連線失敗，請確認網路</p>'
+        +'<button class="btn btn-p" onclick="location.reload()">重新載入</button></div>';
+    });
+  }
+});
+
+function doLogin(){
+  var u=$('i-u').value.trim(),p=$('i-p').value,btn=$('l-btn');
+  if(!u||!p){$('l-err').textContent='請輸入帳號與密碼';return;}
+  btn.disabled=true;btn.textContent='登入中…';$('l-err').textContent='';
+  gas('login',u,p).then(function(r){
+    if(r&&r.ok){saveSession(r.token,r.role,r.username,r.engineerName||'');boot(r.username,r.role,r.engineerName||'');}
+    else{$('l-err').textContent=(r&&r.error)||'登入失敗';btn.disabled=false;btn.textContent='登入';}
+  }).catch(function(){$('l-err').textContent='連線失敗，請稍後再試';btn.disabled=false;btn.textContent='登入';});
+}
+function doLogout(){
+  if(!confirm('確定要登出？'))return;
+  gas('logout',TOKEN).catch(function(){});
+  clearSession();location.reload();
+}
+
+function boot(u,r,eng){
+  ROLE=r;UNAME=u;ENGNAME=eng;lsS('espc_eng',eng||'');
+  $('login').style.display='none';
+  $('app').style.display='flex';
+  $('u-av').textContent=(eng||u||'?').slice(0,1);
+  $('u-nm').textContent=(eng?eng+'　':'')+u+'（'+roleLabel(r)+'）';
+  var n=twDate();curY=n.getFullYear();curM=n.getMonth();
+  if(r==='pm'&&eng)F.en=eng;
+
+  var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
+  lsS('espc_sync',t);
+  if(fresh)cPrune(false);
+
+  ntInit();
+  loadStaff(function(){loadToday(fresh);},fresh);
+}
+
+/* ══ 導覽 ══ */
+function go(t,s){
+  tab=t;sub=s||'';
+  $('pk').classList.remove('open');
+  closeSheet();
+  document.querySelectorAll('.nb').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-t')===t);
+  });
+  window.scrollTo(0,0);
+  render();                                  // 先畫出容器，再載資料
+  if(sub==='upload')loadHistory();
+  else if(sub==='admin')loadUsers();
+  else if(t==='cal'&&!allRows.length)loadMonth();
+  else if(t==='today'&&!todayFor)loadToday();
+  else if(t==='book')loadStaff(null);
+}
+
+function onTitle(){
+  if(tab!=='cal')return;
+  pkY=curY;renderPk();
+  $('pk').classList.toggle('open');
+}
+
+function render(){
+  var isCal=(tab==='cal'&&!sub);
+  $('h-ttl').className='ttl'+(isCal?' tap':'');
+  $('h-ttl').textContent=titleText();
+  $('h-rb').innerHTML=rightButtons();
+  renderChips();
+  $('page').innerHTML=pageHTML();
+  if(sub==='upload')paintHistory();
+}
+
+function titleText(){
+  if(sub==='upload')return '上傳排程';
+  if(sub==='admin')return '帳號管理';
+  if(sub==='notify')return '提醒設定';
+  if(sub==='pw')return '修改密碼';
+  if(tab==='today')return '今天';
+  if(tab==='cal')return curY+' 年 '+MO[curM];
+  if(tab==='book')return '通訊錄';
+  return '更多';
+}
+
+function rightButtons(){
+  if(sub)return '<button class="ib" onclick="go(\''+tab+'\')" title="返回">✕</button>';
+  if(tab==='cal')
+    return '<button class="ib" onclick="moveM(-1)">‹</button>'
+      +'<button class="ib w" onclick="goToday()">今天</button>'
+      +'<button class="ib" onclick="moveM(1)">›</button>'+filterBtn();
+  if(tab==='today')
+    return '<button class="ib" onclick="loadToday(true)" title="重新整理">↻</button>'+filterBtn();
+  if(tab==='book')
+    return '<button class="ib" onclick="loadStaff(render,true)" title="重新整理">↻</button>';
+  return '';
+}
+function filterBtn(){
+  var n=nF();
+  return '<button class="ib'+(n?' act w':'')+'" onclick="openFilter()">'
+    +'<i class="ti ti-filter" style="font-size:16px"></i>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
+}
+function nF(){return (F.rg?1:0)+(F.en?1:0)+F.ty.length;}
+
+function renderChips(){
+  if(sub||(tab!=='cal'&&tab!=='today')){$('fchips').innerHTML='';return;}
+  var h='';
+  if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
+  if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
+  F.ty.forEach(function(t){
+    h+='<span class="fc">'+he(t)+'<button onclick="clrF(\'ty\',\''+he(t).replace(/'/g,"\\'")+'\')">✕</button></span>';});
+  $('fchips').innerHTML=h;
+}
+function clrF(k,v){
+  if(k==='ty')F.ty=F.ty.filter(function(t){return t!==v;});
+  else F[k]='';
+  applyF();
+}
+
+/* ══ 頁面內容 ══ */
+function pageHTML(){
+  if(sub==='upload')return uploadPage();
+  if(sub==='admin')return '<div id="users"><div class="load"><div class="spin"></div></div></div>';
+  if(sub==='notify')return notifyPage();
+  if(sub==='pw')return pwPage();
+  if(tab==='today')return todayPage();
+  if(tab==='cal')return calPage();
+  if(tab==='book')return bookPage();
+  return morePage();
+}
+
+/* ── 今日 ── */
+function todayPage(){
+  var t=twStr(),parts=t.split('-');
+  var mine=todayRows.filter(function(r){return r.date===t;});
+  var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
+  if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
+  else h+=groupBy(mine).map(function(g){return evCard(g,t,true);}).join('');
+
+  var fut={},order=[];
+  todayRows.forEach(function(r){
+    if(r.date<=t)return;
+    if(!fut[r.date]){fut[r.date]=[];order.push(r.date);}
+    fut[r.date].push(r);
+  });
+  order.sort();
+  if(order.length){
+    h+='<div class="sec">接下來</div>';
+    order.slice(0,20).forEach(function(d){
+      groupBy(fut[d]).forEach(function(g){
+        var dd=d.split('-'),c=pcolor(g.project);
+        h+='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')" style="padding:10px 13px">'
+          +'<div class="dbox"><b>'+parseInt(dd[2])+'</b><span>'+DW[dowOf(d)]+'</span></div>'
+          +'<div class="evb" style="background:'+c+'"></div>'
+          +'<div style="min-width:0;flex:1"><div class="evn" style="font-size:14px">'+he(g.project)+'</div>'
+          +'<div class="evm">'+he(g.types.join('、'))
+          +(g.locs[0]?'　·　'+he(g.locs[0]):'')+'</div></div></div>';
+      });
+    });
+  }
+  return h;
+}
+
+function evCard(g,d,full){
+  var c=pcolor(g.project);
+  var h='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')">'
+    +'<div class="evb" style="background:'+c+'"></div><div style="min-width:0;flex:1">'
+    +'<div class="evt" style="color:'+c+'">'+he(g.types.join('、'))+'</div>'
+    +'<div class="evn">'+he(g.project)+(g.no?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(g.no)+'</span>':'')+'</div>';
+  if(g.locs.length)h+='<div class="evm">點位：'+he(g.locs.join(' / '))+'</div>';
+  if(full){
+    if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
+    if(g.engs.length)h+='<div class="evm">工程師：'+g.engs.map(telLink).join('、')+'</div>';
+    if(g.cars.length)h+='<div class="evm">公務車：'+he(g.cars.join('、'))+'</div>';
+  }
+  return h+'</div></div>';
+}
+function esc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+/* ── 月曆 ── */
+function calPage(){
+  pmap={};pidx=0;
+  var byDate={};
+  rows.forEach(function(r){
+    if(!r.date)return;
+    (byDate[r.date]=byDate[r.date]||[]).push(r);
+  });
+  var groups={};
+  Object.keys(byDate).forEach(function(d){groups[d]=groupBy(byDate[d]);});
+
+  var first=new Date(curY,curM,1).getDay();
+  var dim=new Date(curY,curM+1,0).getDate();
+  var pdim=new Date(curY,curM,0).getDate();
+  var today=twStr();
+
+  var h='<div class="dow">'+DW.map(function(d,i){
+    return '<span'+(i===0?' class="sun"':'')+'>'+d+'</span>';}).join('')+'</div><div class="cgrid">';
+  var total=Math.ceil((first+dim)/7)*7;
+  for(var i=0;i<total;i++){
+    var day,ds,out=false;
+    if(i<first){day=pdim-first+i+1;out=true;
+      var pm=curM===0?12:curM,py=curM===0?curY-1:curY;ds=py+'-'+p2(pm)+'-'+p2(day);}
+    else if(i>=first+dim){day=i-first-dim+1;out=true;
+      var nm=curM===11?1:curM+2,ny=curM===11?curY+1:curY;ds=ny+'-'+p2(nm)+'-'+p2(day);}
+    else{day=i-first+1;ds=curY+'-'+p2(curM+1)+'-'+p2(day);}
+    var gs=out?[]:(groups[ds]||[]);
+    h+='<div class="cell'+(ds===today?' tdy':'')+'" onclick="openDay(\''+ds+'\')">'
+      +'<div class="dn'+(out?' out':'')+(i%7===0&&!out?' sun':'')+'">'+day+'</div>';
+    gs.forEach(function(g){
+      h+='<span class="evc" style="background:'+pcolor(g.project)+'"'
+        +' onclick="event.stopPropagation();openEv(\''+ds+'\',\''+he(esc(g.project))+'\')">'
+        +he(g.project)+'</span>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+
+  var ps=Object.keys(pmap);
+  if(ps.length){
+    h+='<div class="legend">';
+    ps.forEach(function(p){h+='<div class="lg"><span class="lgd" style="background:'+pmap[p]+'"></span>'+he(p)+'</div>';});
+    h+='</div>';
+  }else h+='<div class="empty">本月沒有符合條件的排程</div>';
+  return h;
+}
+
+/** 同日期同專案合併成一筆 */
+function groupBy(list){
+  var m={},order=[];
+  list.forEach(function(r){
+    var k=r.project||'（未分類）';
+    if(!m[k]){m[k]={project:k,rows:[],types:[],locs:[],engs:[],cars:[],staff:[],
+      notes:[],reps:[],eqs:[],nums:[],no:'',samp:''};order.push(k);}
+    var g=m[k];g.rows.push(r);
+    function add(arr,v){if(v&&arr.indexOf(v)<0)arr.push(v);}
+    add(g.types,r.type);add(g.locs,r.location);add(g.engs,r.engineer);
+    add(g.notes,r.notes);add(g.reps,r.applicant);add(g.eqs,r.equipment);add(g.nums,r.reportNum);
+    if(!g.no&&r.projectNo)g.no=r.projectNo;
+    if(!g.samp&&r.sampTime)g.samp=r.sampTime;
+    if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
+    var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
+    ss.forEach(function(p){add(g.staff,p.trim());});
+  });
+  return order.map(function(k){return m[k];});
+}
+
+/* ── 通訊錄 ── */
+var bookQ='',bookRg='',bookTm='';
+function bookPage(){
+  var q=bookQ.toLowerCase();
+  var list=STAFF.filter(function(s){
+    var rg=(s.region||'').trim(),tm=(s.team||'').trim();
+    if(bookRg==='_n'){if(rg)return false;}else if(bookRg&&rg!==bookRg)return false;
+    if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
+    if(!q)return true;
+    return [s.name,s.phone,s.note,rg,tm].join(' ').toLowerCase().indexOf(q)>=0;
+  });
+  var used={},blank=false;
+  STAFF.forEach(function(s){var t=(s.team||'').trim();if(t)used[t]=(used[t]||0)+1;else blank=true;});
+  var teams=TEAMS.slice();
+  STAFF.forEach(function(s){var t=(s.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
+
+  var h='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
+    +'<div style="display:flex;gap:7px;margin-bottom:12px">'
+    +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1">'
+    +['','台北','台中','高雄','_n'].map(function(o){
+      return '<option value="'+o+'"'+(bookRg===o?' selected':'')+'>'+(o==='_n'?'未指定地區':(o||'全部地區'))+'</option>';}).join('')
+    +'</select>'
+    +'<select class="fld" onchange="bookTm=this.value;paintBook()" style="flex:1">'
+    +'<option value="">全部組別</option>'
+    +teams.filter(function(t){return used[t];}).map(function(t){
+      return '<option value="'+he(t)+'"'+(bookTm===t?' selected':'')+'>'+he(t)+'（'+used[t]+'）</option>';}).join('')
+    +(blank?'<option value="_n"'+(bookTm==='_n'?' selected':'')+'>未填組別</option>':'')
+    +'</select></div>'
+    +bookList();
+  if(canWrite(ROLE))
+    h+='<button class="btn btn-p btn-full" style="margin-top:12px" onclick="editStaff()">新增人員</button>';
+  return h;
+}
+
+function bookList(){
+  var q=bookQ.toLowerCase();
+  var list=STAFF.filter(function(s){
+    var rg=(s.region||'').trim(),tm=(s.team||'').trim();
+    if(bookRg==='_n'){if(rg)return false;}else if(bookRg&&rg!==bookRg)return false;
+    if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
+    if(!q)return true;
+    return [s.name,s.phone,s.note,rg,tm].join(' ').toLowerCase().indexOf(q)>=0;
+  });
+  var h='<div id="blist"><div class="sec" style="margin-top:0">共 '+list.length+' 位</div>';
+  if(!list.length)h+='<div class="empty">查無符合的人員</div>';
+  list.forEach(function(s){
+    var ph=(s.phone||'').trim();
+    h+='<div class="lrow"><div class="pav">'+he(s.name.slice(0,1))+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'+he(s.name)+'</div>'
+      +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
+      +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
+      +(s.region?'　·　'+he(s.region):'')+'</div></div>'
+      +(s.team?'<span class="tag g">'+he(s.team)+'</span>':'')
+      +(canWrite(ROLE)?'<button class="ib" style="width:32px;height:32px;font-size:13px" onclick="editStaff(\''+esc(s.name)+'\')">✎</button>':'')
+      +'</div>';
+  });
+  return h+'</div>';
+}
+/** 只重畫清單，避免搜尋時輸入框失去焦點 */
+function paintBook(){
+  var el=$('blist');
+  if(!el){render();return;}
+  el.outerHTML=bookList();
+}
+
+/* ── 更多 ── */
+function morePage(){
+  var h='<div class="sec" style="margin-top:4px">排程</div>';
+  if(canWrite(ROLE))
+    h+='<button class="link" onclick="go(\'more\',\'upload\')">上傳排程<i class="ti ti-upload"></i></button>';
+  h+='<div class="sec">帳號</div>'
+    +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼<i class="ti ti-lock"></i></button>';
+  if(ROLE==='admin')
+    h+='<button class="link" onclick="go(\'more\',\'admin\')">帳號管理<i class="ti ti-users"></i></button>';
+  h+='<div class="sec">偏好</div>'
+    +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒<i class="ti ti-bell"></i></button>'
+    +'<div class="link" style="cursor:default">深色模式'
+    +'<button class="sw'+((ls('espc_theme')||'dark')==='dark'?' on':'')+'" onclick="toggleTheme()"></button></div>'
+    +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
+    +(ENGNAME?'<br>對應工程師：'+he(ENGNAME):'')+'</div>';
+  return h;
+}
+
+/* ══ 資料載入 ══ */
+function todayRange(t){
+  var d=new Date(t+'T00:00:00');
+  var me=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
+  var d15=new Date(d);d15.setDate(d15.getDate()+15);
+  var m15=d15.getFullYear()+'-'+p2(d15.getMonth()+1)+'-'+p2(d15.getDate());
+  return me>m15?me:m15;
+}
+
+function loadToday(force){
+  var t=twStr();
+  if(!force&&todayFor===t){render();return;}
+  var c=force?null:cGet('today');
+  if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
+  else{$('page').innerHTML='<div class="load"><div class="spin"></div> 載入中…</div>';c=null;}
+  var o={dateFrom:t,dateTo:todayRange(t)};
+  if(c&&c.version)o.version=c.version;
+  gas('getData',TOKEN,o).then(function(r){
+    if(!r||!r.ok){if(!c)$('page').innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';return;}
+    cVer(r.version);
+    if(r.unchanged)return;
+    cSet('today',{date:t,version:r.version||'',rows:r.rows||[]});
+    paintToday(t,r.rows||[]);
+  }).catch(function(){if(!c)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';});
+}
+function paintToday(t,all){
+  todayRows=(all||[]).filter(passF);
+  todayFor=t;
+  jSet(NTC,{date:t,rows:(all||[]).filter(function(r){return r.date===t;})});
+  if(tab==='today'&&!sub)render();
+}
+
+function loadMonth(force){
+  var key='m_'+curY+'-'+p2(curM+1);
+  var first=curY+'-'+p2(curM+1)+'-01';
+  var last=curY+'-'+p2(curM+1)+'-'+p2(new Date(curY,curM+1,0).getDate());
+  var c=force?null:cGet(key);
+  if(c&&c.rows)paintMonth(c.rows);
+  else{$('page').innerHTML='<div class="load"><div class="spin"></div> 載入中…</div>';c=null;}
+  var o={dateFrom:first,dateTo:last};
+  if(c&&c.version)o.version=c.version;
+  gas('getData',TOKEN,o).then(function(r){
+    if(!r||!r.ok){if(!c)toast((r&&r.error)||'載入失敗','no');return;}
+    cVer(r.version);
+    if(r.unchanged)return;
+    cSet(key,{version:r.version||'',rows:r.rows||[]});
+    paintMonth(r.rows||[]);
+  }).catch(function(){if(!c)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';});
+}
+function paintMonth(list){allRows=list||[];applyF();}
+
+function moveM(d){
+  curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
+  allRows=[];loadMonth();render();
+}
+function goToday(){var n=twDate();curY=n.getFullYear();curM=n.getMonth();allRows=[];loadMonth();render();}
 
 function loadStaff(cb,force){
-  var c=force?null:cacheGet('staff');
+  var c=force?null:cGet('staff');
   if(c&&c.staff){applyStaff(c.staff);STAFF_VER=c.version||'';if(cb){cb();cb=null;}}
-
   gas('getStaff',TOKEN,c?c.version:'').then(function(r){
     if(r&&r.ok&&!r.unchanged){
-      applyStaff(r.staff||[]);
-      STAFF_VER=r.version||'';
-      cacheSet('staff',{version:STAFF_VER,staff:STAFF_LIST,t:Date.now()});
-      if(document.getElementById('panel-staff').classList.contains('active'))renderStaffTable();
+      applyStaff(r.staff||[]);STAFF_VER=r.version||'';
+      cSet('staff',{version:STAFF_VER,staff:STAFF});
+      if(tab==='book'&&!sub)render();
     }
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
-
-// ─── Session ──────────────────────────────────────────────────────────────────
-/* 登入狀態存在 localStorage：關掉瀏覽器、重開手機都會記得，
-   直到使用者自己按「登出」或後端 session 過期（90 天，持續使用會自動續期） */
-function ss(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
-function ssSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
-function ssDel(k){try{localStorage.removeItem(k);}catch(e){}}
-
-var TOKEN=ss('espc_token');
-var ROLE=ss('espc_role');
-var UNAME=ss('espc_user');
-var currentFileName='',currentFileMtime='';
-var parsedRows=[];
-
-function saveSession(t,r,u){TOKEN=t;ROLE=r;UNAME=u;ssSet('espc_token',t);ssSet('espc_role',r);ssSet('espc_user',u);}
-function clearSession(){
-  TOKEN='';ROLE='';UNAME='';
-  ['espc_token','espc_role','espc_user','espc_eng','espc_eng_p',SYNC_KEY].forEach(ssDel);
-  try{
-    var del=[],i;
-    for(i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(CK)===0)del.push(k);}
-    del.forEach(function(k){localStorage.removeItem(k);});
-  }catch(e){}
+function applyStaff(l){
+  STAFF=l||[];PHONE={};
+  STAFF.forEach(function(s){if(s.name)PHONE[s.name]=s.phone||'';});
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function toast(msg,type,dur){
-  var w=document.getElementById('toast-wrap');
-  var el=document.createElement('div');el.className='toast'+(type?' '+type:'');el.textContent=msg;
-  w.appendChild(el);setTimeout(function(){el.remove();},dur||3000);
+/* ══ 篩選 ══ */
+function passF(r){
+  if(F.rg&&(r.region||'')!==F.rg)return false;
+  if(F.en&&r.engineer!==F.en)return false;
+  if(F.ty.length&&F.ty.indexOf(r.type)<0)return false;
+  return true;
+}
+function applyF(){
+  rows=allRows.filter(passF);
+  var t=twStr(),c=jGet(NTC,null);
+  if(c&&c.date===t)todayRows=(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
+  render();
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function he(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function p2(n){return String(n).padStart(2,'0');}
-function sv(v){return v!=null?String(v).trim():'';}
+function openFilter(){
+  var engs=[],tys=[],seen={},seen2={};
+  allRows.concat(todayRows).forEach(function(r){
+    if(r.engineer&&!seen[r.engineer]){seen[r.engineer]=1;engs.push(r.engineer);}
+    if(r.type&&!seen2[r.type]){seen2[r.type]=1;tys.push(r.type);}
+  });
+  if(F.en&&engs.indexOf(F.en)<0)engs.push(F.en);
+  F.ty.forEach(function(t){if(tys.indexOf(t)<0)tys.push(t);});
+  engs.sort();tys.sort();
 
-// ─── 時間一律用台灣時間（UTC+8）───────────────────────────────────────────────
-// 不管使用者的裝置設定在哪個時區，畫面顯示與「今天」的判斷都以台灣為準。
-var TW_OFFSET_MIN=480;   // UTC+8
-
-/** 把時間平移成「台灣牆上時鐘」，之後用一般的 getFullYear/getHours 讀即為台灣時間 */
-function twDate(d){
-  d=d?new Date(d):new Date();
-  if(isNaN(d))return d;
-  return new Date(d.getTime()+(d.getTimezoneOffset()+TW_OFFSET_MIN)*60000);
+  var h='<div class="shh"><h3>篩選</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
+    +['','台北','台中','高雄'].map(function(o){
+      return '<option value="'+o+'"'+(F.rg===o?' selected':'')+'>'+(o||'全部地區')+'</option>';}).join('')+'</select>'
+    +'<p class="lb">工程師</p><select class="fld" id="f-en" style="margin-bottom:16px">'
+    +'<option value="">全部工程師</option>'
+    +engs.map(function(o){return '<option value="'+he(o)+'"'+(F.en===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p><div class="opts">'
+    +'<button class="ob'+(F.ty.length?'':' on')+'" onclick="pickTy(\'\')">全部</button>'
+    +tys.map(function(t){
+      var on=F.ty.indexOf(t)>=0;
+      return '<button class="ob'+(on?' on':'')+'" onclick="pickTy(\''+esc(t)+'\')">'
+        +(on?'<i class="ti ti-check" style="font-size:14px"></i>':'')+he(t)+'</button>';}).join('')
+    +'</div>'
+    +'<button class="btn btn-full" style="margin-top:18px" onclick="F={rg:\'\',en:\'\',ty:[]};closeSheet();refetch()">清除全部篩選</button>';
+  openSheet(h);
+  $('f-rg').onchange=function(){F.rg=this.value;refetch();};
+  $('f-en').onchange=function(){F.en=this.value;refetch();};
 }
-/** 台灣時間的 YYYY-MM-DD */
-function twDateStr(d){
-  var t=twDate(d);
-  return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate());
+function pickTy(t){
+  if(!t)F.ty=[];
+  else{var i=F.ty.indexOf(t);if(i>=0)F.ty.splice(i,1);else F.ty.push(t);}
+  refetch();openFilter();
 }
-/** 由 YYYY-MM-DD 取星期（避免 ISO 字串被當成 UTC 而跨日）*/
-function dowOf(dateStr){
-  var a=String(dateStr).split('-');
-  return new Date(parseInt(a[0],10),parseInt(a[1],10)-1,parseInt(a[2],10)).getDay();
-}
-/** 台灣時間的 YYYY-MM-DD HH:mm */
-function fmtStamp(v){
-  if(!v)return '';
-  var d=new Date(v);
-  if(isNaN(d))return String(v).slice(0,16).replace('T',' ');
-  var t=twDate(d);
-  return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate())
-    +' '+p2(t.getHours())+':'+p2(t.getMinutes());
-}
-
-// ─── Boot ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('inp-pw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-  document.getElementById('inp-user').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('inp-pw').focus();});
-  if(TOKEN){
-    // 已登入過 → 先蓋掉登入畫面，避免閃爍
-    document.getElementById('login-screen').innerHTML=
-      '<div class="loading"><div class="spinner"></div> 載入中…</div>';
-    gas('getMe',TOKEN).then(function(r){
-      if(r&&r.ok) showApp(r.username,r.role,r.engineerName||'');
-      else{clearSession();location.reload();}
-    }).catch(function(){
-      // 純網路錯誤不要清掉登入狀態，讓使用者重試即可
-      document.getElementById('login-screen').innerHTML=
-        '<div style="text-align:center;padding:24px;">'
-        +'<p style="color:var(--c-text-2);font-size:14px;margin-bottom:16px;">連線失敗，請確認網路後重試</p>'
-        +'<button class="btn btn-primary" onclick="location.reload()">重新載入</button></div>';
-    });
-  }else showLogin();
-});
-
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-function showLogin(){document.getElementById('login-screen').style.display='flex';document.getElementById('app-screen').style.display='none';clearSession();}
-
-function showApp(uname,role,engineerName){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app-screen').style.display='flex';
-  document.getElementById('topbar-user').textContent=engineerName||uname;
-  document.getElementById('tab-upload-btn').style.display=canWrite(role)?'':'none';
-  document.getElementById('tab-admin-btn').style.display=role==='admin'?'':'none';
-  document.getElementById('staff-add-card').style.display=canWrite(role)?'':'none';
-  document.getElementById('danger-zone').style.display=role==='admin'?'block':'none';
-  if(engineerName){ssSet('espc_eng',engineerName);ssSet('espc_eng_p',engineerName);}else{ssDel('espc_eng');}
-  ntRenderUI();
-  startNotifyLoop();
-  var n=twDate();curYear=n.getFullYear();curMonth=n.getMonth();
-  // 跨日後第一次開啟 → 強制重抓；同一天內開啟 → 先吃快取再背景比對
-  var t=todayStr_(),last='';
-  try{last=localStorage.getItem(SYNC_KEY)||'';}catch(e){}
-  var newDay=(last!==t);
-  try{localStorage.setItem(SYNC_KEY,t);}catch(e){}
-  if(newDay)cachePrune(false);
-  loadStaff(function(){ loadToday(newDay); },newDay);
+function refetch(){
+  var cc=cGet('today'),t=twStr();
+  if(cc&&cc.date===t)todayRows=(cc.rows||[]).filter(passF);
+  rows=allRows.filter(passF);
+  render();
 }
 
-var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',viewer:'現場'};
-var ROLE_ORDER=['admin','supervisor','scheduler','pm','viewer'];
-var ROLE_CLASS={admin:'role-admin',supervisor:'role-supervisor',scheduler:'role-scheduler',pm:'role-pm',viewer:'role-viewer'};
-var ROLE_WRITE=['admin','supervisor','scheduler'];
-function roleLabel(r){return ROLE_LABEL[r]||r;}
-function canWrite(r){return ROLE_WRITE.indexOf(r)>=0;}
+/* ══ 底部面板 ══ */
+function openSheet(html){$('sheet').innerHTML=html;$('ov').classList.add('open');}
+function closeSheet(){$('ov').classList.remove('open');}
 
-function doLogin(){
-  var u=document.getElementById('inp-user').value.trim();
-  var p=document.getElementById('inp-pw').value;
-  var errEl=document.getElementById('login-err');
-  var btn=document.getElementById('login-btn');
-  if(!u||!p){errEl.textContent='請填寫帳號與密碼';return;}
-  btn.disabled=true;btn.textContent='登入中…';errEl.textContent='';
-  gas('login',u,p).then(function(r){
-    if(r.ok){saveSession(r.token,r.role,r.username);showApp(r.username,r.role,r.engineerName||'');}
-    else errEl.textContent=r.error||'登入失敗';
-    btn.disabled=false;btn.textContent='登入';
-  }).catch(function(){errEl.textContent='連線失敗，請稍後再試';btn.disabled=false;btn.textContent='登入';});
+/** 取某日的行程：合併當月與今日視窗兩份來源並去重 */
+function dayRows(d){
+  var seen={},out=[];
+  allRows.concat(todayRows).forEach(function(r){
+    if(r.date!==d||!passF(r))return;
+    var k=[r.date,r.project,r.type,r.location,r.reportNum,r.engineer].join('|');
+    if(seen[k])return;
+    seen[k]=1;out.push(r);
+  });
+  return out;
 }
 
-function doLogout(){gas('logout',TOKEN).catch(function(){});clearSession();showLogin();}
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-function switchTab(name,el){
-  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('panel-'+name).classList.add('active');
-  el.classList.add('active');
-  if(name==='today') loadToday();
-  if(name==='calendar'&&!allRows.length) loadMonth();
-  if(name==='admin') adminLoadUsers();
-  if(name==='upload') loadUploadHistory();
-  if(name==='staff') staffReload();
+function openDay(d){
+  var gs=groupBy(dayRows(d));
+  var dd=d.split('-');
+  var h='<div class="shh"><div><h3>'+parseInt(dd[1])+'月'+parseInt(dd[2])+'日　週'+DW[dowOf(d)]+'</h3>'
+    +'<p class="hint" style="margin-top:3px">共 '+gs.length+' 項行程</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>';
+  if(!gs.length)h+='<div class="empty">此日無排程</div>';
+  gs.forEach(function(g){h+=evCard(g,d,false);});
+  openSheet(h);
 }
 
-// ─── 顏色 ─────────────────────────────────────────────────────────────────────
-var PROJ_COLORS=['#1a73e8','#e53935','#43a047','#fb8c00','#8e24aa','#00897b',
-  '#d81b60','#3949ab','#6d4c41','#00acc1','#7cb342','#f4511e',
-  '#039be5','#c0ca33','#8d6e63','#546e7a','#ef6c00','#5c6bc0','#00695c','#558b2f'];
-var projColorMap={},projColorIdx=0;
-function projColor(name){
-  if(!name)return '#9e9e9e';
-  if(!projColorMap[name]){projColorMap[name]=PROJ_COLORS[projColorIdx%PROJ_COLORS.length];projColorIdx++;}
-  return projColorMap[name];
-}
-
-// ─── 本機快取 ─────────────────────────────────────────────────────────────────
-// 策略：先用快取立即上畫面，同時在背景跟伺服器比對版本；
-// 版本一樣伺服器只回「未變更」（幾乎沒流量），不一樣才換新資料重畫。
-var CK='espc_c_';
-
-function cacheGet(key){
-  try{var v=localStorage.getItem(CK+key);return v?JSON.parse(v):null;}catch(e){return null;}
-}
-function cacheSet(key,obj){
-  try{localStorage.setItem(CK+key,JSON.stringify(obj));}
-  catch(e){cachePrune(true);try{localStorage.setItem(CK+key,JSON.stringify(obj));}catch(e2){}}
-}
-/** 清掉最舊的月份快取（空間不足或定期整理時呼叫）*/
-function cachePrune(aggressive){
-  try{
-    var keys=[],i;
-    for(i=0;i<localStorage.length;i++){
-      var k=localStorage.key(i);
-      if(k&&k.indexOf(CK+'m_')===0)keys.push(k);
-    }
-    keys.sort();
-    var keep=aggressive?2:8;
-    while(keys.length>keep)localStorage.removeItem(keys.shift());
-  }catch(e){}
-}
-/** 資料版本變了 → 所有月份快取一次失效 */
-function cacheCheckVersion(v){
-  if(!v)return;
-  var cur='';try{cur=localStorage.getItem(CK+'ver')||'';}catch(e){}
-  if(cur&&cur!==v){
-    try{
-      var del=[],i;
-      for(i=0;i<localStorage.length;i++){
-        var k=localStorage.key(i);
-        if(k&&k.indexOf(CK+'m_')===0)del.push(k);
-      }
-      del.forEach(function(k){localStorage.removeItem(k);});
-    }catch(e){}
+function openEv(d,proj){
+  var gs=groupBy(dayRows(d));
+  var g=null;
+  gs.forEach(function(x){if(x.project===proj)g=x;});
+  if(!g){openDay(d);return;}
+  var dd=d.split('-'),c=pcolor(g.project);
+  var h='<div class="shh"><div>'
+    +'<div class="evt" style="color:'+c+'">'+he(g.types.join('、'))+'</div>'
+    +'<h3 style="margin-top:3px">'+he(g.project)+'</h3>'
+    +'<p class="hint" style="margin-top:3px">'+parseInt(dd[1])+'月'+parseInt(dd[2])+'日　週'+DW[dowOf(d)]
+    +(g.no?'　·　'+he(g.no):'')+'</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">';
+  if(g.locs.length)h+='點位：<b>'+he(g.locs.join(' / '))+'</b><br>';
+  if(g.samp)h+='申報採樣時間：<b>'+he(g.samp)+'</b><br>';
+  if(g.eqs.length)h+='採樣儀器：<b>'+he(g.eqs.join('　'))+'</b><br>';
+  if(g.reps.length)h+='申報人員：<b>'+g.reps.map(telLink).join('、')+'</b><br>';
+  if(g.nums.length)h+='報告編號：<b>'+he(g.nums.join(' / '))+'</b><br>';
+  if(g.engs.length)h+='工程師：<b>'+g.engs.map(telLink).join('、')+'</b><br>';
+  if(g.cars.length)h+='公務車：<b>'+he(g.cars.join('、'))+'</b><br>';
+  if(g.staff.length)h+='現場人員：<b>'+g.staff.map(telLink).join('、')+'</b><br>';
+  if(g.notes.length)h+='備註：<b>'+he(g.notes.join('；'))+'</b><br>';
+  if(g.rows[0]&&g.rows[0].region)h+='地區：<b>'+he(g.rows[0].region)+'</b>';
+  h+='</div>';
+  if(gs.length>1){
+    h+='<div class="sec">當天其他 '+(gs.length-1)+' 項</div>';
+    gs.forEach(function(x){if(x.project!==proj)h+=evCard(x,d,false);});
   }
-  try{localStorage.setItem(CK+'ver',v);}catch(e){}
+  openSheet(h);
 }
 
-// ─── 每日提醒通知 ─────────────────────────────────────────────────────────────
-var NT_KEY='espc_notify',NT_CACHE='espc_today_cache',SW_REG=null;
+/* ══ 年月選擇 ══ */
+function renderPk(){
+  var n=twDate(),ty=n.getFullYear(),tm=n.getMonth();
+  var h='<div class="pkh"><button class="ib" onclick="pkY--;renderPk()">‹</button>'
+    +'<span>'+pkY+' 年</span>'
+    +'<button class="ib" onclick="pkY++;renderPk()">›</button></div><div class="pkg">';
+  for(var i=0;i<12;i++){
+    var cls='pkb'+(pkY===curY&&i===curM?' cur':(pkY===ty&&i===tm?' now':''));
+    h+='<button class="'+cls+'" onclick="pickM('+pkY+','+i+')">'+MO[i]+'</button>';
+  }
+  $('pk').innerHTML=h+'</div>';
+}
+function pickM(y,m){
+  curY=y;curM=m;$('pk').classList.remove('open');
+  allRows=[];loadMonth();render();
+}
 
-function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+/* ══ 人員編輯 ══ */
+function editStaff(name){
+  var s={name:'',phone:'',region:'',team:'',note:''};
+  STAFF.forEach(function(x){if(x.name===name)s=x;});
+  var teams=TEAMS.slice();
+  STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
+  var h='<div class="shh"><h3>'+(name?'編輯人員':'新增人員')+'</h3>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">姓名</p><input class="fld" id="s-n" value="'+he(s.name)+'" style="margin-bottom:13px"'+(name?' readonly':'')+'>'
+    +'<p class="lb">電話</p><input class="fld" id="s-p" type="tel" value="'+he(s.phone)+'" placeholder="09xx-xxx-xxx" style="margin-bottom:13px">'
+    +'<p class="lb">地區</p><select class="fld" id="s-r" style="margin-bottom:13px">'
+    +['','台北','台中','高雄'].map(function(o){
+      return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')+'</select>'
+    +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team)+'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
+    +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<p class="lb">備註</p><input class="fld" id="s-o" value="'+he(s.note)+'" placeholder="職務（選填）" style="margin-bottom:18px">'
+    +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
+    +(name?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
+  openSheet(h);
+}
+function saveStaff(){
+  var n=$('s-n').value.trim();
+  if(!n){toast('請輸入姓名','no');return;}
+  gas('saveStaff',TOKEN,n,$('s-p').value.trim(),$('s-r').value,$('s-t').value.trim(),$('s-o').value.trim())
+    .then(function(r){
+      if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
+      toast('已儲存','ok');closeSheet();loadStaff(render,true);
+    }).catch(function(){toast('操作失敗','no');});
+}
+function delStaff(n){
+  if(!confirm('確定刪除「'+n+'」？'))return;
+  gas('deleteStaff',TOKEN,n).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'刪除失敗','no');return;}
+    toast('已刪除','ok');closeSheet();loadStaff(render,true);
+  }).catch(function(){toast('操作失敗','no');});
+}
 
+/* ══ 上傳 ══ */
+var pRows=[],pName='',pMtime='';
+function uploadPage(){
+  return '<div class="drop" id="dz" onclick="document.getElementById(\'fi\').click()"'
+    +' ondragover="event.preventDefault();this.classList.add(\'over\')"'
+    +' ondragleave="this.classList.remove(\'over\')" ondrop="onDrop(event)">'
+    +'<i class="ti ti-file-spreadsheet"></i>'
+    +'<p style="font-size:15px;margin-top:10px">點擊或拖曳 Excel 檔案</p>'
+    +'<p class="hint" style="margin-top:6px">支援台北、台中、高雄格式<br>檔名可辨識地區時會直接上傳</p></div>'
+    +'<div id="parse"></div>'
+    +'<div class="sec">上傳記錄</div><div id="hist"><div class="load"><div class="spin"></div></div></div>'
+    +(ROLE==='admin'?'<div class="sec">危險操作</div>'
+      +'<div class="card"><p class="hint" style="margin-bottom:12px">清除所有排程資料，無法還原。</p>'
+      +'<button class="btn btn-d btn-sm" onclick="clearAll()">清除全部資料</button></div>':'');
+}
+function onDrop(e){e.preventDefault();$('dz').classList.remove('over');
+  var f=e.dataTransfer.files[0];if(f)handleFile(f);}
+function onPick(e){var f=e.target.files[0];if(f)handleFile(f);e.target.value='';}
+
+function handleFile(file){
+  pName=file.name;
+  pMtime=file.lastModified?new Date(file.lastModified).toISOString():'';
+  $('parse').innerHTML='<div class="load"><div class="spin"></div> 解析中…</div>';
+  readXlsx(file).then(function(list){
+    pRows=list;
+    var ok=list.filter(function(r){return r.engineer&&r.date;});
+    if(ok.length&&list[0].region){paintParse(true);doUpload();}
+    else paintParse(false);
+  }).catch(function(err){
+    $('parse').innerHTML='';toast('解析失敗：'+(err.message||err),'no',5000);
+  });
+}
+function paintParse(uploading){
+  var ok=pRows.filter(function(r){return r.engineer&&r.date;});
+  var det=pRows.length?(pRows[0].region||''):'';
+  var h='<div class="card" style="margin-top:12px"><div class="row" style="margin-bottom:10px">'
+    +'<div style="font-size:14px;font-weight:500;word-break:break-all">'+he(pName)+'</div>'
+    +'<span class="tag'+(ok.length?' g':'')+'">'+ok.length+' / '+pRows.length+'</span></div>';
+  if(!pRows.length)return void($('parse').innerHTML=h+'<p class="hint">找不到有效資料，請確認檔案格式。</p></div>');
+  if(uploading){
+    h+='<div style="display:flex;align-items:center;gap:10px"><div class="spin"></div>'
+      +'<span style="font-size:14px">地區「'+he(det)+'」，上傳中…</span></div>';
+  }else{
+    h+='<p class="lb" style="margin-left:0">地區</p><select class="fld" onchange="setRegion(this.value)">'
+      +'<option value=""'+(det?'':' selected')+'>請選擇…</option>'
+      +['台北','台中','高雄'].map(function(x){
+        return '<option value="'+x+'"'+(x===det?' selected':'')+'>'+x+'</option>';}).join('')+'</select>'
+      +'<p class="hint" style="margin-top:8px">'
+      +(det?'已依檔名判斷為「'+he(det)+'」，可修改。':'<span style="color:var(--err)">檔名看不出地區，請手動選擇。</span>')+'</p>';
+  }
+  h+='</div><div class="scroll" style="margin-bottom:10px"><table class="tbl"><thead><tr>'
+    +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>點位</th>'
+    +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th></tr></thead><tbody>';
+  pRows.slice(0,60).forEach(function(r){
+    h+='<tr><td>'+he(r.date)+'</td><td>'+(r.engineer?he(r.engineer):'—')+'</td>'
+      +'<td>'+he(r.projectNo)+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
+      +'<td>'+he(r.location)+'</td><td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
+      +'<td>'+he(r.reportNum)+'</td><td class="rgc">'+(r.region||'—')+'</td></tr>';
+  });
+  if(pRows.length>60)h+='<tr><td colspan="10" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
+  h+='</tbody></table></div>';
+  if(!uploading)h+='<div style="display:flex;gap:8px"><button class="btn btn-p" onclick="doUpload()">確認上傳</button>'
+    +'<button class="btn" onclick="document.getElementById(\'parse\').innerHTML=\'\'">取消</button></div>';
+  $('parse').innerHTML=h;
+}
+function setRegion(v){
+  pRows.forEach(function(r){r.region=v;});
+  document.querySelectorAll('#parse .rgc').forEach(function(td){td.textContent=v||'—';});
+}
+
+function doUpload(force){
+  if(!pRows.length){toast('沒有可上傳的資料','no');return;}
+  if(!pRows[0].region){toast('請先選擇地區','no');return;}
+  var fn=pName,snap=pRows,mt=pMtime;
+  gas('saveData',TOKEN,snap,fn,mt,!!force).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'上傳失敗','no');paintParse(false);return;}
+    if(r.saved===0&&r.canForce){
+      $('parse').innerHTML='<div class="card" style="margin-top:12px">'
+        +'<div style="font-size:15px;font-weight:600;margin-bottom:6px">未做任何變更</div>'
+        +'<p class="hint">'+he(fn)+'<br>這份檔案的修改時間不比現有資料新'
+        +(r.skipped?'（共 '+r.skipped+' 天）':'')+'，因此沒有覆蓋。'
+        +'<br><br>若因解析規則更新需重跑，可強制覆蓋。</p>'
+        +'<div style="display:flex;gap:8px;margin-top:14px">'
+        +'<button class="btn btn-d btn-sm" onclick="forceUp()">強制覆蓋</button>'
+        +'<button class="btn btn-sm" onclick="document.getElementById(\'parse\').innerHTML=\'\'">取消</button></div></div>';
+      return;
+    }
+    var msg='已儲存 '+r.saved+' 筆';
+    if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
+    toast(msg,'ok',r.skipped?5000:3000);
+    $('parse').innerHTML='<div class="card" style="margin-top:12px;border:1px solid var(--acc)">'
+      +'<div style="font-size:15px;font-weight:600;color:var(--acc)">✓ 已儲存</div>'
+      +'<p class="hint" style="margin-top:5px;word-break:break-all">'+he(fn)+'<br>寫入 '+r.saved+' 筆排程</p></div>';
+    pRows=[];pName='';pMtime='';
+    todayFor='';allRows=[];
+    cPrune(true);cVer('up-'+Date.now());
+    loadHistory();loadToday(true);
+  }).catch(function(){toast('上傳失敗，請稍後再試','no');paintParse(false);});
+}
+function forceUp(){
+  if(!confirm('強制覆蓋？\n\n會用這份檔案取代同地區、同日期的資料，無法還原。'))return;
+  $('parse').innerHTML='<div class="load"><div class="spin"></div> 強制覆蓋中…</div>';
+  doUpload(true);
+}
+
+var HIST=[];
+function loadHistory(){
+  gas('getUploadHistory',TOKEN).then(function(r){
+    HIST=(r&&r.ok)?(r.records||[]):[];
+    paintHistory();
+  }).catch(function(){HIST=[];paintHistory();});
+}
+function paintHistory(){
+  var el=$('hist');if(!el)return;
+  if(!HIST.length){el.innerHTML='<div class="empty">尚無上傳記錄</div>';return;}
+  var h='',old=0;
+  HIST.forEach(function(r){
+    var isOld=r.status==='superseded';if(isOld)old++;
+    var rng=r.date_from===r.date_to?r.date_from:(r.date_from+' ~ '+r.date_to);
+    h+='<div class="card" style="'+(isOld?'opacity:.55;':'')+'"><div class="row">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:14px;font-weight:500;word-break:break-all;'+(isOld?'text-decoration:line-through;':'')+'">'
+      +he(r.filename)+'</div>'
+      +'<div style="display:flex;gap:6px;margin:5px 0">'
+      +(r.region?'<span class="tag g">'+he(r.region)+'</span>':'')
+      +(r.month?'<span class="tag">'+he(r.month)+'</span>':'')
+      +'<span class="tag'+(isOld?'':' g')+'">'+(isOld?'已被取代':'最新')+'</span></div>'
+      +'<div class="hint">'+he(rng)+(r.days?'　·　'+r.days+' 天':'')+'　·　'+he(r.uploaded_by)+'<br>'
+      +'檔案更新：'+(r.source_mtime?he(stamp(r.source_mtime)):'未記錄')
+      +'　上傳：'+he(stamp(r.upload_time))+'</div></div>'
+      +(canWrite(ROLE)&&!isOld
+        ?'<button class="ib" style="color:var(--err)" onclick="delUpload(\''+he(r.id)+'\',\''+esc(r.filename)+'\')">✕</button>':'')
+      +'</div></div>';
+  });
+  if(canWrite(ROLE)&&old>1)
+    h+='<button class="btn btn-sm btn-full" onclick="purgeOld('+old+')">清除 '+old+' 筆已被取代的記錄</button>';
+  el.innerHTML=h;
+}
+function delUpload(id,fn){
+  if(!confirm('刪除「'+fn+'」？\n\n會一併移除這次上傳寫入的所有排程資料，無法還原。'))return;
+  gas('deleteUpload',TOKEN,id).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'刪除失敗','no');return;}
+    toast('已刪除及其 '+r.removed+' 筆排程','ok',4000);
+    todayFor='';allRows=[];cPrune(true);cVer('del-'+Date.now());
+    loadHistory();loadToday(true);
+  }).catch(function(){toast('操作失敗','no');});
+}
+function purgeOld(n){
+  if(!confirm('清除 '+n+' 筆已被取代的記錄？\n\n只移除歷史清單，不影響行事曆。'))return;
+  gas('purgeSupersededUploads',TOKEN).then(function(r){
+    if(r&&r.ok){toast('已清除 '+r.removed+' 筆','ok');loadHistory();}
+    else toast((r&&r.error)||'操作失敗','no');
+  }).catch(function(){toast('操作失敗','no');});
+}
+function clearAll(){
+  if(!confirm('確定清除所有排程資料？無法還原！'))return;
+  gas('clearAllData',TOKEN).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'操作失敗','no');return;}
+    toast('已清除所有資料','ok');
+    allRows=[];rows=[];todayRows=[];todayFor='';
+    cPrune(true);cVer('clr-'+Date.now());
+    loadHistory();loadToday(true);
+  }).catch(function(){toast('操作失敗','no');});
+}
+
+/* ══ Excel 解析 ══ */
+function readXlsx(file){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
+        var name=null;
+        if(wb.SheetNames.indexOf('採樣行程')>=0)name='採樣行程';
+        else if(wb.SheetNames.indexOf('工作表1')>=0)name='工作表1';
+        else name=wb.SheetNames[0];
+        if(!name){res([]);return;}
+        var raw=XLSX.utils.sheet_to_json(wb.Sheets[name],
+          {header:1,raw:true,defval:null,range:{s:{r:0,c:0},e:{r:9999,c:21}}});
+        res(parseSheet(raw,name,file.name));
+      }catch(ex){rej(ex);}
+    };
+    fr.onerror=function(){rej(new Error('檔案讀取失敗'));};
+    fr.readAsArrayBuffer(file);
+  });
+}
+function detectRegion(fn,sheet){
+  var s=(fn||'')+' '+(sheet||'');
+  if(/台中|臺中|中部|中區|taichung|\bTC\b/i.test(s))return '台中';
+  if(/高雄|南部|南區|kaohsiung|\bKH\b/i.test(s))return '高雄';
+  if(/台北|臺北|北部|北區|taipei|\bTP\b/i.test(s))return '台北';
+  if(sheet==='採樣行程')return '高雄';
+  return '';
+}
+function parseDate(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date){if(isNaN(v))return null;
+    return v.getFullYear()+'-'+p2(v.getMonth()+1)+'-'+p2(v.getDate());}
+  if(typeof v==='number'&&v>40000&&v<80000){
+    try{var d=XLSX.SSF.parse_date_code(v);if(d&&d.y>2000)return d.y+'-'+p2(d.m)+'-'+p2(d.d);}catch(e){}
+  }
+  var s=String(v).trim();
+  var m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m)return m[1]+'-'+p2(m[2])+'-'+p2(m[3]);
+  m=s.match(/^(\d{2,3})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m)return (parseInt(m[1],10)+1911)+'-'+p2(m[2])+'-'+p2(m[3]);
+  return null;
+}
+/* 欄位對照：C 執行日期 / D 工程師 / E 專案編號 / F 專案簡稱 / G 行程類型
+   H 點位 / I 數量 / J 申報採樣時間 / K 採樣儀器 / L 申報人員 / M 報告編號 / N 備註 / O 公務車 */
+function parseSheet(raw,sheet,fname){
+  if(!raw||raw.length<2)return [];
+  var region=detectRegion(fname||'',sheet);
+  var out=[];
+  if(sheet==='採樣行程'){
+    for(var i=1;i<raw.length;i++){
+      var row=raw[i];if(!row)continue;
+      var ds=parseDate(row[2]);
+      if(!ds||parseInt(ds.slice(0,4),10)<2020)continue;
+      var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
+      var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
+      out.push({date:ds,engineer:eng,project:proj,projectNo:sv(row[4]),type:type,
+        location:sv(row[8]),qty:parseFloat(String(row[9]!=null?row[9]:''))||0,
+        sampTime:sv(row[10]),equipment:sv(row[11]),applicant:sv(row[12]),
+        reportNum:sv(row[7]),notes:[sv(row[13]),sv(row[14])].filter(Boolean).join('；'),
+        car:sv(row[15]),
+        staff:[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean),
+        region:region});
+    }
+  }else{
+    // 日期是合併儲存格，需往下延續；工程師空白＝休假／註記列，整列略過
+    var last=null,lp='',lr='',lsm='',lc='',ln='';
+    for(var i=1;i<raw.length;i++){
+      var row=raw[i];if(!row)continue;
+      if(row[2]!=null){var d2=parseDate(row[2]);if(d2){last=d2;lp='';lr='';lsm='';lc='';ln='';}}
+      if(!last||parseInt(last.slice(0,4),10)<2020)continue;
+      var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
+      var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
+      if(proj&&proj!==lp){lp=proj;lr='';lsm='';lc='';ln='';}
+      var no=sv(row[4]);if(no)ln=no;else no=ln;
+      var rpt=sv(row[12]);if(rpt)lr=rpt;else rpt=lr;
+      var samp=sv(row[9]);if(samp)lsm=samp;else samp=lsm;
+      var car=sv(row[14]);if(car)lc=car;else car=lc;
+      out.push({date:last,engineer:eng,project:proj,projectNo:no,type:type,
+        location:sv(row[7]),qty:parseFloat(String(row[8]!=null?row[8]:''))||0,
+        sampTime:samp,equipment:sv(row[10]),applicant:sv(row[11]),
+        reportNum:rpt,notes:sv(row[13]),car:car,
+        staff:[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean),
+        region:region});
+    }
+  }
+  return out;
+}
+
+/* ══ 帳號管理 ══ */
+function loadUsers(){
+  gas('listUsers',TOKEN).then(function(r){
+    var el=$('users');if(!el)return;
+    if(!r||!r.ok){el.innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';return;}
+    var h='<button class="btn btn-p btn-full" style="margin-bottom:14px" onclick="newUser()">新增帳號</button>';
+    r.users.forEach(function(u){
+      var me=u.username===UNAME;
+      h+='<div class="card"><div class="row"><div style="min-width:0;flex:1">'
+        +'<div style="font-size:15px;font-weight:500">'+he(u.username)+(me?'　<span class="hint">目前帳號</span>':'')+'</div>'
+        +'<div class="hint" style="margin-top:3px">'+(u.engineerName?'工程師：'+he(u.engineerName):'未對應工程師')
+        +'　·　'+(u.active?'啟用中':'<span style="color:var(--err)">已停用</span>')+'</div></div>'
+        +'<span class="tag g">'+roleLabel(u.role)+'</span></div>'
+        +'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">'
+        +'<select class="fld btn-sm" style="flex:1 1 110px;min-height:36px;padding:0 30px 0 14px;font-size:13px" onchange="setRole(\''+esc(u.username)+'\',this.value)">'
+        +ROLE_ORDER.map(function(k){return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
+        +'</select>'
+        +'<button class="btn btn-sm" onclick="setEng(\''+esc(u.username)+'\',\''+esc(u.engineerName||'')+'\')">工程師</button>'
+        +'<button class="btn btn-sm" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
+        +(me?'':'<button class="btn btn-sm'+(u.active?' btn-d':'')+'" onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'
+          +(u.active?'停用':'啟用')+'</button>')
+        +'</div></div>';
+    });
+    el.innerHTML=h;
+  }).catch(function(){var el=$('users');if(el)el.innerHTML='<div class="empty">載入失敗</div>';});
+}
+function newUser(){
+  openSheet('<div class="shh"><h3>新增帳號</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">帳號</p><input class="fld" id="n-u" style="margin-bottom:13px">'
+    +'<p class="lb">密碼</p><input class="fld" id="n-p" type="password" placeholder="至少 6 字元" style="margin-bottom:13px">'
+    +'<p class="lb">角色</p><select class="fld" id="n-r" style="margin-bottom:13px">'
+    +ROLE_ORDER.slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">對應工程師（選填）</p><input class="fld" id="n-e" style="margin-bottom:18px">'
+    +'<button class="btn btn-p btn-full" onclick="createUser()">建立</button>');
+}
+function createUser(){
+  var u=$('n-u').value.trim(),p=$('n-p').value;
+  if(!u||!p){toast('帳號與密碼不得為空','no');return;}
+  gas('createUser',TOKEN,u,p,$('n-r').value,$('n-e').value.trim()).then(function(r){
+    if(r&&r.ok){toast('帳號已建立','ok');closeSheet();loadUsers();}
+    else toast((r&&r.error)||'建立失敗','no');
+  }).catch(function(){toast('操作失敗','no');});
+}
+function setRole(u,role){
+  gas('setUserRole',TOKEN,u,role).then(function(r){
+    if(r&&r.ok)toast('角色已改為「'+roleLabel(role)+'」','ok');
+    else toast((r&&r.error)||'變更失敗','no');
+    loadUsers();
+  }).catch(function(){toast('操作失敗','no');loadUsers();});
+}
+function setEng(u,cur){
+  var v=prompt('設定「'+u+'」對應的工程師姓名：',cur);
+  if(v===null)return;
+  gas('updateEngineerName',TOKEN,u,v.trim()).then(function(r){
+    if(r&&r.ok){toast('已更新','ok');loadUsers();}else toast((r&&r.error)||'更新失敗','no');
+  }).catch(function(){toast('操作失敗','no');});
+}
+function resetPw(u){
+  var v=prompt('重設「'+u+'」的新密碼（至少 6 字元）：');
+  if(!v)return;
+  if(v.length<6){toast('密碼至少 6 個字元','no');return;}
+  gas('adminResetPassword',TOKEN,u,v).then(function(r){
+    if(r&&r.ok)toast('密碼已重設','ok');else toast((r&&r.error)||'重設失敗','no');
+  }).catch(function(){toast('操作失敗','no');});
+}
+function setActive(u,a){
+  gas('setUserStatus',TOKEN,u,a).then(function(r){
+    if(r&&r.ok){toast(a?'已啟用':'已停用','ok');loadUsers();}
+    else toast((r&&r.error)||'操作失敗','no');
+  }).catch(function(){toast('操作失敗','no');});
+}
+
+/* ══ 修改密碼 ══ */
+function pwPage(){
+  return '<div class="card" style="margin-top:6px">'
+    +'<p class="lb" style="margin-left:0">目前密碼</p><input class="fld" id="pw-o" type="password" style="margin-bottom:13px">'
+    +'<p class="lb" style="margin-left:0">新密碼</p><input class="fld" id="pw-n" type="password" placeholder="至少 6 字元" style="margin-bottom:13px">'
+    +'<p class="lb" style="margin-left:0">確認新密碼</p><input class="fld" id="pw-c" type="password" style="margin-bottom:6px">'
+    +'<div class="lerr" id="pw-e"></div>'
+    +'<button class="btn btn-p btn-full" onclick="changePw()">儲存</button></div>';
+}
+function changePw(){
+  var o=$('pw-o').value,n=$('pw-n').value,c=$('pw-c').value,e=$('pw-e');
+  e.textContent='';
+  if(!o){e.textContent='請輸入目前密碼';return;}
+  if(n.length<6){e.textContent='新密碼至少需要 6 個字元';return;}
+  if(n!==c){e.textContent='兩次新密碼不一致';return;}
+  if(n===o){e.textContent='新密碼不可與目前密碼相同';return;}
+  gas('changePassword',TOKEN,n,o).then(function(r){
+    if(r&&r.ok){toast('密碼已修改','ok');go('more');}
+    else e.textContent=(r&&r.error)||'修改失敗';
+  }).catch(function(){e.textContent='操作失敗，請稍後再試';});
+}
+
+/* ══ 每日提醒 ══ */
+var NT='espc_notify',SWREG=null,ntBusy=false;
 function ntCfg(){
-  var c=lsGet(NT_KEY,null);
-  if(!c)c={};
+  var c=jGet(NT,{})||{};
   if(c.on===undefined)c.on=false;
   if(!c.time)c.time='08:30';
   if(c.skipWeekend===undefined)c.skipWeekend=true;
@@ -771,1284 +1318,166 @@ function ntCfg(){
   if(!c.last)c.last='';
   return c;
 }
-
-function registerSW(){
+function ntSup(){return 'Notification' in window;}
+function regSW(){
   if(!('serviceWorker' in navigator))return;
-  navigator.serviceWorker.register('sw.js').then(function(reg){SW_REG=reg;})
-    .catch(function(){});
+  navigator.serviceWorker.register('sw.js').then(function(r){SWREG=r;}).catch(function(){});
 }
-
-function ntSupported(){return ('Notification' in window);}
-
-function ntRenderUI(){
-  var c=ntCfg();
-  document.getElementById('nt-on').checked=!!c.on;
-  document.getElementById('nt-time').value=c.time;
-  document.getElementById('nt-weekend').checked=!!c.skipWeekend;
-  document.getElementById('nt-empty').checked=!!c.notifyEmpty;
-  var el=document.getElementById('nt-status');
-  el.className='nt-status';
-  if(!ntSupported()){
-    el.className='nt-status bad';
-    el.textContent='這個瀏覽器不支援系統通知。iPhone 請用 Safari 開啟，並先「加入主畫面」。';
-    return;
-  }
-  var isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  if(Notification.permission==='denied'){
-    el.className='nt-status bad';
-    el.textContent='通知權限已被封鎖。請到瀏覽器或系統設定中，允許本網站傳送通知。';
-    return;
-  }
-  if(isIOS&&!isStandalone){
-    el.className='nt-status warn';
-    el.textContent='iPhone 需先「加入主畫面」才能收到通知：Safari 下方「分享」→「加入主畫面」，之後從主畫面圖示開啟本站再開啟提醒。';
-    return;
-  }
-  if(!c.on){el.textContent='目前未開啟。開啟後，每天到設定時間就會跳出當日行程通知。';return;}
-  el.className='nt-status warn';
-  el.innerHTML='已開啟，每天 '+he(c.time)+' 提醒'+(c.skipWeekend?'（六、日不提醒）':'')+'。<br>'
-    +'<b>限制：</b>手機系統會在 App 切到背景後數秒內凍結程式，因此只有在'
-    +'<b>該時刻 App 正開著</b>時才會即時跳通知。其餘情況會在你下次開啟 App 時補提醒當天行程。';
-}
-
-function notifSaveUI(){
-  var c=ntCfg();
-  c.time=document.getElementById('nt-time').value||'08:30';
-  c.skipWeekend=document.getElementById('nt-weekend').checked;
-  c.notifyEmpty=document.getElementById('nt-empty').checked;
-  lsSet(NT_KEY,c);
-  ntRenderUI();
-}
-
-function notifToggle(el){
-  var c=ntCfg();
-  if(!el.checked){c.on=false;lsSet(NT_KEY,c);ntRenderUI();return;}
-  if(!ntSupported()){el.checked=false;ntRenderUI();return;}
-  Notification.requestPermission().then(function(p){
-    if(p==='granted'){
-      c.on=true;c.last='';lsSet(NT_KEY,c);
-      toast('已開啟每日提醒','success');
-      registerSW();
-    }else{
-      c.on=false;lsSet(NT_KEY,c);
-      el.checked=false;
-      toast('未取得通知權限','error');
-    }
-    ntRenderUI();
-  }).catch(function(){el.checked=false;ntRenderUI();});
-}
-
-/**
- * iPhone（PWA）只能透過 Service Worker 發通知，new Notification() 會直接失敗，
- * 所以這裡一律等 Service Worker 就緒後再發，取不到才退回原生 API。
- */
-function showNotification(title,body){
-  var opts={body:body,tag:'espc-daily',icon:'icon.png',badge:'icon.png',renotify:true};
-  function viaSW(reg){
-    try{reg.showNotification(title,opts);return true;}catch(e){return false;}
-  }
-  if(SW_REG&&SW_REG.showNotification&&viaSW(SW_REG))return true;
-
-  if(navigator.serviceWorker&&navigator.serviceWorker.ready){
-    navigator.serviceWorker.ready.then(function(reg){
-      SW_REG=reg;
-      if(!viaSW(reg)){
-        try{new Notification(title,opts);}catch(e){}
-      }
-    }).catch(function(){
-      try{new Notification(title,opts);}catch(e){}
-    });
-    return true;
-  }
-  try{new Notification(title,opts);return true;}catch(e){return false;}
-}
-
-function buildNotifyText(t,rows){
-  var parts=t.split('-');
-  var head=parseInt(parts[1])+'/'+parseInt(parts[2])+'（'+DAYS_ZH[dowOf(t)]+'）';
-  if(!rows.length)return{title:head+' 今日無排程',body:'今天沒有安排監測行程。'};
-  var lines=[];
-  groupByProject_(rows).forEach(function(g){
-    var types=Object.keys(g.types).join('、');
-    var loc=uniq_(g.rows,'location')[0]||'';
-    var st=uniq_(g.rows,'sampTime')[0]||'';
-    lines.push('• '+g.project+(types?'（'+types+'）':'')+(loc?'\n　'+loc:'')+(st?'　'+st:''));
-  });
-  return{title:head+' 今日 '+lines.length+' 項行程',body:lines.join('\n')};
-}
-
-/**
- * 發送當日提醒。
- * @param done(ok) ok=true 代表「這天處理完了」，可以標記為已提醒；
- *                 ok=false 代表抓不到資料，稍後的 tick 會再試一次。
- */
-function fireDailyNotify(t,done){
-  function go(rows,fresh){
-    var eng=ss('espc_eng_p').trim();
-    var mine=eng?rows.filter(function(r){return String(r.engineer||'').trim()===eng;}):rows;
-    var c=ntCfg();
-    if(!mine.length&&!c.notifyEmpty){
-      // 確實沒行程才算處理完；資料是舊的就不要定案，等下次重試
-      if(done)done(!!fresh);
-      return;
-    }
-    var msg=buildNotifyText(t,mine);
-    var ok=showNotification(msg.title,msg.body);
-    if(done)done(ok);
-  }
-
-  if(TOKEN){
-    gas('getData',TOKEN,{dateFrom:t,dateTo:t}).then(function(r){
-      if(r&&r.ok&&!r.unchanged){
-        lsSet(NT_CACHE,{date:t,rows:r.rows||[]});
-        go(r.rows||[],true);
-      }else{
-        var cc=lsGet(NT_CACHE,null);
-        if(cc&&cc.date===t)go(cc.rows,true);
-        else if(done)done(false);        // 抓不到 → 不標記，稍後重試
-      }
-    }).catch(function(){
-      var cc=lsGet(NT_CACHE,null);
-      if(cc&&cc.date===t)go(cc.rows,false);
-      else if(done)done(false);
-    });
-  }else{
-    var cc=lsGet(NT_CACHE,null);
-    if(cc&&cc.date===t)go(cc.rows,false);
-    else if(done)done(false);
-  }
-}
-
-var ntBusy=false;
-function ntTick(){
-  if(ntBusy)return;
-  var c=ntCfg();
-  if(!c.on||!ntSupported()||Notification.permission!=='granted')return;
-  var now=twDate();
-  var t=todayStr_();
-  if(c.last===t)return;
-  var dow=now.getDay();
-  if(c.skipWeekend&&(dow===0||dow===6))return;
-  var hm=(c.time||'08:30').split(':');
-  var target=new Date(now);
-  target.setHours(parseInt(hm[0],10)||0,parseInt(hm[1],10)||0,0,0);
-  if(now<target)return;
-
-  // 通知確實送出（或確認今天真的沒行程）才標記已提醒，
-  // 失敗就不標記，下一次 tick 會再試。
-  ntBusy=true;
-  fireDailyNotify(t,function(ok){
-    ntBusy=false;
-    if(!ok)return;
-    var cc=ntCfg();cc.last=t;lsSet(NT_KEY,cc);
-  });
-}
-
-function toggleDiag(){
-  var el=document.getElementById('nt-diag');
-  if(el.classList.contains('open')){el.classList.remove('open');return;}
-  renderDiag();
-  el.classList.add('open');
-}
-
-function renderDiag(){
-  var c=ntCfg();
-  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  var perm=ntSupported()?Notification.permission:'不支援';
-
-  var rows=[];
-  function add(label,val,ok){
-    rows.push('<div class="dg-row"><span>'+label+'</span><b class="'
-      +(ok===true?'dg-ok':ok===false?'dg-bad':'')+'">'+he(val)+'</b></div>');
-  }
-
-  add('提醒開關',c.on?'已開啟':'未開啟',!!c.on);
-  add('通知權限',perm==='granted'?'已允許':perm==='denied'?'已封鎖':perm==='default'?'尚未詢問':perm,
-      perm==='granted');
-  if(isIOS)add('加入主畫面',standalone?'是':'否（iPhone 必須）',standalone);
-  add('Service Worker',SW_REG?'已就緒':('serviceWorker' in navigator)?'載入中／失敗':'不支援',!!SW_REG);
-  add('提醒時間',c.time+(c.skipWeekend?'（六日不提醒）':''));
-  add('上次提醒日期',c.last||'尚未提醒過');
-  add('今天日期',todayStr_());
-  add('目前時間',fmtStamp(new Date()));
-
-  var t=todayStr_();
-  var mineToday=todayRows.filter(function(r){return r.date===t;}).length;
-  add('今天的行程筆數',mineToday+' 筆'+(mineToday===0&&!c.notifyEmpty?'（沒行程且未開啟空通知→不會跳）':''),
-      mineToday>0?true:(c.notifyEmpty?true:false));
-
-  var reason='';
-  if(!c.on)reason='提醒開關沒開。';
-  else if(perm!=='granted')reason='沒有通知權限，請按上方開關重新授權。';
-  else if(isIOS&&!standalone)reason='iPhone 必須從主畫面圖示開啟才會跳通知。';
-  else if(mineToday===0&&!c.notifyEmpty)
-    reason='今天沒有你的行程，而「沒有行程時仍提醒」是關閉的，所以不會跳通知。'
-          +'想要每天都收到就把那個開關打開。';
-  else if(c.last===t)reason='今天已經提醒過了（同一天只提醒一次）。可按下方按鈕重測。';
-  else reason='設定看起來正常。若時間已過卻沒跳，多半是當時 App 已完全關閉——'
-             +'本機排程只在 App 開著或在背景時有效。';
-
-  document.getElementById('nt-diag').innerHTML=
-    rows.join('')+'<div class="dg-why">'+he(reason)+'</div>'
-    +'<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" onclick="notifResetToday()">清除「今天已提醒」重測</button></div>';
-}
-
-function notifResetToday(){
-  var c=ntCfg();c.last='';lsSet(NT_KEY,c);
-  toast('已清除，若現在已過提醒時間，30 秒內會跳出通知','success',4000);
-  renderDiag();
-  ntTick();
-}
-
-function notifTest(){
-  if(!ntSupported()){toast('此瀏覽器不支援通知','error');return;}
-  if(Notification.permission!=='granted'){
-    Notification.requestPermission().then(function(p){
-      if(p==='granted')notifTest();else toast('未取得通知權限','error');
-    });
-    return;
-  }
-  var t=todayStr_();
-  var rows=todayRows.filter(function(r){return r.date===t;});
-  var msg=buildNotifyText(t,rows);
-  if(showNotification(msg.title,msg.body))toast('已發送測試通知','success');
-  else toast('無法發送通知','error');
-}
-
-function startNotifyLoop(){
-  registerSW();
-  ntTick();
+function ntInit(){
+  regSW();ntTick();
   setInterval(ntTick,30000);
   document.addEventListener('visibilitychange',function(){
     if(document.hidden)return;
     ntTick();
-    dailySync();
+    var t=twStr();
+    if(ls('espc_sync')!==t){lsS('espc_sync',t);cPrune(false);todayFor='';allRows=[];
+      loadStaff(null,true);loadToday(true);}
   });
 }
+function notifyPage(){
+  var c=ntCfg();
+  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  var perm=ntSup()?Notification.permission:'不支援';
+  var h='';
+  if(!ntSup())h+='<div class="note bad">這個瀏覽器不支援系統通知。</div>';
+  else if(perm==='denied')h+='<div class="note bad">通知權限已被封鎖，請到瀏覽器或系統設定允許本網站傳送通知。</div>';
+  else if(isIOS&&!standalone)h+='<div class="note">iPhone 需先「加入主畫面」才能收到通知：Safari 下方「分享」→「加入主畫面」，之後從主畫面圖示開啟本站。</div>';
 
-/** 每日背景更新：每天第一次開啟（或跨日後回到前景）時，靜默重抓一次最新資料 */
-var SYNC_KEY='espc_last_sync';
-function dailySync(){
-  if(!TOKEN)return;
-  var t=todayStr_();
-  var last='';try{last=localStorage.getItem(SYNC_KEY)||'';}catch(e){}
-  if(last===t)return;
-  try{localStorage.setItem(SYNC_KEY,t);}catch(e){}
-  cachePrune(false);
-  // 跨日了，今日頁一定要重算
-  todayLoadedFor='';
-  loadStaff(null,true);
-  loadToday(true);
-  if(document.getElementById('panel-calendar').classList.contains('active'))loadMonth(true);
-  else{allRows=[];}
+  h+='<div class="card"><div class="row"><div><div style="font-size:15px">開啟提醒</div>'
+    +'<div class="hint" style="margin-top:2px">時間一到跳出系統通知，只顯示你自己的行程</div></div>'
+    +'<button class="sw'+(c.on?' on':'')+'" onclick="ntToggle()"></button></div></div>'
+    +'<div class="card"><div class="row"><div style="font-size:15px">提醒時間</div>'
+    +'<input type="time" value="'+he(c.time)+'" onchange="ntSet(\'time\',this.value)"'
+    +' style="background:var(--card2);border:none;border-radius:999px;padding:9px 14px;font-size:15px;color:var(--tx)"></div></div>'
+    +'<div class="card"><div class="row"><div style="font-size:15px">六日不提醒</div>'
+    +'<button class="sw'+(c.skipWeekend?' on':'')+'" onclick="ntSet(\'skipWeekend\',!'+c.skipWeekend+')"></button></div></div>'
+    +'<div class="card"><div class="row"><div><div style="font-size:15px">沒有行程時仍提醒</div>'
+    +'<div class="hint" style="margin-top:2px">關閉時，當天沒排程就不跳通知</div></div>'
+    +'<button class="sw'+(c.notifyEmpty?' on':'')+'" onclick="ntSet(\'notifyEmpty\',!'+c.notifyEmpty+')"></button></div></div>';
+
+  if(c.on)h+='<div class="note">手機系統會在 App 切到背景後數秒內凍結程式，因此只有在<b>該時刻 App 正開著</b>時才會即時跳通知。其餘情況會在下次開啟時補提醒。</div>';
+
+  h+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-sm" onclick="ntTest()">發送測試通知</button>'
+    +'<button class="btn btn-sm" onclick="ntDiag()">檢查設定</button></div><div id="diag"></div>';
+  return h;
 }
-
-// ─── 今日焦點 ─────────────────────────────────────────────────────────────────
-var todayRows=[],todayUnmatched='';
-
-function todayStr_(){return twDateStr();}
-function addDays_(s,n){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
-
-var todayLoadedFor='';
-
-/** 今日頁範圍：本月剩餘天數，但至少涵蓋到 15 天後 */
-function todayRange_(t){
-  var d=new Date(t+'T00:00:00');
-  var monthEnd=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
-  var min15=addDays_(t,15);
-  return monthEnd>min15?monthEnd:min15;
+function ntSet(k,v){var c=ntCfg();c[k]=v;jSet(NT,c);render();}
+function ntToggle(){
+  var c=ntCfg();
+  if(c.on){c.on=false;jSet(NT,c);render();return;}
+  if(!ntSup()){toast('此瀏覽器不支援通知','no');return;}
+  Notification.requestPermission().then(function(p){
+    if(p==='granted'){c.on=true;c.last='';jSet(NT,c);regSW();toast('已開啟每日提醒','ok');}
+    else toast('未取得通知權限','no');
+    render();
+  }).catch(function(){render();});
 }
-
-function paintToday(t,all){
-  var eng=autoEngName();
-  var mine=eng?all.filter(function(x){return String(x.engineer||'').trim()===eng;}):all;
-  // 對不到工程師姓名時，改顯示全部行程
-  var matched=!eng||mine.length>0;
-  todayRows=matched?mine:all;
-  todayUnmatched=matched?'':eng;
-  todayLoadedFor=t;
-  lsSet(NT_CACHE,{date:t,rows:all.filter(function(x){return x.date===t;})});
-  renderToday(t,todayUnmatched);
-}
-
-function loadToday(force){
-  var t=todayStr_();
-  var parts=t.split('-');
-  document.getElementById('today-date').textContent=parseInt(parts[1])+'月'+parseInt(parts[2])+'日 週'+DAYS_ZH[dowOf(t)];
-
-  if(!force&&todayLoadedFor===t){renderToday(t,todayUnmatched);return;}
-
-  var key='today';
-  var c=force?null:cacheGet(key);
-  if(c&&c.date===t&&c.rows){
-    paintToday(t,c.rows);                     // 立即上畫面
-  }else{
-    document.getElementById('today-now').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-    c=null;
+function showNotif(title,body){
+  var o={body:body,tag:'espc-daily',icon:'icon.png',badge:'icon.png',renotify:true};
+  if(SWREG&&SWREG.showNotification){try{SWREG.showNotification(title,o);return true;}catch(e){}}
+  if(navigator.serviceWorker&&navigator.serviceWorker.ready){
+    navigator.serviceWorker.ready.then(function(r){SWREG=r;
+      try{r.showNotification(title,o);}catch(e){try{new Notification(title,o);}catch(e2){}}
+    }).catch(function(){try{new Notification(title,o);}catch(e){}});
+    return true;
   }
-
-  var opts={dateFrom:t,dateTo:todayRange_(t)};
-  if(c&&c.version)opts.version=c.version;
-
-  gas('getData',TOKEN,opts).then(function(r){
-    if(!r||!r.ok){
-      if(!c)document.getElementById('today-now').innerHTML='<div class="today-empty">'+he(r&&r.error||'載入失敗')+'</div>';
-      return;
-    }
-    cacheCheckVersion(r.version);
-    if(r.unchanged)return;
-    cacheSet(key,{date:t,version:r.version||'',rows:r.rows||[],t:Date.now()});
-    paintToday(t,r.rows||[]);
-  }).catch(function(){
-    if(!c)document.getElementById('today-now').innerHTML='<div class="today-empty">載入失敗，請重試</div>';
+  try{new Notification(title,o);return true;}catch(e){return false;}
+}
+function ntText(t,list){
+  var dd=t.split('-'),head=parseInt(dd[1])+'/'+parseInt(dd[2])+'（'+DW[dowOf(t)]+'）';
+  if(!list.length)return {title:head+' 今日無排程',body:'今天沒有安排監測行程。'};
+  var lines=groupBy(list).map(function(g){
+    return '• '+g.project+(g.types.length?'（'+g.types.join('、')+'）':'')
+      +(g.locs[0]?'\n　'+g.locs[0]:'')+(g.samp?'　'+g.samp:'');
   });
+  return {title:head+' 今日 '+lines.length+' 項行程',body:lines.join('\n')};
 }
-
-function groupByProject_(rows){
-  var m={},order=[];
-  rows.forEach(function(r){
-    var k=r.project||'（未分類）';
-    if(!m[k]){m[k]={project:k,rows:[],types:{}};order.push(k);}
-    m[k].rows.push(r);
-    if(r.type)m[k].types[r.type]=true;
-  });
-  return order.map(function(k){return m[k];});
-}
-
-function uniq_(rows,field){
-  var seen={},out=[];
-  rows.forEach(function(r){var v=r[field];if(v&&!seen[v]){seen[v]=true;out.push(v);}});
-  return out;
-}
-
-function renderToday(t,unmatchedEng){
-  projColor('');
-  var mine=todayRows.filter(function(r){return r.date===t;});
-  var el=document.getElementById('today-now');
-  var banner=unmatchedEng
-    ? '<div class="notice">找不到「'+he(unmatchedEng)+'」的排程，以下顯示全部行程</div>' : '';
-  if(!mine.length){
-    el.innerHTML=banner+'<div class="today-empty">今日沒有排程</div>';
-  }else{
-    var html=banner;
-    groupByProject_(mine).forEach(function(g){
-      var c=projColor(g.project);
-      var types=Object.keys(g.types).join('、');
-      var locs=uniq_(g.rows,'location');
-      var st=uniq_(g.rows,'sampTime')[0]||'';
-      var engs=uniq_(g.rows,'engineer');
-      var cars=[],carSeen={};
-      g.rows.forEach(function(r){if(r.car)String(r.car).split(/[、，,]/).forEach(function(x){x=x.trim();if(x&&!carSeen[x]){carSeen[x]=true;cars.push(x);}});});
-      var staff=[],stSeen={};
-      g.rows.forEach(function(r){
-        var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
-        ss.forEach(function(p){p=(p||'').trim();if(p&&!stSeen[p]){stSeen[p]=true;staff.push(p);}});
-      });
-      var notes=uniq_(g.rows,'notes');
-      html+='<div class="now-card" style="border-color:'+c+'">'
-        +'<div class="now-tag" style="color:'+c+'">'+he(types||'排程')+'</div>'
-        +'<div class="now-title">'+he(g.project)+'</div>'
-        +'<div class="now-meta">';
-      if(locs.length)html+='點位：<b>'+he(locs.join(' / '))+'</b><br>';
-      if(st)html+='申報採樣時間：<b>'+he(st)+'</b><br>';
-      // 工程師直接做成可撥號連結，下面就不再重複一顆按鈕
-      if(engs.length)html+='工程師：<b>'+engs.map(telLink).join('、')+'</b><br>';
-      if(cars.length)html+='公務車：<b>'+he(cars.join('、'))+'</b><br>';
-      if(notes.length)html+='備註：<b>'+he(notes.join('；'))+'</b>';
-      html+='</div>';
-      // 只列現場人員；工程師已在上方，不重複顯示
-      if(staff.length){
-        html+='<div class="call-row">';
-        staff.forEach(function(p){
-          var ph=PHONE_MAP[p];
-          if(ph)html+='<a class="call-btn" href="tel:'+he(ph.replace(/-/g,''))+'">&#128222; '+he(p)+'</a>';
-          else html+='<span class="call-btn" style="color:var(--c-text-2)">'+he(p)+'</span>';
-        });
-        html+='</div>';
-      }
-      html+='</div>';
-    });
-    el.innerHTML=html;
+function ntFire(t,done){
+  function go(list,fresh){
+    var eng=ENGNAME.trim();
+    var mine=eng?list.filter(function(r){return String(r.engineer||'').trim()===eng;}):list;
+    var c=ntCfg();
+    if(!mine.length&&!c.notifyEmpty){if(done)done(!!fresh);return;}
+    var m=ntText(t,mine);
+    if(done)done(showNotif(m.title,m.body));
   }
-
-  var future=todayRows.filter(function(r){return r.date>t;});
-  var wrap=document.getElementById('today-next-wrap');
-  if(!future.length){wrap.style.display='none';return;}
-  wrap.style.display='block';
-  var byDate={},dates=[];
-  future.forEach(function(r){if(!byDate[r.date]){byDate[r.date]=[];dates.push(r.date);}byDate[r.date].push(r);});
-  dates.sort();
-  var out='';
-  dates.slice(0,20).forEach(function(d){
-    groupByProject_(byDate[d]).forEach(function(g){
-      var c=projColor(g.project);
-      var dd=d.split('-');
-      out+='<div class="up-row" onclick="openDay(\''+d+'\')">'
-        +'<div class="up-date"><div class="up-d">'+parseInt(dd[2])+'</div><div class="up-w">'+DAYS_ZH[dowOf(d)]+'</div></div>'
-        +'<div class="up-bar" style="background:'+c+'"></div>'
-        +'<div class="up-body"><div class="up-title">'+he(g.project)+'</div>'
-        +'<div class="up-meta">'+he(Object.keys(g.types).join('、'))
-        +(uniq_(g.rows,'location')[0]?' · '+he(uniq_(g.rows,'location')[0]):'')+'</div></div></div>';
-    });
-  });
-  document.getElementById('today-next').innerHTML=out;
+  if(TOKEN){
+    gas('getData',TOKEN,{dateFrom:t,dateTo:t}).then(function(r){
+      if(r&&r.ok&&!r.unchanged){jSet(NTC,{date:t,rows:r.rows||[]});go(r.rows||[],true);}
+      else{var c=jGet(NTC,null);if(c&&c.date===t)go(c.rows,true);else if(done)done(false);}
+    }).catch(function(){var c=jGet(NTC,null);if(c&&c.date===t)go(c.rows,false);else if(done)done(false);});
+  }else{var c=jGet(NTC,null);if(c&&c.date===t)go(c.rows,false);else if(done)done(false);}
 }
-
-function openDay(dateStr){
-  var rows=todayRows.filter(function(r){return r.date===dateStr;});
-  var saved=filteredRows;
-  filteredRows=rows;
-  showDetail(dateStr);
-  filteredRows=saved;
+function ntTick(){
+  if(ntBusy)return;
+  var c=ntCfg();
+  if(!c.on||!ntSup()||Notification.permission!=='granted')return;
+  var now=twDate(),t=twStr();
+  if(c.last===t)return;
+  var dw=now.getDay();
+  if(c.skipWeekend&&(dw===0||dw===6))return;
+  var hm=(c.time||'08:30').split(':');
+  var target=new Date(now);
+  target.setHours(parseInt(hm[0],10)||0,parseInt(hm[1],10)||0,0,0);
+  if(now<target)return;
+  ntBusy=true;
+  ntFire(t,function(ok){ntBusy=false;if(!ok)return;
+    var cc=ntCfg();cc.last=t;jSet(NT,cc);});
 }
-
-// ─── Calendar ─────────────────────────────────────────────────────────────────
-var DAYS_ZH=['日','一','二','三','四','五','六'];
-var MONTHS_ZH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-var curYear,curMonth,allRows=[],filteredRows=[];
-
-// ─── 月份快速選擇 ─────────────────────────────────────────────────────────────
-var mpYearShown=0;
-
-function toggleMonthPicker(e){
-  if(e)e.stopPropagation();
-  var el=document.getElementById('month-picker');
-  if(el.classList.contains('open')){el.classList.remove('open');return;}
-  mpYearShown=curYear;
-  renderMonthPicker();
-  el.classList.add('open');
-}
-function closeMonthPicker(){document.getElementById('month-picker').classList.remove('open');}
-function mpYear(d){mpYearShown+=d;renderMonthPicker();}
-
-function renderMonthPicker(){
-  document.getElementById('mp-year').textContent=mpYearShown+' 年';
-  var n=twDate(),ty=n.getFullYear(),tm=n.getMonth();
-  var html='';
-  for(var m=0;m<12;m++){
-    var cls='mp-btn';
-    if(mpYearShown===curYear&&m===curMonth)cls+=' cur';
-    else if(mpYearShown===ty&&m===tm)cls+=' today-m';
-    html+='<button class="'+cls+'" onclick="pickMonth('+mpYearShown+','+m+')">'+MONTHS_ZH[m]+'</button>';
-  }
-  document.getElementById('mp-grid').innerHTML=html;
-}
-
-function pickMonth(y,m){
-  curYear=y;curMonth=m;
-  closeMonthPicker();
-  loadMonth();
-}
-
-document.addEventListener('click',function(e){
-  var el=document.getElementById('month-picker');
-  if(el&&el.classList.contains('open')&&!el.contains(e.target))closeMonthPicker();
-});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMonthPicker();});
-
-function initCalendar(){var n=twDate();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
-function moveMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}if(curMonth<0){curMonth=11;curYear--;}loadMonth();}
-function goToday(){var n=twDate();curYear=n.getFullYear();curMonth=n.getMonth();loadMonth();}
-
-function paintMonth(rows){
-  allRows=rows||[];
-  populateEngDropdown(allRows);
-  populateTypeDropdown(allRows);
-  autoFilterEngineer();
-  applyFilter();
-}
-
-function loadMonth(force){
-  document.getElementById('month-label').textContent=curYear+'年 '+MONTHS_ZH[curMonth];
-  var mkey='m_'+curYear+'-'+p2(curMonth+1);
-  var first=curYear+'-'+p2(curMonth+1)+'-01';
-  var lastDay=new Date(curYear,curMonth+1,0).getDate();
-  var last=curYear+'-'+p2(curMonth+1)+'-'+p2(lastDay);
-
-  var c=force?null:cacheGet(mkey);
-  if(c&&c.rows){
-    paintMonth(c.rows);                       // 立即上畫面，不轉圈
-  }else{
-    document.getElementById('cal-container').innerHTML='<div class="loading"><div class="spinner"></div> 載入中…</div>';
-  }
-
-  var opts={dateFrom:first,dateTo:last};
-  if(c&&c.version)opts.version=c.version;     // 帶著手上的版本去問
-
-  gas('getData',TOKEN,opts).then(function(r){
-    if(!r||!r.ok){if(!c)toast(r&&r.error||'載入失敗','error');return;}
-    cacheCheckVersion(r.version);
-    if(r.unchanged)return;                    // 資料沒變，畫面維持快取內容
-    cacheSet(mkey,{version:r.version||'',rows:r.rows||[],t:Date.now()});
-    paintMonth(r.rows||[]);
-  }).catch(function(){
-    if(!c){
-      document.getElementById('cal-container').innerHTML='<div class="loading">載入失敗，請重試</div>';
-      toast('載入資料失敗','error');
-    }
-  });
-}
-
-/** 只有 PM 角色會自動帶出自己的行程；對不到姓名時顯示全部 */
-function autoEngName(){
-  return ROLE==='pm' ? ss('espc_eng').trim() : '';
-}
-
-function autoFilterEngineer(){
-  var stored=autoEngName();
-  var sel=document.getElementById('cal-filter-eng');
-  if(!stored){sel.removeAttribute('data-auto');return;}
-  var exists=false;
-  for(var i=0;i<allRows.length;i++){
-    if(String(allRows[i].engineer||'').trim()===stored){exists=true;break;}
-  }
-  if(!exists){
-    // 這個月沒有他的行程 → 清掉自動篩選，顯示全部
-    if(sel.getAttribute('data-auto')==='1'){sel.value='';sel.removeAttribute('data-auto');}
+function ntTest(){
+  if(!ntSup()){toast('此瀏覽器不支援通知','no');return;}
+  if(Notification.permission!=='granted'){
+    Notification.requestPermission().then(function(p){
+      if(p==='granted')ntTest();else toast('未取得通知權限','no');});
     return;
   }
-  if(sel.value===''){sel.value=stored;sel.setAttribute('data-auto','1');}
+  var t=twStr();
+  var c=jGet(NTC,null);
+  var list=(c&&c.date===t)?c.rows:todayRows.filter(function(r){return r.date===t;});
+  var eng=ENGNAME.trim();
+  if(eng)list=list.filter(function(r){return String(r.engineer||'').trim()===eng;});
+  var m=ntText(t,list);
+  if(showNotif(m.title,m.body))toast('已發送測試通知','ok');
+  else toast('無法發送通知','no');
 }
-
-function populateEngDropdown(rows){
-  var seen={},engs=[];
-  rows.forEach(function(r){if(r.engineer&&!seen[r.engineer]){seen[r.engineer]=true;engs.push(r.engineer);}});
-  engs.sort();
-  var sel=document.getElementById('cal-filter-eng'),cur=sel.value;
-  sel.innerHTML='<option value="">全部工程師</option>'+engs.map(function(e){return '<option value="'+he(e)+'"'+(e===cur?' selected':'')+'>'+he(e)+'</option>';}).join('');
-}
-
-function populateTypeDropdown(rows){
-  var seen={},types=[];
-  rows.forEach(function(r){if(r.type&&!seen[r.type]){seen[r.type]=true;types.push(r.type);}});
-  types.sort();
-  var sel=document.getElementById('cal-filter-type'),cur=sel.value;
-  sel.innerHTML='<option value="">全部類別</option>'+types.map(function(t){return '<option value="'+he(t)+'"'+(t===cur?' selected':'')+'>'+he(t)+'</option>';}).join('');
-}
-
-var FILTER_IDS=['cal-filter-region','cal-filter-eng','cal-filter-type'];
-function toggleFilters(){document.getElementById('cal-filters').classList.toggle('open');}
-function clearFilters(){
-  FILTER_IDS.forEach(function(id){document.getElementById(id).value='';});
-  applyFilter();
-}
-function removeFilter(id){document.getElementById(id).value='';applyFilter();}
-function renderFilterChips(){
-  var defs=FILTER_IDS.map(function(id){return [id];});
-  var html='',n=0;
-  defs.forEach(function(d){
-    var v=document.getElementById(d[0]).value;
-    if(v){n++;html+='<span class="filter-chip">'+he(v)+'<button title="移除" onclick="removeFilter(\''+d[0]+'\')">&#10005;</button></span>';}
-  });
-  document.getElementById('filter-chips').innerHTML=html;
-  document.getElementById('filter-toggle').innerHTML='篩選'+(n?'<span class="filter-count">'+n+'</span>':'');
-}
-
-function applyFilter(){
-  var region=document.getElementById('cal-filter-region').value;
-  var eng=document.getElementById('cal-filter-eng').value;
-  var type=document.getElementById('cal-filter-type').value;
-  renderFilterChips();
-  filteredRows=allRows.filter(function(r){
-    if(region&&(r.region||'')!==region)return false;
-    if(eng&&r.engineer!==eng)return false;
-    if(type&&r.type!==type)return false;
-    return true;
-  });
-  renderCalendar(curYear,curMonth,filteredRows);
-}
-
-function buildDateEvents(rows){
-  var byDate={};
-  rows.forEach(function(r){
-    if(!r.date)return;
-    var d=r.date.slice(0,10);
-    if(!byDate[d])byDate[d]={};
-    var pk=r.project||'（未分類）';
-    if(!byDate[d][pk])byDate[d][pk]={project:pk,rows:[],typeSet:{}};
-    byDate[d][pk].rows.push(r);
-    if(r.type)byDate[d][pk].typeSet[r.type]=true;
-    projColor(pk);
-  });
-  var result={};
-  Object.keys(byDate).forEach(function(d){
-    result[d]=Object.keys(byDate[d]).map(function(pk){
-      var g=byDate[d][pk];
-      var types=Object.keys(g.typeSet);
-      return{project:pk,color:projColor(pk),title:'【'+pk+'】'+types.join('/'),rows:g.rows};
-    });
-  });
-  return result;
-}
-
-function renderCalendar(year,month,rows){
-  projColorMap={};projColorIdx=0;
-  var dateEvents=buildDateEvents(rows);
-  var startDow=new Date(year,month,1).getDay();
-  var daysInMonth=new Date(year,month+1,0).getDate();
-  var prevDays=new Date(year,month,0).getDate();
-  var todayStr=twDateStr();
-  var html='<div class="cal-grid">';
-  DAYS_ZH.forEach(function(d,i){
-    var s=i===0?' style="color:#d32f2f"':i===6?' style="color:#1565c0"':'';
-    html+='<div class="cal-header-cell"'+s+'>'+d+'</div>';
-  });
-  var total=Math.ceil((startDow+daysInMonth)/7)*7;
-  for(var i=0;i<total;i++){
-    var day,dateStr,isOther=false;
-    if(i<startDow){
-      day=prevDays-startDow+i+1;
-      var pm=month===0?12:month,py=month===0?year-1:year;
-      dateStr=py+'-'+p2(pm)+'-'+p2(day);isOther=true;
-    }else if(i>=startDow+daysInMonth){
-      day=i-startDow-daysInMonth+1;
-      var nm=month===11?1:month+2,ny=month===11?year+1:year;
-      dateStr=ny+'-'+p2(nm)+'-'+p2(day);isOther=true;
-    }else{
-      day=i-startDow+1;dateStr=year+'-'+p2(month+1)+'-'+p2(day);
-    }
-    var dow=i%7,isToday=dateStr===todayStr;
-    var events=dateEvents[dateStr]||[];
-    var cls='cal-cell'+(isOther?' other-month':'')+(isToday?' today':'')+(dow===0?' cal-sunday':dow===6?' cal-saturday':'');
-    html+='<div class="'+cls+'" onclick="showDetail(\''+dateStr+'\')" title="'
-      +(events.length?'點格子看當天全部 '+events.length+' 項':'')+'">';
-    html+='<div class="cal-day-row"><span class="cal-day-num">'+day+'</span>'
-      +(events.length>3?'<span class="day-count">'+events.length+'</span>':'')+'</div>';
-    events.forEach(function(ev,ei){
-      html+='<div class="event-chip" style="background:'+ev.color+'" title="'+he(ev.title)+'"'
-        +' onclick="event.stopPropagation();showDetail(\''+dateStr+'\','+ei+')">'+he(ev.title)+'</div>';
-    });
-    html+='</div>';
+function ntDiag(){
+  var el=$('diag');if(!el)return;
+  if(el.innerHTML){el.innerHTML='';return;}
+  var c=ntCfg();
+  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  var perm=ntSup()?Notification.permission:'不支援';
+  var t=twStr();
+  var cc=jGet(NTC,null);
+  var n=(cc&&cc.date===t)?cc.rows.length:0;
+  function r(l,v,ok){
+    return '<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:13px">'
+      +'<span style="color:var(--tx3)">'+l+'</span><b style="color:'
+      +(ok===true?'var(--acc)':ok===false?'var(--err)':'var(--tx)')+'">'+he(v)+'</b></div>';
   }
-  html+='</div>';
-  var projs=Object.keys(projColorMap);
-  if(projs.length){
-    html+='<div class="legend-wrap">';
-    projs.forEach(function(p){html+='<div class="legend-item"><div class="legend-dot" style="background:'+projColorMap[p]+'"></div><span>'+he(p)+'</span></div>';});
-    html+='</div>';
-  }
-  document.getElementById('cal-container').innerHTML=html;
+  var why=!c.on?'提醒開關沒開。'
+    :perm!=='granted'?'沒有通知權限，請重新開啟開關授權。'
+    :(isIOS&&!standalone)?'iPhone 必須從主畫面圖示開啟才會跳通知。'
+    :(n===0&&!c.notifyEmpty)?'今天沒有你的行程，而「沒有行程時仍提醒」是關閉的，所以不會跳。'
+    :(c.last===t)?'今天已經提醒過了（同一天只提醒一次）。'
+    :'設定正常。若時間已過卻沒跳，多半是當時 App 已完全關閉。';
+  el.innerHTML='<div class="card" style="margin-top:10px">'
+    +r('提醒開關',c.on?'已開啟':'未開啟',!!c.on)
+    +r('通知權限',perm==='granted'?'已允許':perm==='denied'?'已封鎖':'尚未詢問',perm==='granted')
+    +(isIOS?r('加入主畫面',standalone?'是':'否（必須）',standalone):'')
+    +r('Service Worker',SWREG?'已就緒':'載入中／不支援',!!SWREG)
+    +r('提醒時間',c.time+(c.skipWeekend?'（六日不提醒）':''))
+    +r('上次提醒',c.last||'尚未提醒過')
+    +r('今天行程',n+' 筆',n>0||c.notifyEmpty)
+    +r('目前時間',stamp(new Date()))
+    +'<p class="hint" style="margin-top:10px">'+he(why)+'</p>'
+    +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="ntReset()">清除「今天已提醒」重測</button></div>';
 }
-
-var resizeTimer;
-window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){renderCalendar(curYear,curMonth,filteredRows);},200);});
-
-// ─── Detail ───────────────────────────────────────────────────────────────────
-/**
- * @param dateStr 日期
- * @param onlyIdx 有帶就只顯示該筆事件；不帶則顯示當天全部
- */
-function showDetail(dateStr,onlyIdx){
-  var dateEvents=buildDateEvents(filteredRows);
-  var all=dateEvents[dateStr]||[];
-  var single=(onlyIdx!=null&&all[onlyIdx]);
-  var events=single?[all[onlyIdx]]:all;
-
-  var parts=dateStr.split('-');
-  var dow=dowOf(dateStr);
-  var title=parts[0]+'年'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日（'+DAYS_ZH[dow]+'）';
-  document.getElementById('detail-title').textContent=title;
-
-  var html='';
-  // 只看單筆時，上方提供「查看當天全部」的入口
-  if(single&&all.length>1){
-    html+='<div class="detail-more">當天共 '+all.length+' 項行程'
-      +'<button class="btn btn-outline btn-sm" onclick="showDetail(\''+dateStr+'\')">查看全部</button></div>';
-  }
-  if(!events.length){html='<div class="empty-day">此日無排程</div>';}
-  else events.forEach(function(ev){
-    html+='<div class="proj-card" style="border-color:'+ev.color+'">';
-    var pno=uniq_(ev.rows,'projectNo')[0]||'';
-    html+='<div class="proj-card-title" style="color:'+ev.color+'">'+he(ev.project)
-      +(pno?' <span style="font-size:12px;font-weight:500;opacity:.8">'+he(pno)+'</span>':'')+'</div>';
-    var typeMap={};
-    ev.rows.forEach(function(r){var t=r.type||'（未知類型）';if(!typeMap[t])typeMap[t]=[];typeMap[t].push(r);});
-    Object.keys(typeMap).forEach(function(type){
-      var trows=typeMap[type];
-      html+='<div class="type-section"><div class="type-section-header">【'+he(type)+'】</div>';
-      var locs=[],locSeen={};trows.forEach(function(r){if(r.location&&!locSeen[r.location]){locSeen[r.location]=true;locs.push(r.location);}});
-      if(locs.length)html+='<div class="detail-row">&#128205; 點位：<span>'+he(locs.join(' / '))+'</span></div>';
-      var st=null;for(var i=0;i<trows.length;i++){if(trows[i].sampTime){st=trows[i].sampTime;break;}}
-      if(st)html+='<div class="detail-row">&#9200; 申報採樣時間：<span>'+he(st)+'</span></div>';
-      var instrs=[],instrSeen={};trows.forEach(function(r){if(r.equipment&&!instrSeen[r.equipment]){instrSeen[r.equipment]=true;instrs.push(r.equipment);}});
-      if(instrs.length)html+='<div class="detail-row">&#128300; 採樣儀器：<span>'+he(instrs.join(' '))+'</span></div>';
-      var reps=[],repSeen={};trows.forEach(function(r){if(r.applicant&&!repSeen[r.applicant]){repSeen[r.applicant]=true;reps.push(r.applicant);}});
-      if(reps.length)html+='<div class="detail-row">&#128100; 申報人員：<span>'+reps.map(telLink).join('、')+'</span></div>';
-      var rns=[],rnSeen={};trows.forEach(function(r){if(r.reportNum&&!rnSeen[r.reportNum]){rnSeen[r.reportNum]=true;rns.push(r.reportNum);}});
-      if(rns.length)html+='<div class="detail-row">&#128203; 報告編號：<span>'+he(rns.join(' / '))+'</span></div>';
-      html+='</div>';
-    });
-    var cars=[],carSeen={};
-    ev.rows.forEach(function(r){if(r.car)r.car.split(/[、，,]/).forEach(function(c){c=c.trim();if(c&&!carSeen[c]){carSeen[c]=true;cars.push(c);}});});
-    var staffArr=[],staffSeen={};
-    ev.rows.forEach(function(r){
-      if(r.staff){var ss=typeof r.staff==='string'?r.staff.split('、'):r.staff;ss.forEach(function(p){p=p.trim();if(p&&!staffSeen[p]){staffSeen[p]=true;staffArr.push(p);}});}
-    });
-    var notes=[],noteSeen={};ev.rows.forEach(function(r){if(r.notes&&!noteSeen[r.notes]){noteSeen[r.notes]=true;notes.push(r.notes);}});
-    var engs=[],engSeen={};ev.rows.forEach(function(r){if(r.engineer&&!engSeen[r.engineer]){engSeen[r.engineer]=true;engs.push(r.engineer);}});
-    var region=ev.rows[0]&&ev.rows[0].region?ev.rows[0].region:'';
-    html+='<div class="proj-footer">';
-    if(engs.length)html+='&#128119; 負責工程師：<span>'+engs.map(telLink).join('、')+'</span><br>';
-    if(cars.length)html+='&#128663; 公務車：<span>'+he(cars.join('、'))+'</span><br>';
-    if(staffArr.length)html+='&#128101; 現場執行人員：<span>'+staffArr.map(telLink).join('、')+'</span><br>';
-    if(notes.length)html+='&#9888; 備註：<span>'+he(notes.join('；'))+'</span><br>';
-    if(region)html+='&#128204; 地區：<span>'+he(region)+'</span>';
-    html+='</div></div>';
-  });
-  document.getElementById('detail-body').innerHTML=html;
-  document.getElementById('detail-overlay').classList.add('open');
-}
-function closeDetail(e){if(e.target===document.getElementById('detail-overlay'))closeDetailBtn();}
-function closeDetailBtn(){document.getElementById('detail-overlay').classList.remove('open');}
-
-// ─── Excel 解析 ───────────────────────────────────────────────────────────────
-function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');var f=e.dataTransfer.files[0];if(f)processFile(f);}
-function handleFileSelect(e){var f=e.target.files[0];if(f)processFile(f);e.target.value='';}
-
-function processFile(file){
-  currentFileName=file.name;
-  currentFileMtime=file.lastModified?new Date(file.lastModified).toISOString():'';
-  document.getElementById('parse-area').innerHTML='<div class="loading"><div class="spinner"></div> 解析中…</div>';
-  readExcel(file).then(function(rows){
-    parsedRows=rows;
-    var valid=rows.filter(function(r){return r.engineer&&r.date;});
-    // 地區認得出來就直接上傳，不用再按一次
-    if(valid.length&&rows[0].region){
-      renderParseResult(rows,file.name,true);
-      doUpload();
-    }else{
-      renderParseResult(rows,file.name,false);
-    }
-  }).catch(function(err){
-    document.getElementById('parse-area').innerHTML='';toast('解析失敗：'+(err.message||err),'error');
-  });
-}
-
-function readExcel(file){
-  return new Promise(function(resolve,reject){
-    var reader=new FileReader();
-    reader.onload=function(e){
-      try{
-        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
-        var sheetName=null;
-        for(var i=0;i<wb.SheetNames.length;i++){if(wb.SheetNames[i]==='採樣行程'){sheetName=wb.SheetNames[i];break;}}
-        if(!sheetName)for(var i=0;i<wb.SheetNames.length;i++){if(wb.SheetNames[i]==='工作表1'){sheetName=wb.SheetNames[i];break;}}
-        if(!sheetName)sheetName=wb.SheetNames[0];
-        if(!sheetName){resolve([]);return;}
-        var ws=wb.Sheets[sheetName];
-        var raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,range:{s:{r:0,c:0},e:{r:9999,c:21}}});
-        resolve(parseESPCSheet(raw,sheetName,file.name));
-      }catch(ex){reject(ex);}
-    };
-    reader.onerror=function(){reject(new Error('檔案讀取失敗'));};
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-function detectRegion(fname,sheetName){
-  var s=(fname||'')+' '+(sheetName||'');
-  if(/台中|臺中|中部|中區|taichung|\bTC\b/i.test(s))return '台中';
-  if(/高雄|南部|南區|kaohsiung|\bKH\b/i.test(s))return '高雄';
-  if(/台北|臺北|北部|北區|taipei|\bTP\b/i.test(s))return '台北';
-  if(sheetName==='採樣行程')return '高雄';
-  return '';
-}
-
-function parseDate(v){
-  if(v==null||v==='')return null;
-  if(v instanceof Date){if(isNaN(v))return null;return v.getFullYear()+'-'+p2(v.getMonth()+1)+'-'+p2(v.getDate());}
-  if(typeof v==='number'&&v>40000&&v<80000){
-    try{var d=XLSX.SSF.parse_date_code(v);if(d&&d.y>2000)return d.y+'-'+p2(d.m)+'-'+p2(d.d);}catch(e){}
-  }
-  var str=String(v).trim();
-  var m1=str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-  if(m1)return m1[1]+'-'+p2(m1[2])+'-'+p2(m1[3]);
-  var m2=str.match(/^(\d{2,3})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-  if(m2)return(parseInt(m2[1])+1911)+'-'+p2(m2[2])+'-'+p2(m2[3]);
-  return null;
-}
-
-function parseESPCSheet(raw,sheetName,fname){
-  if(!raw||raw.length<2)return[];
-  var region=detectRegion(fname||'',sheetName);
-  var isKH=(sheetName==='採樣行程');
-  var results=[];
-  if(isKH){
-    for(var i=1;i<raw.length;i++){
-      var row=raw[i];if(!row)continue;
-      var dateStr=parseDate(row[2]);if(!dateStr)continue;
-      if(parseInt(dateStr.slice(0,4))<2020)continue;
-      var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
-      var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
-      var staff=[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean);
-      var notes=[sv(row[13]),sv(row[14])].filter(Boolean).join('；');
-      results.push({date:dateStr,engineer:eng,project:proj,projectNo:sv(row[4]),type:type,
-        location:sv(row[8]),qty:parseFloat(String(row[9]!=null?row[9]:''))||0,
-        sampTime:sv(row[10]),equipment:sv(row[11]),
-        applicant:sv(row[12]),reportNum:sv(row[7]),notes:notes,
-        car:sv(row[15]),staff:staff,region:region});
-    }
-  }else{
-    // 日期是合併儲存格，只出現在群組第一列，需要往下延續。
-    // 工程師「不可」延續：工程師空白的列是休假／註記列，不是行程。
-    // 申報代碼等欄位只在同一個專案內延續，換專案或換日期就重來。
-    var lastDate=null,lastProj='',lastReport='',lastSamp='',lastCar='',lastNo='';
-    for(var i=1;i<raw.length;i++){
-      var row=raw[i];if(!row)continue;
-      if(row[2]!=null){
-        var ds=parseDate(row[2]);
-        if(ds){lastDate=ds;lastProj='';lastReport='';lastSamp='';lastCar='';lastNo='';}
-      }
-      if(!lastDate)continue;
-      if(parseInt(lastDate.slice(0,4))<2020)continue;
-
-      var eng=sv(row[3]);
-      if(!eng||/工程師|engineer/i.test(eng))continue;
-
-      var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
-      if(proj&&proj!==lastProj){lastProj=proj;lastReport='';lastSamp='';lastCar='';lastNo='';}
-
-      // 欄位對照（依 Excel 標題列）：
-      //   E 專案編號 / J 申報採樣時間 / K 採樣儀器 / L 申報人員 / M 報告編號 / N 備註
-      var no=sv(row[4]);if(no)lastNo=no; else no=lastNo;
-      var rpt=sv(row[12]);if(rpt)lastReport=rpt; else rpt=lastReport;
-      var samp=sv(row[9]);if(samp)lastSamp=samp; else samp=lastSamp;
-      var car=sv(row[14]);if(car)lastCar=car; else car=lastCar;
-
-      var staff=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
-      results.push({date:lastDate,engineer:eng,project:proj,projectNo:no,type:type,
-        location:sv(row[7]),qty:parseFloat(String(row[8]!=null?row[8]:''))||0,
-        sampTime:samp,equipment:sv(row[10]),
-        applicant:sv(row[11]),reportNum:rpt,notes:sv(row[13]),
-        car:car,staff:staff,region:region});
-    }
-  }
-  return results;
-}
-
-function setUploadRegion(v){
-  parsedRows.forEach(function(r){r.region=v;});
-  var cells=document.querySelectorAll('#parse-area .region-cell');
-  for(var i=0;i<cells.length;i++)cells[i].textContent=v||'—';
-  document.getElementById('region-hint').textContent=v?'':'請選擇這份檔案所屬的地區';
-}
-
-function renderParseResult(rows,filename,uploading){
-  var valid=rows.filter(function(r){return r.engineer&&r.date;});
-  var detected=rows.length?(rows[0].region||''):'';
-  var html='<div class="parse-result"><div class="parse-result-header"><h3>'+he(filename)+'</h3>'
-    +'<span class="badge '+(valid.length>0?'badge-success':'badge-warn')+'">'+valid.length+' 筆有效 / '+rows.length+' 筆</span></div>';
-  if(rows.length>0){
-    if(uploading){
-      html+='<div style="padding:14px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:10px;">'
-        +'<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div>'
-        +'<span style="font-size:14px;">地區「'+he(detected)+'」，上傳中…</span></div>';
-    }else{
-    html+='<div style="padding:12px 16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-      +'<label style="font-size:13px;font-weight:500;">地區</label>'
-      +'<select onchange="setUploadRegion(this.value)" style="height:40px;padding:0 10px;border:1px solid var(--c-border);border-radius:var(--radius);font-size:14px;background:var(--c-surface);">'
-      +'<option value=""'+(detected?'':' selected')+'>請選擇…</option>'
-      +['台北','台中','高雄'].map(function(x){return '<option value="'+x+'"'+(x===detected?' selected':'')+'>'+x+'</option>';}).join('')
-      +'</select>'
-      +'<span id="region-hint" style="font-size:12px;color:var(--c-error);">'+(detected?'':'請選擇這份檔案所屬的地區')+'</span>'
-      +'<span style="font-size:12px;color:var(--c-text-2);flex:1 1 100%;">'
-      +(detected?'已依檔名自動判斷為「'+he(detected)+'」，可手動修改。':'檔名看不出地區，請手動選擇。')
-      +'</span></div>';
-    }
-    html+='<div class="data-table-wrap"><table class="data-table"><thead><tr>'
-      +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>地點</th>'
-      +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th>'
-      +'</tr></thead><tbody>';
-    rows.slice(0,100).forEach(function(r){
-      html+='<tr><td>'+he(r.date)+'</td>'
-        +'<td>'+(r.engineer?he(r.engineer):'<span style="color:var(--c-error)">—</span>')+'</td>'
-        +'<td>'+he(r.projectNo)+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
-        +'<td>'+he(r.location)+'</td>'
-        +'<td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
-        +'<td>'+he(r.reportNum)+'</td><td class="region-cell">'+(r.region?he(r.region):'—')+'</td></tr>';
-    });
-    if(rows.length>100)html+='<tr><td colspan="10" style="text-align:center;color:var(--c-text-2);padding:8px">…僅顯示前 100 筆</td></tr>';
-    html+='</tbody></table></div>';
-    if(!uploading){
-      html+='<div class="upload-actions">'
-        +'<button class="btn btn-primary" onclick="doUpload()">確認上傳</button>'
-        +'<button class="btn btn-outline" onclick="document.getElementById(\'parse-area\').innerHTML=\'\'">取消</button>'
-        +'</div>';
-    }
-  }else{
-    html+='<div style="padding:20px;color:var(--c-text-2)">找不到有效資料，請確認檔案格式。</div>';
-  }
-  document.getElementById('parse-area').innerHTML=html+'</div>';
-}
-
-function showOlderFilePrompt(filename,days){
-  var html='<div class="parse-result"><div style="padding:16px;">'
-    +'<div style="font-size:15px;font-weight:600;margin-bottom:6px;">未做任何變更</div>'
-    +'<div style="font-size:13px;color:var(--c-text-2);line-height:1.8;word-break:break-all;">'
-    +he(filename)+'<br>'
-    +'這份檔案的修改時間不比資料庫現有的新，'+(days?'共 '+days+' 天':'')+'因此沒有覆蓋。'
-    +'<br><br>如果是因為解析規則更新、需要用同一份檔案重跑，請按下方按鈕強制覆蓋。</div>'
-    +'<div class="upload-actions" style="padding:14px 0 0;">'
-    +'<button class="btn btn-danger btn-sm" onclick="forceUpload()">強制覆蓋</button>'
-    +'<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'parse-area\').innerHTML=\'\'">取消</button>'
-    +'</div></div></div>';
-  document.getElementById('parse-area').innerHTML=html;
-}
-
-function forceUpload(){
-  if(!confirm('強制覆蓋？\n\n會用這份檔案的內容取代資料庫中同地區、同日期的資料，無法還原。'))return;
-  document.getElementById('parse-area').innerHTML=
-    '<div class="loading"><div class="spinner"></div> 強制覆蓋中…</div>';
-  doUpload(true);
-}
-
-function showUploadDone(filename,r){
-  var html='<div class="parse-result"><div style="padding:18px 16px;display:flex;align-items:flex-start;gap:12px;">'
-    +'<div style="width:26px;height:26px;border-radius:50%;background:var(--c-success);color:#fff;'
-    +'display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">&#10003;</div>'
-    +'<div style="flex:1;min-width:0;">'
-    +'<div style="font-size:15px;font-weight:600;margin-bottom:3px;">已儲存</div>'
-    +'<div style="font-size:13px;color:var(--c-text-2);line-height:1.7;word-break:break-all;">'
-    +he(filename)+'<br>寫入 '+r.saved+' 筆排程';
-  if(r.skipped)html+='<br><span style="color:var(--c-warn)">另有 '+r.skipped+' 天因現有資料較新而保留</span>';
-  html+='</div></div></div></div>';
-  document.getElementById('parse-area').innerHTML=html;
-  setTimeout(function(){
-    var el=document.getElementById('parse-area');
-    if(el&&el.innerHTML===html)el.innerHTML='';
-  },8000);
-}
-
-function doUpload(force){
-  if(!parsedRows||!parsedRows.length){toast('沒有可上傳的資料','error');return;}
-  if(!parsedRows[0].region){toast('請先選擇地區（台北／台中／高雄）','error');return;}
-  var fname=currentFileName;
-  var rowsSnapshot=parsedRows,mtimeSnapshot=currentFileMtime;
-  var btn=document.querySelector('#parse-area .btn-primary');
-  if(btn){btn.disabled=true;btn.textContent='上傳中…';}
-
-  function restore(){if(btn){btn.disabled=false;btn.textContent='確認上傳';}}
-
-  gas('saveData',TOKEN,rowsSnapshot,fname,mtimeSnapshot,!!force).then(function(r){
-    if(!r||!r.ok){toast(r&&r.error||'上傳失敗','error');restore();return;}
-    if(r.saved===0&&r.canForce){
-      showOlderFilePrompt(fname,r.skipped);
-      return;
-    }
-    var msg='已儲存 '+r.saved+' 筆';
-    if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
-    toast(msg,'success',r.skipped?5000:3000);
-    showUploadDone(fname,r);
-    parsedRows=[];currentFileName='';currentFileMtime='';
-    todayLoadedFor='';allRows=[];
-    loadMonth(true);loadToday(true);loadUploadHistory();
-  }).catch(function(){
-    toast('上傳失敗，請稍後再試','error');
-    currentFileName=fname;currentFileMtime=mtimeSnapshot;parsedRows=rowsSnapshot;
-    renderParseResult(rowsSnapshot,fname,false);
-  });
-}
-
-function loadUploadHistory(){
-  var el=document.getElementById('upload-history-list');if(!el)return;
-  el.innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  gas('getUploadHistory',TOKEN).then(function(r){
-    if(!r.ok){el.innerHTML='<p style="color:var(--c-error);padding:12px">'+he(r.error)+'</p>';return;}
-    renderUploadHistory(r.records);
-  }).catch(function(){el.innerHTML='<p style="color:var(--c-error);padding:12px">載入失敗</p>';});
-}
-
-function renderUploadHistory(records){
-  var el=document.getElementById('upload-history-list');
-  if(!records||!records.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">尚無上傳記錄</p>';return;}
-  var canEdit=canWrite(ROLE);
-  var oldCount=0;
-  var html='<div class="history-card">';
-  records.forEach(function(rec){
-    var isOld=rec.status==='superseded';
-    if(isOld)oldCount++;
-    var dateRange=rec.date_from===rec.date_to?rec.date_from:(rec.date_from+' ~ '+rec.date_to);
-    var uploadTime=fmtStamp(rec.upload_time);
-    var fileTime=fmtStamp(rec.source_mtime);
-    html+='<div class="history-row" style="'+(isOld?'opacity:0.6;':'')+'">'
-      +'<div class="hist-dot" style="background:'+(isOld?'var(--c-text-2)':'var(--c-success)')+'"></div>'
-      +'<div style="flex:1;min-width:0;">'
-      +'<div><span class="hist-name'+(isOld?' superseded':'')+'">'+he(rec.filename)+'</span>'
-      +(rec.region?'<span class="region-pill" style="margin-left:6px">'+he(rec.region)+'</span>':'')
-      +(rec.month?'<span class="region-pill none" style="margin-left:4px">'+he(rec.month)+'</span>':'')
-      +'<span class="status-badge '+(isOld?'status-super-b':'status-active-b')+'">'+(isOld?'已被取代':'最新')+'</span></div>'
-      +'<div class="hist-meta">'+he(dateRange)+(rec.days?' | '+rec.days+' 天':'')+' | '+he(rec.uploaded_by)+'<br>'
-      +'<span title="Excel 檔案本身的最後修改時間，取代與否以此為準">檔案更新：'
-      +(fileTime?he(fileTime):'<span style="color:var(--c-text-2)">未記錄</span>')+'</span>'
-      +'　<span style="color:var(--c-text-2)">上傳：'+he(uploadTime)+'</span>'
-      +(isOld?'<br><span style="color:var(--c-text-2)">已被同地區、同月份的新檔取代</span>':'')+'</div>'
-      +'</div>';
-    // 只有「最新」的記錄才需要刪除鈕；已被取代的資料早就被覆蓋掉了
-    if(canEdit&&!isOld){
-      html+='<button class="btn btn-outline btn-sm hist-del" title="刪除這次上傳的資料"'
-        +' onclick="deleteUploadRec(\''+he(rec.id)+'\',\''+he(rec.filename).replace(/'/g,"\\'")+'\')">刪除</button>';
-    }
-    html+='</div>';
-  });
-  html+='</div>';
-  if(canEdit&&oldCount>1){
-    html+='<div style="text-align:right;margin-top:8px;">'
-      +'<button class="btn btn-outline btn-sm" onclick="purgeOldUploads('+oldCount+')">清除 '+oldCount+' 筆已被取代的記錄</button></div>';
-  }
-  el.innerHTML=html;
-}
-
-function deleteUploadRec(id,filename){
-  if(!confirm('確定要刪除「'+filename+'」？\n\n這會一併移除這次上傳寫入行事曆的所有排程資料，且無法還原。'))return;
-  gas('deleteUpload',TOKEN,id).then(function(r){
-    if(!r||!r.ok){toast(r&&r.error||'刪除失敗','error');return;}
-    toast('已刪除「'+filename+'」及其 '+r.removed+' 筆排程資料','success',4000);
-    todayLoadedFor='';allRows=[];
-    cachePrune(true);cacheCheckVersion('del-'+Date.now());
-    loadUploadHistory();loadMonth(true);loadToday(true);
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-function purgeOldUploads(n){
-  if(!confirm('清除 '+n+' 筆「已被取代」的記錄？\n\n這些記錄的資料早已被新檔覆蓋，只是移除歷史清單，不影響行事曆。'))return;
-  gas('purgeSupersededUploads',TOKEN).then(function(r){
-    if(!r||!r.ok){toast(r&&r.error||'操作失敗','error');return;}
-    toast('已清除 '+r.removed+' 筆記錄','success');
-    loadUploadHistory();
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-// ─── Admin ────────────────────────────────────────────────────────────────────
-function adminLoadUsers(){
-  document.getElementById('users-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  gas('listUsers',TOKEN).then(function(r){
-    if(!r.ok){document.getElementById('users-list').innerHTML='<p style="color:var(--c-error)">'+he(r.error)+'</p>';return;}
-    var cls=ROLE_CLASS;
-    var html='<table class="users-table"><thead><tr>'
-      +'<th>帳號</th><th>對應工程師</th><th>角色</th><th>狀態</th><th>操作</th>'
-      +'</tr></thead><tbody>';
-    r.users.forEach(function(u){
-      var isMe=u.username===UNAME;
-      html+='<tr>'
-        +'<td>'+he(u.username)+'</td>'
-        +'<td>'+he(u.engineerName||'—')+' <button class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px;min-height:28px" onclick="adminEditEng(\''+he(u.username)+'\',\''+he(u.engineerName||'')+'\')">改</button></td>'
-        +'<td><select class="role-sel" onchange="adminSetRole(\''+he(u.username)+'\',this)">'
-        +ROLE_ORDER.map(function(k){return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
-        +'</select> <span class="role-badge '+(cls[u.role]||'')+'">'+roleLabel(u.role)+'</span></td>'
-        +'<td><span class="'+(u.active?'status-active':'status-inactive')+'">'+(u.active?'啟用':'停用')+'</span></td>'
-        +'<td><div class="actions-cell">'
-        +(isMe?'<span style="font-size:12px;color:var(--c-text-2)">目前帳號</span>':'<button class="btn btn-outline btn-sm" onclick="adminToggle(\''+he(u.username)+'\','+ (!u.active) +')">'+(u.active?'停用':'啟用')+'</button>')
-        +'<button class="btn btn-outline btn-sm" onclick="adminResetPw(\''+he(u.username)+'\')">重設密碼</button>'
-        +'</div></td></tr>';
-    });
-    document.getElementById('users-list').innerHTML=html+'</tbody></table>';
-  }).catch(function(){document.getElementById('users-list').innerHTML='<p style="color:var(--c-error)">載入失敗</p>';});
-}
-
-function adminCreateUser(){
-  var u=document.getElementById('new-username').value.trim();
-  var p=document.getElementById('new-password').value;
-  var role=document.getElementById('new-role').value;
-  var eng=document.getElementById('new-engname').value.trim();
-  if(!u||!p){toast('帳號與密碼不得為空','error');return;}
-  gas('createUser',TOKEN,u,p,role,eng).then(function(r){
-    if(r.ok){toast('帳號已建立','success');document.getElementById('new-username').value='';document.getElementById('new-password').value='';document.getElementById('new-engname').value='';adminLoadUsers();}
-    else toast(r.error||'建立失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-function adminSetRole(username,sel){
-  var role=sel.value;
-  gas('setUserRole',TOKEN,username,role).then(function(r){
-    if(r.ok){toast('角色已改為「'+roleLabel(role)+'」','success');adminLoadUsers();}
-    else{toast(r.error||'變更失敗','error');adminLoadUsers();}
-  }).catch(function(){toast('操作失敗','error');adminLoadUsers();});
-}
-
-function adminToggle(username,active){
-  gas('setUserStatus',TOKEN,username,active).then(function(r){
-    if(r.ok){toast(active?'帳號已啟用':'帳號已停用','success');adminLoadUsers();}
-    else toast(r.error||'操作失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-function adminEditEng(username,currentEng){
-  var newEng=prompt('設定「'+username+'」對應的工程師姓名：',currentEng);
-  if(newEng===null)return;
-  gas('updateEngineerName',TOKEN,username,newEng.trim()).then(function(r){
-    if(r.ok){toast('已更新','success');adminLoadUsers();}
-    else toast(r.error||'更新失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-function adminResetPw(username){
-  var newPw=prompt('重設「'+username+'」的新密碼（至少6字元）：');
-  if(!newPw)return;
-  if(newPw.length<6){toast('密碼至少需要 6 個字元','error');return;}
-  gas('adminResetPassword',TOKEN,username,newPw).then(function(r){
-    if(r.ok)toast('密碼已重設','success');
-    else toast(r.error||'重設失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-function adminClearAll(){
-  if(!confirm('確定要清除所有排程資料？此操作無法還原！'))return;
-  gas('clearAllData',TOKEN).then(function(r){
-    if(r.ok){toast('已清除所有資料','success');allRows=[];filteredRows=[];todayRows=[];todayLoadedFor='';cachePrune(true);cacheCheckVersion('reset-'+Date.now());renderCalendar(curYear,curMonth,[]);loadToday(true);loadUploadHistory();}
-    else toast(r.error||'操作失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-// ─── Password ─────────────────────────────────────────────────────────────────
-function doChangePassword(){
-  var op=document.getElementById('pw-old').value;
-  var np=document.getElementById('pw-new').value;
-  var cp=document.getElementById('pw-confirm').value;
-  var err=document.getElementById('pw-err');
-  err.textContent='';
-  if(!op){err.textContent='請輸入目前密碼';return;}
-  if(np.length<6){err.textContent='新密碼至少需要 6 個字元';return;}
-  if(np!==cp){err.textContent='兩次新密碼不一致';return;}
-  if(np===op){err.textContent='新密碼不可與目前密碼相同';return;}
-  gas('changePassword',TOKEN,np,op).then(function(r){
-    if(r.ok){
-      toast('密碼已修改成功','success');
-      ['pw-old','pw-new','pw-confirm'].forEach(function(id){document.getElementById(id).value='';});
-    }else err.textContent=r.error||'修改失敗';
-  }).catch(function(){err.textContent='操作失敗，請稍後再試';});
-}
-
-// ─── 人員通訊錄 ───────────────────────────────────────────────────────────────
-function staffReload(force){
-  populateTeamFilter();
-  if(force)document.getElementById('staff-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
-  loadStaff(renderStaffTable,!!force);
-}
-
-var staffRegion='';
-function staffSetRegion(btn){
-  staffRegion=btn.getAttribute('data-r');
-  var all=document.querySelectorAll('#staff-region-filter .seg-btn');
-  for(var i=0;i<all.length;i++)all[i].classList.remove('active');
-  btn.classList.add('active');
-  renderStaffTable();
-}
-
-// 目前既有的組別。之後有新的組別，直接在欄位裡打字即可，
-// 系統會自動記住並加進下拉選單，不用改程式。
-var DEFAULT_TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
-
-/** 組別清單＝預設組別 ∪ 資料中實際出現過的組別 */
-function allTeams(){
-  var seen={},out=[];
-  DEFAULT_TEAMS.forEach(function(t){if(!seen[t]){seen[t]=true;out.push(t);}});
-  STAFF_LIST.forEach(function(s){
-    var t=(s.team||'').trim();
-    if(t&&!seen[t]){seen[t]=true;out.push(t);}
-  });
-  return out;
-}
-
-function populateTeamFilter(){
-  var used={},hasBlank=false;
-  STAFF_LIST.forEach(function(s){
-    var t=(s.team||'').trim();
-    if(t)used[t]=(used[t]||0)+1; else hasBlank=true;
-  });
-
-  // 篩選只列出實際有人的組別，避免選到空的
-  var sel=document.getElementById('staff-team-filter');
-  var cur=sel.value;
-  var html='<option value="">全部組別</option>'
-    +allTeams().filter(function(t){return used[t];})
-      .map(function(t){return '<option value="'+he(t)+'">'+he(t)+'（'+used[t]+'）</option>';}).join('')
-    +(hasBlank?'<option value="__none__">未填組別</option>':'');
-  if(sel.innerHTML!==html){
-    sel.innerHTML=html;
-    sel.value=cur;
-    if(sel.value!==cur)sel.value='';
-  }
-
-  // 輸入建議則列出全部（含還沒有人的預設組別）
-  var dl=document.getElementById('team-list');
-  if(dl)dl.innerHTML=allTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('');
-}
-
-function renderStaffTable(){
-  var el=document.getElementById('staff-list');if(!el)return;
-  var q=(document.getElementById('staff-search').value||'').trim().toLowerCase();
-  var tf=document.getElementById('staff-team-filter').value;
-  populateTeamFilter();
-  var list=STAFF_LIST.filter(function(s){
-    var rg=(s.region||'').trim(),tm=(s.team||'').trim();
-    if(staffRegion==='__none__'){if(rg)return false;}
-    else if(staffRegion&&rg!==staffRegion)return false;
-    if(tf==='__none__'){if(tm)return false;}
-    else if(tf&&tm!==tf)return false;
-    if(!q)return true;
-    return (s.name||'').toLowerCase().indexOf(q)>=0||(s.phone||'').toLowerCase().indexOf(q)>=0
-        ||(s.note||'').toLowerCase().indexOf(q)>=0||rg.toLowerCase().indexOf(q)>=0
-        ||tm.toLowerCase().indexOf(q)>=0;
-  });
-  if(!list.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">'+(q||staffRegion||tf?'查無符合的人員':'尚無人員資料')+'</p>';return;}
-  var canEdit=(ROLE==='admin'||ROLE==='scheduler');
-  var html='<p style="font-size:12px;color:var(--c-text-2);margin-bottom:8px">共 '+list.length+' 位</p>'
-    +'<table class="users-table"><thead><tr><th>姓名</th><th>電話</th><th>組別</th><th>地區</th><th>備註</th>'+(canEdit?'<th>操作</th>':'')+'</tr></thead><tbody>';
-  list.forEach(function(s){
-    var ph=s.phone||'',rg=(s.region||'').trim(),tm=(s.team||'').trim();
-    html+='<tr><td>'+he(s.name)+'</td>'
-      +'<td>'+(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'" style="color:var(--c-primary);text-decoration:none">'+he(ph)+'</a>':'—')+'</td>'
-      +'<td>'+(tm?'<span class="team-pill">'+he(tm)+'</span>':'—')+'</td>'
-      +'<td>'+(rg?'<span class="region-pill">'+he(rg)+'</span>':'<span class="region-pill none">未指定</span>')+'</td>'
-      +'<td>'+he(s.note||'—')+'</td>';
-    if(canEdit){
-      html+='<td><div class="actions-cell">'
-        +'<button class="btn btn-outline btn-sm" onclick="staffEdit(\''+he(s.name)+'\')">編輯</button>'
-        +'<button class="btn btn-outline btn-sm" style="color:var(--c-error)" onclick="staffDelete(\''+he(s.name)+'\')">刪除</button>'
-        +'</div></td>';
-    }
-    html+='</tr>';
-  });
-  el.innerHTML=html+'</tbody></table>';
-}
-
-function staffEdit(name){
-  var s=null;
-  for(var i=0;i<STAFF_LIST.length;i++){if(STAFF_LIST[i].name===name){s=STAFF_LIST[i];break;}}
-  if(!s)return;
-  document.getElementById('staff-name').value=s.name;
-  document.getElementById('staff-phone').value=s.phone||'';
-  document.getElementById('staff-region').value=s.region||'';
-  document.getElementById('staff-team').value=s.team||'';
-  document.getElementById('staff-note').value=s.note||'';
-  document.getElementById('staff-add-card').scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-function staffSave(){
-  var name=document.getElementById('staff-name').value.trim();
-  var phone=document.getElementById('staff-phone').value.trim();
-  var region=document.getElementById('staff-region').value;
-  var team=document.getElementById('staff-team').value.trim();
-  var note=document.getElementById('staff-note').value.trim();
-  if(!name){toast('請輸入姓名','error');return;}
-  gas('saveStaff',TOKEN,name,phone,region,team,note).then(function(r){
-    if(r.ok){
-      toast('已儲存','success');
-      ['staff-name','staff-phone','staff-team','staff-note'].forEach(function(id){document.getElementById(id).value='';});
-      document.getElementById('staff-region').value='';
-      loadStaff(function(){renderStaffTable();applyFilter();},true);
-    }else toast(r.error||'儲存失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
-}
-
-function staffDelete(name){
-  if(!confirm('確定要刪除「'+name+'」？'))return;
-  gas('deleteStaff',TOKEN,name).then(function(r){
-    if(r.ok){toast('已刪除','success');loadStaff(function(){renderStaffTable();applyFilter();},true);}
-    else toast(r.error||'刪除失敗','error');
-  }).catch(function(){toast('操作失敗','error');});
+function ntReset(){
+  var c=ntCfg();c.last='';jSet(NT,c);
+  toast('已清除，若已過提醒時間，30 秒內會跳通知','ok',4000);
+  ntTick();ntDiag();ntDiag();
 }
 </script>
 </body>
