@@ -78,15 +78,34 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .sw.on::after{transform:translateX(19px);}
 
 /* ── 登入 ── */
-#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
-.lcard{width:100%;max-width:360px;}
-.logo{width:62px;height:62px;border-radius:19px;background:var(--acc);color:var(--accTx);
-  display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
-.logo svg{width:34px;height:34px;}
-.lcard h1{font-size:26px;font-weight:600;margin-bottom:6px;}
-.lcard p{font-size:13px;color:var(--tx3);margin-bottom:26px;}
-.lcard .fld{margin-bottom:11px;}
-.lerr{color:var(--err);font-size:13px;min-height:19px;margin:4px 0 8px 6px;}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--card2);padding:20px;
+  padding-top:calc(20px + env(safe-area-inset-top));
+  padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+.lwrap{width:100%;max-width:370px;background:var(--card);border-radius:24px;
+  overflow:hidden;box-shadow:var(--sh);}
+.ltop{background:var(--acc);color:var(--accTx);padding:34px 22px 30px;text-align:center;position:relative;}
+.lth{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:999px;
+  color:var(--accTx);opacity:.75;display:flex;align-items:center;justify-content:center;}
+.lth:active{background:rgba(255,255,255,.18);}
+.logo{width:66px;height:66px;border-radius:21px;background:rgba(255,255,255,.2);
+  color:var(--accTx);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.logo svg{width:36px;height:36px;}
+.ltop h1{font-size:24px;font-weight:600;letter-spacing:-.01em;}
+.lbody{padding:24px 20px 26px;}
+.lf{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);
+  border-radius:999px;padding:0 6px 0 15px;margin-bottom:11px;transition:border-color .15s;}
+.lf:focus-within{border-color:var(--acc);}
+.lfi{color:var(--tx3);display:flex;flex-shrink:0;}
+.lf:focus-within .lfi{color:var(--acc);}
+.lf input{flex:1;min-width:0;background:none;border:none;outline:none;
+  padding:14px 0;font-size:16px;color:var(--tx);}
+.lf input::placeholder{color:var(--tx3);}
+.lfe{width:36px;height:36px;border-radius:999px;color:var(--tx3);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lfe.on{color:var(--acc);}
+.lerr{color:var(--err);font-size:13px;min-height:20px;padding:2px 0 4px 8px;line-height:1.5;}
+.lfoot{text-align:center;font-size:12px;color:var(--tx3);margin-top:18px;line-height:1.8;}
 
 /* ── 外框 ── */
 #app{display:none;flex-direction:column;min-height:100vh;padding-bottom:calc(66px + env(safe-area-inset-bottom));}
@@ -226,14 +245,27 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 <body>
 
 <div id="login">
-  <div class="lcard">
-    <div class="logo"><span data-ic="logo"></span></div>
-    <h1>ESPC 監測行程</h1>
-    <p>請登入以查看排程</p>
-    <input class="fld" id="i-u" type="text" autocomplete="username" placeholder="帳號">
-    <input class="fld" id="i-p" type="password" autocomplete="current-password" placeholder="密碼">
-    <div class="lerr" id="l-err"></div>
-    <button class="btn btn-p btn-full" id="l-btn" onclick="doLogin()">登入</button>
+  <div class="lwrap">
+    <div class="ltop">
+      <button class="lth" onclick="toggleTheme()" title="切換深／淺色"><span data-ic="moon"></span></button>
+      <div class="logo"><span data-ic="logo"></span></div>
+      <h1>ESPC 監測行程</h1>
+    </div>
+
+    <div class="lbody">
+      <label class="lf">
+        <span class="lfi"><span data-ic="user"></span></span>
+        <input id="i-u" type="text" autocomplete="username" placeholder="帳號" autocapitalize="none" autocorrect="off">
+      </label>
+      <label class="lf">
+        <span class="lfi"><span data-ic="lock"></span></span>
+        <input id="i-p" type="password" autocomplete="current-password" placeholder="密碼">
+        <button class="lfe" id="i-eye" onclick="togglePw(event)" tabindex="-1" title="顯示密碼"><span data-ic="eye"></span></button>
+      </label>
+      <div class="lerr" id="l-err"></div>
+      <button class="btn btn-p btn-full" id="l-btn" onclick="doLogin()">登入</button>
+      <p class="lfoot">登入後將保持登入狀態<br>共用裝置請記得登出</p>
+    </div>
   </div>
 </div>
 
@@ -308,6 +340,10 @@ var ICON={
  note:'<path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
  hash:'<path d="M9 3 7 21M17 3l-2 18M4 8.5h16M3 15.5h16"/>',
+ moon:'<path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5z"/>',
+ sun2:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
+ eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+ eyeoff:'<path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3 3.6M6.6 6.7A17 17 0 0 0 2 12s3.6 6 10 6a9.7 9.7 0 0 0 3.7-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
  logo:'<rect x="3" y="5" width="18" height="16" rx="3.5"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8.5 14.5h2M13.5 14.5h2M8.5 18h2"/>'
 };
 function ic(n,sz){
@@ -355,9 +391,12 @@ var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','
 /* ── 主題 ── */
 function applyTheme(){
   var t=ls('espc_theme')||'light';
-  document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');
+  var dark=(t==='dark');
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
   var mt=document.querySelector('meta[name=theme-color]');
-  if(mt)mt.setAttribute('content',t==='dark'?'#16161a':'#f4f4f5');
+  if(mt)mt.setAttribute('content',dark?'#16161a':'#f4f4f5');
+  var b=document.querySelector('.lth');
+  if(b&&typeof ic==='function')b.innerHTML=ic(dark?'sun2':'moon',19);
 }
 function toggleTheme(){lsS('espc_theme',(ls('espc_theme')||'light')==='dark'?'light':'dark');applyTheme();render();}
 applyTheme();
@@ -473,6 +512,17 @@ window.addEventListener('DOMContentLoaded',function(){
     });
   }
 });
+
+function togglePw(e){
+  if(e)e.preventDefault();
+  var inp=$('i-p'),btn=$('i-eye');
+  var show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.classList.toggle('on',show);
+  btn.innerHTML=ic(show?'eyeoff':'eye',18);
+  btn.title=show?'隱藏密碼':'顯示密碼';
+  inp.focus();
+}
 
 function doLogin(){
   var u=$('i-u').value.trim(),p=$('i-p').value,btn=$('l-btn');
