@@ -284,15 +284,23 @@ html[data-theme="dark"] .glass::after{
 .lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
   background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:7px;}
-.pavw{position:relative;flex-shrink:0;padding-top:7px;}
+.pavw{position:relative;flex-shrink:0;padding-top:17px;}
+/* 職安帽用 emoji；因無法改色，效期狀態以右上角小圓點表示 */
+.hat{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  font-size:21px;line-height:1;margin-left:5px;vertical-align:-5px;flex-shrink:0;padding:0;
+  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.22));}
+.hat:active{transform:scale(.88);}
+.hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
+  border:1.5px solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14);}
+.hdot.warn{background:#f5a623;}
+.hdot.bad{background:#e53935;}
 .pav{width:38px;height:38px;border-radius:999px;background:var(--card2);color:var(--tx2);
   display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.pavhat{position:absolute;top:-3px;left:50%;transform:translateX(-50%);
-  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
-  color:var(--brand);filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.2));padding:0;}
-.pavhat.warn{color:var(--warn);}
-.pavhat.bad{color:var(--err);}
-.pavhat:active{transform:translateX(-50%) scale(.88);}
+.pavhat{position:absolute;top:-3px;left:50%;transform:translateX(-50%);z-index:2;
+  font-size:38px;line-height:1;padding:0;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.32));}
+.pavhat:active{transform:translateX(-50%) scale(.9);}
+.pavhat .hdot{top:10px;right:2px;width:10px;height:10px;}
 .tag{font-size:11px;padding:4px 11px;border-radius:999px;background:var(--card2);color:var(--tx2);white-space:nowrap;}
 .tag.g{background:var(--tint);color:var(--accT);}
 .link{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -425,6 +433,7 @@ var ICON={
  note:'<path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
  hash:'<path d="M9 3 7 21M17 3l-2 18M4 8.5h16M3 15.5h16"/>',
+ shield:'<path d="M12 3l7.5 3v5.6c0 4.3-3 8.1-7.5 9.4-4.5-1.3-7.5-5.1-7.5-9.4V6z"/><path d="M9.2 12.2l2 2 3.6-3.8"/>',
  hardhat:'<g fill="currentColor" stroke="none">'
    +'<path d="M12 5.4c-3.9 0-7 3.2-7 7.1v1.9h14v-1.9c0-3.9-3.1-7.1-7-7.1z"/>'
    +'<rect x="1.8" y="14.4" width="20.4" height="3.2" rx="1.6"/>'
@@ -606,9 +615,10 @@ function avatarHat(name){
   var o=safetyOf(n);
   var h='<div class="pavw"><div class="pav">'+he(n.slice(0,1))+'</div>';
   if(o){
-    var cls='pavhat'+(o.state==='expired'?' bad':(o.state==='warn'?' warn':''));
-    h+='<button class="'+cls+'" title="職安人員" onclick="event.stopPropagation();showSafety(\''
-      +esc(n)+'\')">'+ic('hardhat',22)+'</button>';
+    // emoji 無法改色，效期狀態改用右上角小圓點
+    var dot=(o.state==='ok')?'':'<span class="hdot '+(o.state==='expired'?'bad':'warn')+'"></span>';
+    h+='<button class="pavhat" title="職安人員" onclick="event.stopPropagation();showSafety(\''
+      +esc(n)+'\')">⛑️'+dot+'</button>';
   }
   return h+'</div>';
 }
@@ -617,9 +627,9 @@ function avatarHat(name){
 function hatMark(n){
   var o=safetyOf(n);
   if(!o)return '';
-  var cls='hat'+(o.state==='expired'?' bad':(o.state==='warn'?' warn':''));
-  return '<button class="'+cls+'" onclick="event.preventDefault();event.stopPropagation();'
-    +'showSafety(\''+esc(n)+'\')" title="職安人員">'+ic('hardhat',15)+'</button>';
+  var dot=(o.state==='ok')?'':'<span class="hdot '+(o.state==='expired'?'bad':'warn')+'"></span>';
+  return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
+    +'showSafety(\''+esc(n)+'\')" title="職安人員">⛑️'+dot+'</button>';
 }
 
 function showSafety(n){
@@ -630,7 +640,7 @@ function showSafety(n){
     +'<div class="evt" style="color:var(--accT)">職安人員</div>'
     +'<h3 style="margin-top:3px">'+he(n)+'</h3></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">'
-    +kr('hardhat','職安種類',he(o.type||'未填'))
+    +kr('shield','職安種類',he(o.type||'未填'))
     +kr('clock','訓練日期',he(o.train||'未填'))
     +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+SAFETY_YEARS+' 年）</span>':'');
   var st='',col='';
@@ -648,37 +658,47 @@ function showSafety(n){
 }
 
 /** 回訓名單 */
-function openDue(){
+/** @param startup true 代表是開啟 App 時的月初提醒 */
+function openDue(startup){
   var due=safetyDue();
+  var bad=due.filter(function(x){return x.o.state==='expired';}).length;
   var h='<div class="shh"><div>'
-    +'<div class="evt" style="color:var(--warn)">職安回訓</div>'
-    +'<h3 style="margin-top:3px">需要安排回訓</h3>'
+    +'<div class="evt" style="color:var(--warn)">'
+    +(startup?'⛑️ 本月提醒':'職安回訓')+'</div>'
+    +'<h3 style="margin-top:3px">'
+    +(startup?(bad?bad+' 人職安已逾期':due.length+' 人職安即將到期'):'需要安排回訓')+'</h3>'
     +'<p class="hint" style="margin-top:3px">效期 '+SAFETY_YEARS+' 年，到期前 3 個月開始提醒</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>';
   if(!due.length)h+='<div class="empty">目前沒有即將到期的職安人員</div>';
   due.forEach(function(x){
-    var bad=x.o.state==='expired';
+    var isBad=x.o.state==='expired';
     h+='<div class="ev" onclick="showSafety(\''+esc(x.name)+'\')">'
-      +'<div class="evb" style="background:'+(bad?'var(--err)':'var(--warn)')+'"></div>'
+      +'<div class="evb" style="background:'+(isBad?'var(--err)':'var(--warn)')+'"></div>'
       +'<div style="flex:1;min-width:0">'
-      +'<div class="evn" style="font-size:14px">'+he(x.name)+'</div>'
+      +'<div class="evn" style="font-size:14px">'+he(x.name)
+      +(PHONE[x.name]?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(PHONE[x.name])+'</span>':'')
+      +'</div>'
       +'<div class="evm">'+he(x.o.type||'未填種類')+'</div>'
-      +'<div class="evm" style="color:'+(bad?'var(--err)':'var(--warn)')+';font-weight:500">'
+      +'<div class="evm" style="color:'+(isBad?'var(--err)':'var(--warn)')+';font-weight:500">'
       +he(safetyText(x.o))+'</div></div></div>';
   });
+  if(startup)
+    h+='<div style="display:flex;gap:9px;margin-top:16px">'
+      +'<button class="btn" style="flex:1" onclick="closeSheet()">稍後處理</button>'
+      +'<button class="btn btn-p" style="flex:1.3" onclick="closeSheet();go(\'book\')">前往通訊錄</button></div>';
   openSheet(h);
 }
 
 /** 月初提醒：每月第一次開啟時，若有人即將到期就帶到通訊錄並跳出名單 */
 var DUE_KEY='espc_due_notice';
 function checkDueNotice(){
-  if(!canWrite(ROLE))return;
+  if(!canWrite(ROLE))return;              // 只提醒主管／排程／管理員
   var ym=twStr().slice(0,7);
-  if(ls(DUE_KEY)===ym)return;
+  if(ls(DUE_KEY)===ym)return;             // 每月只提醒一次
   var due=safetyDue();
+  if(!due.length){lsS(DUE_KEY,ym);return;}
   lsS(DUE_KEY,ym);
-  if(!due.length)return;
-  setTimeout(function(){go('book');openDue();},600);
+  setTimeout(function(){openDue(true);},500);
 }
 
 /** 姓名（電話）＋職安標記 */
@@ -1078,7 +1098,7 @@ function bookPage(){
     if(due.length){
       var bad=due.filter(function(x){return x.o.state==='expired';}).length;
       h+='<button class="duebar'+(bad?' bad':'')+'" onclick="openDue()">'
-        +ic('hardhat',18)
+        +'<span style="font-size:23px;line-height:1">⛑️</span>'
         +'<span style="flex:1;text-align:left">'
         +(bad?'<b>'+bad+' 人職安已逾期</b>':'<b>'+due.length+' 人職安即將到期</b>')
         +(bad&&due.length>bad?'，另有 '+(due.length-bad)+' 人即將到期':'')
