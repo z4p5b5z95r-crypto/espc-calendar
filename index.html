@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ESPC 監測行程</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon-v2.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-v2.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-v2.png">
 <meta name="theme-color" content="#F36F21">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,6 +26,7 @@
   --tint:rgba(243,111,33,.12);
   --err:#c62828; --errBg:rgba(198,40,40,.09);
   --warn:#a85600; --warnBg:rgba(243,111,33,.13);
+  --ok:#1e7a44;             /* 效期內綠（淺底對比 4.8:1）*/
   --r:14px; --sh:0 8px 24px rgba(0,0,0,.12);
   --gl:rgba(255,255,255,.62);        /* 玻璃底 */
   --glStrong:rgba(255,255,255,.78);  /* 需要更實的玻璃 */
@@ -39,6 +43,7 @@ html[data-theme="dark"]{
   --tint:rgba(243,111,33,.2);
   --err:#ef5350; --errBg:rgba(239,83,80,.16);
   --warn:#ffb74d; --warnBg:rgba(255,183,77,.14);
+  --ok:#5ed18f;             /* 深底上提亮 */
   --sh:0 8px 24px rgba(0,0,0,.4);
   --gl:rgba(38,38,42,.6);
   --glStrong:rgba(38,38,42,.78);
@@ -1116,7 +1121,7 @@ function locBrief(g){
 }
 
 /* ── 通訊錄 ── */
-var bookQ='',bookRg='',bookTm='';
+var bookQ='',bookRg='',bookTm='',bookSf='';
 function bookPage(){
   var q=bookQ.toLowerCase();
   var list=STAFF.filter(function(s){
@@ -1157,10 +1162,54 @@ function bookPage(){
       return '<option value="'+he(t)+'"'+(bookTm===t?' selected':'')+'>'+he(t)+'（'+used[t]+'）</option>';}).join('')
     +(blank?'<option value="_n"'+(bookTm==='_n'?' selected':'')+'>未填組別</option>':'')
     +'</select></div>'
+    +'<select class="fld" onchange="bookSf=this.value;paintBook()" style="width:100%;margin-bottom:12px">'
+    +[['','全部人員'],['_y','職安人員'],['_n','非職安人員']].map(function(o){
+      return '<option value="'+o[0]+'"'+(bookSf===o[0]?' selected':'')+'>'+o[1]
+        +(o[0]?'（'+sfCount(o[0])+'）':'')+'</option>';}).join('')
+    +'<optgroup label="效期狀態">'
+    +[['_ok','🟢 效期內'],['_warn','🟠 不滿 3 個月'],['_bad','🔴 已逾期'],['_nd','未填訓練日期']]
+      .map(function(o){var c=sfCount(o[0]);
+        return c?'<option value="'+o[0]+'"'+(bookSf===o[0]?' selected':'')+'>'+o[1]+'（'+c+'）</option>':'';}).join('')
+    +'</optgroup>'
+    +(sfTypes().length?'<optgroup label="證照種類">'
+      +sfTypes().map(function(t){
+        return '<option value="t:'+he(t)+'"'+(bookSf==='t:'+t?' selected':'')+'>'+he(t)+'（'+sfCount('t:'+t)+'）</option>';}).join('')
+      +'</optgroup>':'')
+    +'</select>'
     +bookList();
   if(canWrite(ROLE))
     h+='<button class="btn btn-p btn-full" style="margin-top:12px" onclick="editStaff()">新增人員</button>';
   return h;
+}
+
+/** 通訊錄裡出現過的職安種類 */
+function sfTypes(){
+  var out=[];
+  STAFF.forEach(function(s){
+    var o=safetyOf(s.name);
+    if(o&&o.type&&out.indexOf(o.type)<0)out.push(o.type);
+  });
+  out.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
+  return out;
+}
+/** 證照條件：''全部 / _y 職安 / _n 非職安 / _ok _warn _bad _nd 狀態 / t:種類 */
+function passSf(name,f){
+  if(!f)return true;
+  var o=safetyOf(name);
+  if(f==='_y')return !!o;
+  if(f==='_n')return !o;
+  if(!o)return false;
+  if(f==='_ok')return o.state==='ok';
+  if(f==='_warn')return o.state==='warn';
+  if(f==='_bad')return o.state==='expired';
+  if(f==='_nd')return o.state==='nodate';
+  if(f.slice(0,2)==='t:')return o.type===f.slice(2);
+  return true;
+}
+function sfCount(f){
+  var n=0;
+  STAFF.forEach(function(s){if(passSf(s.name,f))n++;});
+  return n;
 }
 
 function bookList(){
@@ -1169,8 +1218,11 @@ function bookList(){
     var rg=(s.region||'').trim(),tm=(s.team||'').trim();
     if(bookRg==='_n'){if(rg)return false;}else if(bookRg&&rg!==bookRg)return false;
     if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
+    if(!passSf(s.name,bookSf))return false;
     if(!q)return true;
-    return [s.name,s.phone,s.note,rg,tm].join(' ').toLowerCase().indexOf(q)>=0;
+    var o=safetyOf(s.name);
+    return [s.name,s.phone,s.note,rg,tm,(o&&o.type)||'',(o&&o.cert)||'']
+      .join(' ').toLowerCase().indexOf(q)>=0;
   });
   var h='<div id="blist"><div class="sec" style="margin-top:0">共 '+list.length+' 位</div>';
   if(!list.length)h+='<div class="empty">查無符合的人員</div>';
@@ -1182,12 +1234,26 @@ function bookList(){
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
       +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
       +'</div></div>'
+      +(bookSf&&bookSf!=='_n'?sfNote(s.name):'')
       +(s.team?'<span class="tag g">'+he(s.team)+'</span>':'')
       +(canWrite(ROLE)?'<button class="ib" style="width:32px;height:32px;font-size:13px" onclick="editStaff(\''+esc(s.name)+'\')">✎</button>':'')
       +'</div>';
   });
   return h+'</div>';
 }
+/** 篩選證照時，在列上補一行種類與效期 */
+function sfNote(name){
+  var o=safetyOf(name);
+  if(!o)return '';
+  var col=o.state==='expired'?'var(--err)':(o.state==='ok'?'var(--ok)':'var(--warn)');
+  var t=o.state==='nodate'?'未填訓練日期'
+    :(o.state==='expired'?'逾期 '+Math.abs(o.days)+' 天':'剩 '+o.days+' 天');
+  return '<div style="text-align:right;flex-shrink:0;max-width:44%">'
+    +'<div style="font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+    +he(o.type||'未填種類')+'</div>'
+    +'<div style="font-size:12px;color:'+col+';font-weight:500;white-space:nowrap">'+he(t)+'</div></div>';
+}
+
 /** 只重畫清單，避免搜尋時輸入框失去焦點 */
 function paintBook(){
   var el=$('blist');
