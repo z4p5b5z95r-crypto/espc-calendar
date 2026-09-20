@@ -287,13 +287,14 @@ html[data-theme="dark"] .glass::after{
 .pavw{position:relative;flex-shrink:0;padding-top:17px;}
 /* 職安帽用 emoji；因無法改色，效期狀態以右上角小圓點表示 */
 .hat{position:relative;display:inline-flex;align-items:center;justify-content:center;
-  font-size:21px;line-height:1;margin-left:5px;vertical-align:-5px;flex-shrink:0;padding:0;
-  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.22));}
+  font-size:1em;line-height:1;margin-left:5px;vertical-align:-2px;flex-shrink:0;padding:0;}
+.hat .hdot{top:-2px;right:-5px;width:7px;height:7px;border-width:1.2px;}
 .hat:active{transform:scale(.88);}
 .hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
   border:1.5px solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14);}
-.hdot.warn{background:#f5a623;}
-.hdot.bad{background:#e53935;}
+.hdot.good{background:#2eaa5e;}   /* 效期內 */
+.hdot.warn{background:#f5a623;}   /* 不滿 3 個月 */
+.hdot.bad{background:#e53935;}    /* 已逾期 */
 .pav{width:38px;height:38px;border-radius:999px;background:var(--card2);color:var(--tx2);
   display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
 .pavhat{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:2;
@@ -610,6 +611,12 @@ function safetyDue(){
   return out;
 }
 
+/** 燈號：效期內綠、不滿 3 個月橘、逾期紅、未填日期橘 */
+function hatDot(o){
+  var c=(o.state==='expired')?'bad':(o.state==='ok'?'good':'warn');
+  return '<span class="hdot '+c+'"></span>';
+}
+
 /** 頭像＋工地帽：帽子壓在圓圈上緣，像戴在頭上 */
 function avatarHat(name){
   var n=String(name||'').trim();
@@ -617,7 +624,7 @@ function avatarHat(name){
   var h='<div class="pavw"><div class="pav">'+he(n.slice(0,1))+'</div>';
   if(o){
     // emoji 無法改色，效期狀態改用右上角小圓點
-    var dot=(o.state==='ok')?'':'<span class="hdot '+(o.state==='expired'?'bad':'warn')+'"></span>';
+    var dot=hatDot(o);
     h+='<button class="pavhat" title="職安人員" onclick="event.stopPropagation();showSafety(\''
       +esc(n)+'\')">⛑️'+dot+'</button>';
   }
@@ -628,7 +635,7 @@ function avatarHat(name){
 function hatMark(n){
   var o=safetyOf(n);
   if(!o)return '';
-  var dot=(o.state==='ok')?'':'<span class="hdot '+(o.state==='expired'?'bad':'warn')+'"></span>';
+  var dot=hatDot(o);
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
     +'showSafety(\''+esc(n)+'\')" title="職安人員">⛑️'+dot+'</button>';
 }
