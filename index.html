@@ -309,9 +309,13 @@ html[data-theme="dark"] .glass::after{
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:7px;}
 .pavw{position:relative;flex-shrink:0;padding-top:17px;}
 /* 職安帽用 emoji；因無法改色，效期狀態以右上角小圓點表示 */
-.hat{position:relative;display:inline-flex;align-items:center;justify-content:center;
+.hat{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:3px;
   font-size:1em;line-height:1;margin-left:5px;vertical-align:-2px;flex-shrink:0;padding:0;}
 .hat .hdot{top:-2px;right:-5px;width:7px;height:7px;border-width:1.2px;}
+/* 內文用的小圖案：跟著文字大小走 */
+.mki{width:1.25em;height:1.25em;display:block;flex-shrink:0;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
+.hat svg:not(.mki){width:1.05em;height:1.05em;color:var(--accT);}
 .hat:active{transform:scale(.88);}
 .hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
   border:1.5px solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14);}
@@ -818,9 +822,13 @@ function avatarHat(name){
 function hatMark(n){
   var o=safetyOf(n);
   if(!o)return '';
-  var dot=hatDot(o);
+  var b=certBadges(n),inner='';
+  if(b.safety)inner+='⛑️';                                        // 職安業務主管
+  if(b.mask)inner+=MASK_SVG.replace('class="pavmask"','class="mki"');
+  if(b.kit)inner+=KIT_SVG.replace('class="pavkit"','class="mki"');
+  if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
-    +'showSafety(\''+esc(n)+'\')" title="職安人員">⛑️'+dot+'</button>';
+    +'showSafety(\''+esc(n)+'\')" title="職安證照">'+inner+hatDot(o)+'</button>';
 }
 
 function showSafety(n){
@@ -1480,6 +1488,7 @@ function loadToday(force){
   }).catch(function(){if(!c)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';});
 }
 function paintToday(t,all){
+  normRows(all);
   todayRows=(all||[]).filter(passF);
   todayFor=t;
   jSet(NTC,{date:t,rows:(all||[]).filter(function(r){return r.date===t;})});
@@ -1503,7 +1512,7 @@ function loadMonth(force){
     paintMonth(r.rows||[]);
   }).catch(function(){if(!c)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';});
 }
-function paintMonth(list){allRows=list||[];applyF();}
+function paintMonth(list){allRows=normRows(list||[]);applyF();}
 
 function moveM(d){
   curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
@@ -1523,8 +1532,26 @@ function loadStaff(cb,force){
     if(cb)cb();
   }).catch(function(){if(cb)cb();});
 }
+/* 別名：Excel 上寫的暱稱／英文名 → 正式姓名
+   例如排程表寫「Apple」，實際上是「張愷瓴」 */
+var ALIAS={};
+function normName(v){
+  var k=String(v||'').trim();
+  if(!k)return '';
+  return ALIAS[k.toLowerCase()]||k;
+}
+/** 把整批行程的人名換成正式姓名（就地修改） */
+function normRows(list){
+  (list||[]).forEach(function(r){
+    if(r.engineer)r.engineer=normName(r.engineer);
+    if(r.applicant)r.applicant=normName(r.applicant);
+    if(r.staff&&r.staff.length)r.staff=r.staff.map(normName);
+  });
+  return list||[];
+}
+
 function applyStaff(l){
-  STAFF=l||[];PHONE={};SAFETY={};
+  STAFF=l||[];PHONE={};SAFETY={};ALIAS={};
   STAFF.forEach(function(s){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
@@ -1535,7 +1562,15 @@ function applyStaff(l){
     if(!cs.length&&(s.safety||s.trainDate||s.certNo))      // 相容舊資料
       cs=[{type:s.safety||'',cert:s.certNo||'',train:s.trainDate||''}];
     if(cs.length)SAFETY[s.name]=cs;
+    String(s.alias||'').split(/[,、，;；\/\s]+/).forEach(function(a){
+      a=a.trim();
+      if(a&&a!==s.name)ALIAS[a.toLowerCase()]=s.name;
+    });
   });
+  // 別名可能在行程載入後才拿到，補正已在手上的資料
+  ENGNAME=normName(ENGNAME);
+  if(F.en)F.en=normName(F.en);
+  normRows(allRows);normRows(todayRows);
 }
 
 /* ══ 篩選 ══ */
@@ -1741,7 +1776,7 @@ function pickM(y,m){
 
 /* ══ 人員編輯 ══ */
 function editStaff(name){
-  var s={name:'',phone:'',region:'',team:'',note:''};
+  var s={name:'',phone:'',region:'',team:'',alias:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
   EC=safetyList(name).map(function(o){
     return {type:o.type,cert:o.cert,train:o.train,years:o.years};});
@@ -1760,6 +1795,8 @@ function editStaff(name){
     +'<datalist id="sfl">'+SAFETY_TYPES.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">職安證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
+    +'<p class="lb">別名　<span style="color:var(--tx3);font-weight:400">排程表上如果寫暱稱或英文名，填在這裡</span></p>'
+    +'<input class="fld" id="s-al" value="'+he(s.alias||'')+'" placeholder="Apple、小張（多個用頓號分隔）" style="margin-bottom:13px">'
     +'<p class="lb">備註</p><input class="fld" id="s-o" value="'+he(s.note)+'" placeholder="職務（選填）" style="margin-bottom:18px">'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
     +(name?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
@@ -1852,7 +1889,7 @@ function saveStaff(){
   var certs=EC.map(function(c){return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c)};})
               .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
-      JSON.stringify(certs),$('s-o').value.trim())
+      JSON.stringify(certs),$('s-o').value.trim(),$('s-al').value.trim())
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
