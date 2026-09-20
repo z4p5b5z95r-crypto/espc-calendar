@@ -1795,9 +1795,11 @@ function pickM(y,m){
 }
 
 /* ══ 人員編輯 ══ */
+var EDIT_S=null;
 function editStaff(name){
   var s={name:'',phone:'',region:'',team:'',alias:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
+  EDIT_S=s;                 // 別名與備註改在試算表維護，儲存時原值帶回去
   EC=safetyList(name).map(function(o){
     return {type:o.type,cert:o.cert,train:o.train,years:o.years};});
   var teams=TEAMS.slice();
@@ -1815,9 +1817,7 @@ function editStaff(name){
     +'<datalist id="sfl">'+SAFETY_TYPES.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">職安證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
-    +'<p class="lb">別名　<span style="color:var(--tx3);font-weight:400">排程表上如果寫暱稱或英文名，填在這裡</span></p>'
-    +'<input class="fld" id="s-al" value="'+he(s.alias||'')+'" placeholder="Apple、小張（多個用頓號分隔）" style="margin-bottom:13px">'
-    +'<p class="lb">備註</p><input class="fld" id="s-o" value="'+he(s.note)+'" placeholder="職務（選填）" style="margin-bottom:18px">'
+    +'<div style="height:6px"></div>'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
     +(name?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
   openSheet(h);
@@ -1909,7 +1909,8 @@ function saveStaff(){
   var certs=EC.map(function(c){return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c)};})
               .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
-      JSON.stringify(certs),$('s-o').value.trim(),$('s-al').value.trim())
+      JSON.stringify(certs),
+      (EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'')
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
