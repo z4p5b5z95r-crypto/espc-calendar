@@ -80,6 +80,9 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 /* ── 登入 ── */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
 .lcard{width:100%;max-width:360px;}
+.logo{width:62px;height:62px;border-radius:19px;background:var(--acc);color:var(--accTx);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.logo svg{width:34px;height:34px;}
 .lcard h1{font-size:26px;font-weight:600;margin-bottom:6px;}
 .lcard p{font-size:13px;color:var(--tx3);margin-bottom:26px;}
 .lcard .fld{margin-bottom:11px;}
@@ -174,8 +177,13 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
 .shh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .shh h3{font-size:19px;font-weight:600;line-height:1.3;}
-.kv{font-size:13.5px;color:var(--tx2);line-height:2;}
+.kv{font-size:13.5px;color:var(--tx2);}
 .kv b{color:var(--tx);font-weight:500;}
+.kr{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);}
+.kr:last-child{border-bottom:none;}
+.kr>svg{color:var(--tx3);margin-top:2px;flex-shrink:0;}
+.kk{color:var(--tx3);flex-shrink:0;min-width:62px;}
+.kvv{flex:1;min-width:0;color:var(--tx);line-height:1.7;word-break:break-word;}
 .opts{display:flex;flex-wrap:wrap;gap:7px;}
 .ob svg{margin-right:-1px;}
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
@@ -219,6 +227,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 
 <div id="login">
   <div class="lcard">
+    <div class="logo"><span data-ic="logo"></span></div>
     <h1>ESPC 監測行程</h1>
     <p>請登入以查看排程</p>
     <input class="fld" id="i-u" type="text" autocomplete="username" placeholder="帳號">
@@ -288,7 +297,18 @@ var ICON={
  bell:'<path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
  file:'<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M8 11h8M8 15h5"/>',
  check:'<path d="M5 12l5 5L20 7"/>',
- right:'<path d="M9 6l6 6-6 6"/>'
+ right:'<path d="M9 6l6 6-6 6"/>',
+ pin:'<path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ flask:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M5 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1"/>',
+ clip:'<rect x="8" y="3" width="8" height="4" rx="1.2"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M8.5 12h7M8.5 16h4"/>',
+ helmet:'<path d="M3 17a9 9 0 0 1 18 0"/><path d="M2 17h20"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/>',
+ car:'<path d="M5 13l1.6-4.6A2 2 0 0 1 8.5 7h7a2 2 0 0 1 1.9 1.4L19 13"/><rect x="3" y="13" width="18" height="5" rx="2"/><circle cx="7.5" cy="18.5" r="1.4"/><circle cx="16.5" cy="18.5" r="1.4"/>',
+ note:'<path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+ map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+ hash:'<path d="M9 3 7 21M17 3l-2 18M4 8.5h16M3 15.5h16"/>',
+ logo:'<rect x="3" y="5" width="18" height="16" rx="3.5"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8.5 14.5h2M13.5 14.5h2M8.5 18h2"/>'
 };
 function ic(n,sz){
   return '<svg viewBox="0 0 24 24" width="'+(sz||20)+'" height="'+(sz||20)+'" fill="none" '
@@ -584,16 +604,19 @@ function todayPage(){
   if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
   else h+=groupBy(mine).map(function(g){return evCard(g,t,true);}).join('');
 
+  // 接下來只看未來 7 天
+  var end=addDays(t,7);
   var fut={},order=[];
   todayRows.forEach(function(r){
-    if(r.date<=t)return;
+    if(r.date<=t||r.date>end)return;
     if(!fut[r.date]){fut[r.date]=[];order.push(r.date);}
     fut[r.date].push(r);
   });
   order.sort();
-  if(order.length){
-    h+='<div class="sec">接下來</div>';
-    order.slice(0,20).forEach(function(d){
+  h+='<div class="sec">接下來 7 天</div>';
+  if(!order.length)h+='<div class="card"><div class="empty" style="padding:20px">未來 7 天沒有排程</div></div>';
+  else{
+    order.forEach(function(d){
       groupBy(fut[d]).forEach(function(g){
         var dd=d.split('-'),c=pcolor(g.project);
         h+='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')" style="padding:10px 13px">'
@@ -606,6 +629,14 @@ function todayPage(){
     });
   }
   return h;
+}
+
+/** 日期加減天數，回傳 YYYY-MM-DD */
+function addDays(s,n){
+  var a=String(s).split('-');
+  var d=new Date(+a[0],+a[1]-1,+a[2]);
+  d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
 }
 
 function evCard(g,d,full){
@@ -679,12 +710,13 @@ function groupBy(list){
   list.forEach(function(r){
     var k=r.project||'（未分類）';
     if(!m[k]){m[k]={project:k,rows:[],types:[],locs:[],engs:[],cars:[],staff:[],
-      notes:[],reps:[],eqs:[],nums:[],no:'',samp:''};order.push(k);}
+      notes:[],reps:[],eqs:[],nums:[],qty:0,no:'',samp:''};order.push(k);}
     var g=m[k];g.rows.push(r);
     function add(arr,v){if(v&&arr.indexOf(v)<0)arr.push(v);}
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,r.engineer);
     add(g.notes,r.notes);add(g.reps,r.applicant);add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
+    var q=parseFloat(r.qty);if(!isNaN(q))g.qty+=q;
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
     if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
     var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
@@ -962,6 +994,13 @@ function openDay(d){
   openSheet(h);
 }
 
+/** 詳情面板的一列：圖示 + 標籤 + 內容，沒值就不顯示 */
+function kr(icon,label,val){
+  if(!val)return '';
+  return '<div class="kr">'+ic(icon,16)+'<span class="kk">'+label+'</span>'
+    +'<span class="kvv">'+val+'</span></div>';
+}
+
 function openEv(d,proj){
   var gs=groupBy(dayRows(d));
   var g=null;
@@ -974,16 +1013,17 @@ function openEv(d,proj){
     +'<p class="hint" style="margin-top:3px">'+parseInt(dd[1])+'月'+parseInt(dd[2])+'日　週'+DW[dowOf(d)]
     +(g.no?'　·　'+he(g.no):'')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">';
-  if(g.locs.length)h+='點位：<b>'+he(g.locs.join(' / '))+'</b><br>';
-  if(g.samp)h+='申報採樣時間：<b>'+he(g.samp)+'</b><br>';
-  if(g.eqs.length)h+='採樣儀器：<b>'+he(g.eqs.join('　'))+'</b><br>';
-  if(g.reps.length)h+='申報人員：<b>'+g.reps.map(telLink).join('、')+'</b><br>';
-  if(g.nums.length)h+='報告編號：<b>'+he(g.nums.join(' / '))+'</b><br>';
-  if(g.engs.length)h+='工程師：<b>'+g.engs.map(telLink).join('、')+'</b><br>';
-  if(g.cars.length)h+='公務車：<b>'+he(g.cars.join('、'))+'</b><br>';
-  if(g.staff.length)h+='現場人員：<b>'+g.staff.map(telLink).join('、')+'</b><br>';
-  if(g.notes.length)h+='備註：<b>'+he(g.notes.join('；'))+'</b><br>';
-  if(g.rows[0]&&g.rows[0].region)h+='地區：<b>'+he(g.rows[0].region)+'</b>';
+  h+=kr('pin','點位',he(g.locs.join(' / ')))
+    +kr('hash','數量',g.qty?String(g.qty):'')
+    +kr('clock','採樣時間',he(g.samp))
+    +kr('flask','採樣儀器',he(g.eqs.join('　')))
+    +kr('user','申報人員',g.reps.map(telLink).join('、'))
+    +kr('clip','報告編號',he(g.nums.join(' / ')))
+    +kr('helmet','工程師',g.engs.map(telLink).join('、'))
+    +kr('car','公務車',he(g.cars.join('、')))
+    +kr('users','現場人員',g.staff.map(telLink).join('、'))
+    +kr('note','備註',he(g.notes.join('；')))
+    +kr('map','地區',he((g.rows[0]&&g.rows[0].region)||''));
   h+='</div>';
   if(gs.length>1){
     h+='<div class="sec">當天其他 '+(gs.length-1)+' 項</div>';
