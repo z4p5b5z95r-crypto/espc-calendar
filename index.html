@@ -490,6 +490,7 @@ html[data-theme="dark"] .glass::after{
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
+    <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
@@ -1026,6 +1027,7 @@ function boot(u,r,eng){
   $('app').style.display='flex';
   $('u-av').textContent=((eng&&eng!==u?eng:u)||'?').slice(0,1);
   $('u-nm').textContent=(eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）';
+  $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
   if(r==='pm'&&eng)F.en=eng;
 
@@ -1047,7 +1049,7 @@ function go(t,s){
   });
   window.scrollTo(0,0);
   render();                                  // 先畫出容器，再載資料
-  if(sub==='upload')loadHistory();
+  if(tab==='upload'||sub==='upload')loadHistory();
   else if(sub==='admin')loadUsers();
   else if(t==='cal'&&!allRows.length)loadMonth();
   else if(t==='today'&&!todayFor)loadToday();
@@ -1074,11 +1076,11 @@ function render(){
       +he(err.message)+'</span></div>';
     console.error(err);
   }
-  if(sub==='upload')paintHistory();
+  if(tab==='upload'||sub==='upload')paintHistory();
 }
 
 function titleText(){
-  if(sub==='upload')return '上傳排程';
+  if(tab==='upload'||sub==='upload')return '上傳排程';
   if(sub==='admin')return '帳號管理';
   if(sub==='notify')return '提醒設定';
   if(sub==='pw')return '修改密碼';
@@ -1098,6 +1100,8 @@ function rightButtons(){
     return '<button class="ib" onclick="loadToday(true)" title="重新整理">↻</button>'+filterBtn();
   if(tab==='book')
     return '<button class="ib" onclick="loadStaff(render,true)" title="重新整理">↻</button>';
+  if(tab==='upload')
+    return '<button class="ib" onclick="loadHistory(true)" title="重新整理">↻</button>';
   return '';
 }
 function filterBtn(){
@@ -1124,7 +1128,7 @@ function clrF(k,v){
 
 /* ══ 頁面內容 ══ */
 function pageHTML(){
-  if(sub==='upload')return uploadPage();
+  if(tab==='upload'||sub==='upload')return uploadPage();
   if(sub==='admin')return '<div id="users"><div class="load"><div class="spin"></div></div></div>';
   if(sub==='notify')return notifyPage();
   if(sub==='pw')return pwPage();
@@ -1437,10 +1441,7 @@ function paintBook(){
 
 /* ── 更多 ── */
 function morePage(){
-  var h='<div class="sec" style="margin-top:4px">排程</div>';
-  if(canWrite(ROLE))
-    h+='<button class="link" onclick="go(\'more\',\'upload\')">上傳排程'+ic('upload',19)+'</button>';
-  h+='<div class="sec">帳號</div>'
+  var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
   if(ROLE==='admin')
     h+='<button class="link" onclick="go(\'more\',\'admin\')">帳號管理'+ic('users',19)+'</button>';
