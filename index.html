@@ -213,6 +213,8 @@ input,select,textarea{font-size:16px;}
 .seg-btn.active{background:var(--c-surface);color:var(--c-primary);font-weight:600;box-shadow:var(--shadow);}
 .region-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;background:#e8f0fe;color:#1558b0;white-space:nowrap;}
 .region-pill.none{background:var(--c-bg);color:var(--c-text-2);}
+.team-pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;
+  background:#f3e8fd;color:#6a1b9a;white-space:nowrap;font-weight:500;}
 .users-table{width:100%;border-collapse:collapse;font-size:13px;}
 .users-table th{background:var(--c-bg);padding:8px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--c-border);}
 .users-table td{padding:10px 10px;border-bottom:1px solid var(--c-border);vertical-align:middle;}
@@ -395,7 +397,11 @@ input,select,textarea{font-size:16px;}
             <option value="高雄">高雄</option>
           </select>
         </div>
-        <div class="form-group"><label>備註</label><input id="staff-note" type="text" placeholder="所屬／職務（選填）"></div>
+        <div class="form-group"><label>組別</label>
+          <input id="staff-team" type="text" list="team-list" placeholder="EIA-T、SP-C…" autocapitalize="characters">
+          <datalist id="team-list"></datalist>
+        </div>
+        <div class="form-group"><label>備註</label><input id="staff-note" type="text" placeholder="職務（選填）"></div>
         <button class="btn btn-primary btn-sm" onclick="staffSave()">儲存</button>
       </div>
       <p style="font-size:12px;color:var(--c-text-2);margin-top:10px">姓名相同時會覆蓋原本的電話與備註。</p>
@@ -405,6 +411,10 @@ input,select,textarea{font-size:16px;}
         <h3 style="border:none;padding:0;margin:0;flex:1 1 auto;">人員通訊錄</h3>
         <input id="staff-search" type="search" placeholder="搜尋姓名或電話" oninput="renderStaffTable()"
                style="flex:1 1 180px;padding:8px 10px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;outline:none;min-height:38px;">
+        <select id="staff-team-filter" onchange="renderStaffTable()"
+                style="flex:0 1 130px;height:38px;padding:0 8px;border:1px solid var(--c-border);border-radius:6px;font-size:13px;background:var(--c-surface);color:var(--c-text);outline:none;">
+          <option value="">全部組別</option>
+        </select>
         <button class="btn btn-outline btn-sm" onclick="staffReload(true)">&#8635;</button>
       </div>
       <div class="seg" id="staff-region-filter">
@@ -1912,6 +1922,7 @@ function doChangePassword(){
 
 // ─── 人員通訊錄 ───────────────────────────────────────────────────────────────
 function staffReload(force){
+  populateTeamFilter();
   if(force)document.getElementById('staff-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
   loadStaff(renderStaffTable,!!force);
 }
@@ -1925,25 +1936,71 @@ function staffSetRegion(btn){
   renderStaffTable();
 }
 
+// 目前既有的組別。之後有新的組別，直接在欄位裡打字即可，
+// 系統會自動記住並加進下拉選單，不用改程式。
+var DEFAULT_TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
+
+/** 組別清單＝預設組別 ∪ 資料中實際出現過的組別 */
+function allTeams(){
+  var seen={},out=[];
+  DEFAULT_TEAMS.forEach(function(t){if(!seen[t]){seen[t]=true;out.push(t);}});
+  STAFF_LIST.forEach(function(s){
+    var t=(s.team||'').trim();
+    if(t&&!seen[t]){seen[t]=true;out.push(t);}
+  });
+  return out;
+}
+
+function populateTeamFilter(){
+  var used={},hasBlank=false;
+  STAFF_LIST.forEach(function(s){
+    var t=(s.team||'').trim();
+    if(t)used[t]=(used[t]||0)+1; else hasBlank=true;
+  });
+
+  // 篩選只列出實際有人的組別，避免選到空的
+  var sel=document.getElementById('staff-team-filter');
+  var cur=sel.value;
+  var html='<option value="">全部組別</option>'
+    +allTeams().filter(function(t){return used[t];})
+      .map(function(t){return '<option value="'+he(t)+'">'+he(t)+'（'+used[t]+'）</option>';}).join('')
+    +(hasBlank?'<option value="__none__">未填組別</option>':'');
+  if(sel.innerHTML!==html){
+    sel.innerHTML=html;
+    sel.value=cur;
+    if(sel.value!==cur)sel.value='';
+  }
+
+  // 輸入建議則列出全部（含還沒有人的預設組別）
+  var dl=document.getElementById('team-list');
+  if(dl)dl.innerHTML=allTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('');
+}
+
 function renderStaffTable(){
   var el=document.getElementById('staff-list');if(!el)return;
   var q=(document.getElementById('staff-search').value||'').trim().toLowerCase();
+  var tf=document.getElementById('staff-team-filter').value;
+  populateTeamFilter();
   var list=STAFF_LIST.filter(function(s){
-    var rg=(s.region||'').trim();
+    var rg=(s.region||'').trim(),tm=(s.team||'').trim();
     if(staffRegion==='__none__'){if(rg)return false;}
     else if(staffRegion&&rg!==staffRegion)return false;
+    if(tf==='__none__'){if(tm)return false;}
+    else if(tf&&tm!==tf)return false;
     if(!q)return true;
     return (s.name||'').toLowerCase().indexOf(q)>=0||(s.phone||'').toLowerCase().indexOf(q)>=0
-        ||(s.note||'').toLowerCase().indexOf(q)>=0||rg.toLowerCase().indexOf(q)>=0;
+        ||(s.note||'').toLowerCase().indexOf(q)>=0||rg.toLowerCase().indexOf(q)>=0
+        ||tm.toLowerCase().indexOf(q)>=0;
   });
-  if(!list.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">'+(q||staffRegion?'查無符合的人員':'尚無人員資料')+'</p>';return;}
+  if(!list.length){el.innerHTML='<p style="color:var(--c-text-2);padding:20px;text-align:center;">'+(q||staffRegion||tf?'查無符合的人員':'尚無人員資料')+'</p>';return;}
   var canEdit=(ROLE==='admin'||ROLE==='scheduler');
   var html='<p style="font-size:12px;color:var(--c-text-2);margin-bottom:8px">共 '+list.length+' 位</p>'
-    +'<table class="users-table"><thead><tr><th>姓名</th><th>電話</th><th>地區</th><th>備註</th>'+(canEdit?'<th>操作</th>':'')+'</tr></thead><tbody>';
+    +'<table class="users-table"><thead><tr><th>姓名</th><th>電話</th><th>組別</th><th>地區</th><th>備註</th>'+(canEdit?'<th>操作</th>':'')+'</tr></thead><tbody>';
   list.forEach(function(s){
-    var ph=s.phone||'',rg=(s.region||'').trim();
+    var ph=s.phone||'',rg=(s.region||'').trim(),tm=(s.team||'').trim();
     html+='<tr><td>'+he(s.name)+'</td>'
       +'<td>'+(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'" style="color:var(--c-primary);text-decoration:none">'+he(ph)+'</a>':'—')+'</td>'
+      +'<td>'+(tm?'<span class="team-pill">'+he(tm)+'</span>':'—')+'</td>'
       +'<td>'+(rg?'<span class="region-pill">'+he(rg)+'</span>':'<span class="region-pill none">未指定</span>')+'</td>'
       +'<td>'+he(s.note||'—')+'</td>';
     if(canEdit){
@@ -1964,6 +2021,7 @@ function staffEdit(name){
   document.getElementById('staff-name').value=s.name;
   document.getElementById('staff-phone').value=s.phone||'';
   document.getElementById('staff-region').value=s.region||'';
+  document.getElementById('staff-team').value=s.team||'';
   document.getElementById('staff-note').value=s.note||'';
   document.getElementById('staff-add-card').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1972,12 +2030,13 @@ function staffSave(){
   var name=document.getElementById('staff-name').value.trim();
   var phone=document.getElementById('staff-phone').value.trim();
   var region=document.getElementById('staff-region').value;
+  var team=document.getElementById('staff-team').value.trim();
   var note=document.getElementById('staff-note').value.trim();
   if(!name){toast('請輸入姓名','error');return;}
-  gas('saveStaff',TOKEN,name,phone,region,note).then(function(r){
+  gas('saveStaff',TOKEN,name,phone,region,team,note).then(function(r){
     if(r.ok){
       toast('已儲存','success');
-      ['staff-name','staff-phone','staff-note'].forEach(function(id){document.getElementById(id).value='';});
+      ['staff-name','staff-phone','staff-team','staff-note'].forEach(function(id){document.getElementById(id).value='';});
       document.getElementById('staff-region').value='';
       loadStaff(function(){renderStaffTable();applyFilter();},true);
     }else toast(r.error||'儲存失敗','error');
