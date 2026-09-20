@@ -284,8 +284,15 @@ html[data-theme="dark"] .glass::after{
 .lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
   background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:7px;}
-.pav{width:36px;height:36px;border-radius:999px;background:var(--card2);color:var(--tx2);
+.pavw{position:relative;flex-shrink:0;padding-top:7px;}
+.pav{width:38px;height:38px;border-radius:999px;background:var(--card2);color:var(--tx2);
   display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.pavhat{position:absolute;top:-3px;left:50%;transform:translateX(-50%);
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  color:var(--brand);filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.2));padding:0;}
+.pavhat.warn{color:var(--warn);}
+.pavhat.bad{color:var(--err);}
+.pavhat:active{transform:translateX(-50%) scale(.88);}
 .tag{font-size:11px;padding:4px 11px;border-radius:999px;background:var(--card2);color:var(--tx2);white-space:nowrap;}
 .tag.g{background:var(--tint);color:var(--accT);}
 .link{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -418,9 +425,11 @@ var ICON={
  note:'<path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
  hash:'<path d="M9 3 7 21M17 3l-2 18M4 8.5h16M3 15.5h16"/>',
- hardhat:'<path d="M3 17.5a9 9 0 0 1 18 0"/><path d="M2 17.5h20"/>'
-   +'<path d="M9.5 9.2V6.4A2.4 2.4 0 0 1 12 4a2.4 2.4 0 0 1 2.5 2.4v2.8"/>'
-   +'<path d="M12 4V2.6"/>',
+ hardhat:'<g fill="currentColor" stroke="none">'
+   +'<path d="M12 5.4c-3.9 0-7 3.2-7 7.1v1.9h14v-1.9c0-3.9-3.1-7.1-7-7.1z"/>'
+   +'<rect x="1.8" y="14.4" width="20.4" height="3.2" rx="1.6"/>'
+   +'<rect x="10.6" y="2.6" width="2.8" height="3.6" rx="1.4"/>'
+   +'</g>',
  moon:'<path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5z"/>',
  sun2:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
@@ -1087,9 +1096,9 @@ function bookList(){
   if(!list.length)h+='<div class="empty">查無符合的人員</div>';
   list.forEach(function(s){
     var ph=(s.phone||'').trim();
-    h+='<div class="lrow"><div class="pav">'+he(s.name.slice(0,1))+'</div>'
+    h+='<div class="lrow">'+avatarHat(s.name)
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
-      +he(s.name)+hatMark(s.name)+'</div>'
+      +he(s.name)+'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
       +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
       +'</div></div>'
