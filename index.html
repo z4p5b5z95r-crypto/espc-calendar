@@ -85,6 +85,24 @@ input,select,textarea{font-size:16px;}
   -webkit-backdrop-filter:var(--blur);border:1px solid var(--line);border-radius:999px;
   padding:12px 16px;font-size:16px;outline:none;min-height:46px;}
 .fld:focus{border-color:var(--acc);}
+/* 面板開啟時鎖住背景，避免鍵盤彈出把整頁推走 */
+body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
+/* 證照卡片 */
+.cbox{background:var(--glStrong);border:1px solid var(--line);
+  border-radius:16px;padding:12px 13px;}
+.cbh{display:flex;align-items:center;justify-content:space-between;
+  gap:8px;margin-bottom:9px;}
+.cbh span{font-size:12px;color:var(--tx3);}
+.cbh button{font-size:12px;color:var(--err);padding:3px 8px;border-radius:8px;}
+.addc{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;
+  border:1px dashed var(--line);border-radius:14px;padding:11px;
+  font-size:14px;color:var(--accT);background:transparent;}
+.addc:active{background:var(--tint);}
+/* iOS 的日期欄位預設會置右且高度不一致，這裡拉回跟其他欄位一樣 */
+input[type="date"].fld{-webkit-appearance:none;appearance:none;
+  text-align:left;display:block;line-height:22px;height:46px;}
+input[type="date"].fld::-webkit-date-and-time-value{text-align:left;margin:0;}
+input[type="date"].fld::-webkit-calendar-picker-indicator{margin-left:auto;opacity:.55;}
 select.fld{appearance:none;padding-right:38px;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
   background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;
@@ -586,11 +604,9 @@ function daysBetween(a,b){
   if(x.length<3||y.length<3)return null;
   return Math.round((Date.UTC(+y[0],+y[1]-1,+y[2])-Date.UTC(+x[0],+x[1]-1,+x[2]))/86400000);
 }
-/** {type,train,expire,days,state}；state: ok / warn / expired / nodate */
-function safetyOf(name){
-  var sf=SAFETY[String(name||'').trim()];
-  if(!sf)return null;
-  var o={type:sf.type||'',train:sf.train||'',cert:sf.cert||'',
+/** 單張證照 → {type,cert,train,expire,days,state}；state: ok / warn / expired / nodate */
+function certOf(c){
+  var o={type:c.type||'',cert:c.cert||'',train:c.train||'',
          expire:'',days:null,state:'nodate'};
   if(o.train){
     o.expire=addYears(o.train,SAFETY_YEARS);
@@ -598,6 +614,24 @@ function safetyOf(name){
     o.state=o.days<0?'expired':(o.days<=SAFETY_WARN_DAYS?'warn':'ok');
   }
   return o;
+}
+/** 某人的全部證照（可能多張） */
+function safetyList(name){
+  var a=SAFETY[String(name||'').trim()];
+  if(!a||!a.length)return [];
+  return a.map(certOf);
+}
+/** 最需要注意的那張（逾期 > 快到期 > 未填日期 > 有效），給工地帽燈號用 */
+var STATE_RANK={expired:0,warn:1,nodate:2,ok:3};
+function safetyOf(name){
+  var l=safetyList(name);
+  if(!l.length)return null;
+  var best=l[0];
+  l.forEach(function(o){
+    var a=STATE_RANK[o.state],b=STATE_RANK[best.state];
+    if(a<b||(a===b&&(o.days==null?9e9:o.days)<(best.days==null?9e9:best.days)))best=o;
+  });
+  return best;
 }
 function safetyText(o){
   if(!o)return '';
@@ -609,8 +643,9 @@ function safetyText(o){
 function safetyDue(){
   var out=[];
   STAFF.forEach(function(x){
-    var o=safetyOf(x.name);
-    if(o&&(o.state==='warn'||o.state==='expired'))out.push({name:x.name,o:o});
+    safetyList(x.name).forEach(function(o){
+      if(o.state==='warn'||o.state==='expired')out.push({name:x.name,o:o});
+    });
   });
   out.sort(function(a,b){return (a.o.days==null?9e9:a.o.days)-(b.o.days==null?9e9:b.o.days);});
   return out;
@@ -647,23 +682,28 @@ function hatMark(n){
 
 function showSafety(n){
   n=String(n||'').trim();
-  var o=safetyOf(n);
-  if(!o){toast(n+' 未登記職安資料','',3000);return;}
+  var list=safetyList(n);
+  if(!list.length){toast(n+' 未登記職安資料','',3000);return;}
   var h='<div class="shh"><div>'
     +'<div class="evt" style="color:var(--accT)">職安人員</div>'
-    +'<h3 style="margin-top:3px">'+he(n)+'</h3></div>'
-    +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">'
-    +kr('shield','職安種類',he(o.type||'未填'))
-    +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
-    +kr('clock','訓練日期',he(o.train||'未填'))
-    +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+SAFETY_YEARS+' 年）</span>':'');
-  var st='',col='';
-  if(o.state==='expired'){st='已逾期 '+Math.abs(o.days)+' 天，請盡快安排回訓';col='var(--err)';}
-  else if(o.state==='warn'){st=o.days+' 天後到期，請安排回訓';col='var(--warn)';}
-  else if(o.state==='ok'){st='有效，剩 '+o.days+' 天';col='var(--accT)';}
-  else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
-  h+='<div class="kr">'+ic('note',16)+'<span class="kk">狀態</span>'
-    +'<span class="kvv" style="color:'+col+';font-weight:600">'+he(st)+'</span></div></div>';
+    +'<h3 style="margin-top:3px">'+he(n)+'</h3>'
+    +(list.length>1?'<p class="hint" style="margin-top:3px">共 '+list.length+' 張證照</p>':'')
+    +'</div><button class="ib" onclick="closeSheet()">✕</button></div>';
+  list.forEach(function(o,i){
+    var st='',col='';
+    if(o.state==='expired'){st='已逾期 '+Math.abs(o.days)+' 天，請盡快安排回訓';col='var(--err)';}
+    else if(o.state==='warn'){st=o.days+' 天後到期，請安排回訓';col='var(--warn)';}
+    else if(o.state==='ok'){st='有效，剩 '+o.days+' 天';col='var(--ok)';}
+    else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
+    h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'><div class="kv">'
+      +kr('shield','職安種類',he(o.type||'未填'))
+      +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
+      +kr('clock','訓練日期',he(o.train||'未填'))
+      +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+SAFETY_YEARS+' 年）</span>':'')
+      +'<div class="kr">'+ic('note',16)+'<span class="kk">狀態</span>'
+      +'<span class="kvv" style="color:'+col+';font-weight:600">'+he(st)+'</span></div>'
+      +'</div></div>';
+  });
   if(PHONE[n])
     h+='<a class="btn btn-full" style="margin-top:14px" href="tel:'+he(PHONE[n].replace(/-/g,''))+'">撥打 '+he(PHONE[n])+'</a>';
   if(canWrite(ROLE))
@@ -1163,9 +1203,9 @@ function bookPage(){
     +(blank?'<option value="_n"'+(bookTm==='_n'?' selected':'')+'>未填組別</option>':'')
     +'</select>'
     +'<select class="fld" onchange="bookSf=this.value;paintBook()" style="flex:1;min-width:0">'
-    +'<option value="">全部證照</option>'
+    +'<option value="">--- 證照</option>'
     +sfTypes().map(function(t){
-      return '<option value="'+he(t)+'"'+(bookSf===t?' selected':'')+'>'+he(t)+'（'+sfCount(t)+'）</option>';}).join('')
+      return '<option value="'+he(t)+'"'+(bookSf===t?' selected':'')+'>'+he(t)+'</option>';}).join('')
     +'</select></div>'
     +bookList();
   if(canWrite(ROLE))
@@ -1173,26 +1213,29 @@ function bookPage(){
   return h;
 }
 
-/** 通訊錄裡出現過的職安種類 */
+/** 通訊錄裡出現過的所有證照種類 */
 function sfTypes(){
   var out=[];
   STAFF.forEach(function(s){
-    var o=safetyOf(s.name);
-    if(o&&o.type&&out.indexOf(o.type)<0)out.push(o.type);
+    safetyList(s.name).forEach(function(o){
+      if(o.type&&out.indexOf(o.type)<0)out.push(o.type);
+    });
   });
   out.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
   return out;
 }
-/** 證照條件：'' 全部，其餘為證照種類 */
+/** 證照條件：'' 不篩選，其餘為證照種類（任一張符合即可） */
 function passSf(name,f){
   if(!f)return true;
-  var o=safetyOf(name);
-  return !!o&&o.type===f;
+  var l=safetyList(name);
+  for(var i=0;i<l.length;i++)if(l[i].type===f)return true;
+  return false;
 }
-function sfCount(f){
-  var n=0;
-  STAFF.forEach(function(s){if(passSf(s.name,f))n++;});
-  return n;
+/** 取某人符合該種類的那一張 */
+function certByType(name,t){
+  var l=safetyList(name);
+  for(var i=0;i<l.length;i++)if(l[i].type===t)return l[i];
+  return null;
 }
 
 function bookList(){
@@ -1203,9 +1246,9 @@ function bookList(){
     if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
     if(!passSf(s.name,bookSf))return false;
     if(!q)return true;
-    var o=safetyOf(s.name);
-    return [s.name,s.phone,s.note,rg,tm,(o&&o.type)||'',(o&&o.cert)||'']
-      .join(' ').toLowerCase().indexOf(q)>=0;
+    var bits=[s.name,s.phone,s.note,rg,tm];
+    safetyList(s.name).forEach(function(o){bits.push(o.type,o.cert);});
+    return bits.join(' ').toLowerCase().indexOf(q)>=0;
   });
   var h='<div id="blist"><div class="sec" style="margin-top:0">共 '+list.length+' 位</div>';
   if(!list.length)h+='<div class="empty">查無符合的人員</div>';
@@ -1226,15 +1269,15 @@ function bookList(){
 }
 /** 篩選證照時，在列上補一行種類與效期 */
 function sfNote(name){
-  var o=safetyOf(name);
+  var o=bookSf?certByType(name,bookSf):safetyOf(name);
   if(!o)return '';
   var col=o.state==='expired'?'var(--err)':(o.state==='ok'?'var(--ok)':'var(--warn)');
   var t=o.state==='nodate'?'未填訓練日期'
     :(o.state==='expired'?'逾期 '+Math.abs(o.days)+' 天':'剩 '+o.days+' 天');
-  return '<div style="text-align:right;flex-shrink:0;max-width:44%">'
-    +'<div style="font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-    +he(o.type||'未填種類')+'</div>'
-    +'<div style="font-size:12px;color:'+col+';font-weight:500;white-space:nowrap">'+he(t)+'</div></div>';
+  return '<div style="text-align:right;flex-shrink:0">'
+    +'<div style="font-size:12px;color:'+col+';font-weight:500;white-space:nowrap">'+he(t)+'</div>'
+    +(o.cert?'<div style="font-size:11px;color:var(--tx3);white-space:nowrap">'+he(o.cert)+'</div>':'')
+    +'</div>';
 }
 
 /** 只重畫清單，避免搜尋時輸入框失去焦點 */
@@ -1336,8 +1379,12 @@ function applyStaff(l){
   STAFF.forEach(function(s){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
-    if(s.safety||s.trainDate||s.certNo)
-      SAFETY[s.name]={type:s.safety||'',train:s.trainDate||'',cert:s.certNo||''};
+    var cs=(s.certs||[]).map(function(o){
+      return {type:String(o.t||'').trim(),cert:String(o.c||'').trim(),train:String(o.d||'').trim()};
+    }).filter(function(o){return o.type||o.cert||o.train;});
+    if(!cs.length&&(s.safety||s.trainDate||s.certNo))      // 相容舊資料
+      cs=[{type:s.safety||'',cert:s.certNo||'',train:s.trainDate||''}];
+    if(cs.length)SAFETY[s.name]=cs;
   });
 }
 
@@ -1427,8 +1474,22 @@ function refetch(){
 }
 
 /* ══ 底部面板 ══ */
-function openSheet(html){$('sheet').innerHTML=html;$('ov').classList.add('open');}
-function closeSheet(){$('ov').classList.remove('open');}
+var _lockY=0;
+function openSheet(html){
+  $('sheet').innerHTML=html;
+  _lockY=window.pageYOffset||document.documentElement.scrollTop||0;
+  document.body.style.top=(-_lockY)+'px';
+  document.body.classList.add('locked');
+  $('ov').classList.add('open');
+  $('sheet').scrollTop=0;
+}
+function closeSheet(){
+  if(!$('ov').classList.contains('open'))return;
+  $('ov').classList.remove('open');
+  document.body.classList.remove('locked');
+  document.body.style.top='';
+  window.scrollTo(0,_lockY);
+}
 
 /** 取某日的行程：合併當月與今日視窗兩份來源並去重 */
 function dayRows(d){
@@ -1530,8 +1591,10 @@ function pickM(y,m){
 
 /* ══ 人員編輯 ══ */
 function editStaff(name){
-  var s={name:'',phone:'',region:'',team:'',safety:'',trainDate:'',certNo:'',note:''};
+  var s={name:'',phone:'',region:'',team:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
+  EC=safetyList(name).map(function(o){
+    return {type:o.type,cert:o.cert,train:o.train};});
   var teams=TEAMS.slice();
   STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
   var h='<div class="shh"><h3>'+(name?'編輯人員':'新增人員')+'</h3>'
@@ -1544,12 +1607,9 @@ function editStaff(name){
       return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')+'</select>'
     +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team)+'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
     +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +'<p class="lb">職安種類</p><input class="fld" id="s-sf" list="sfl" value="'+he(s.safety||'')+'" placeholder="留空表示非職安人員" style="margin-bottom:13px">'
     +'<datalist id="sfl">'+SAFETY_TYPES.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +'<p class="lb">初訓／回訓日期　<span style="color:var(--tx2)">效期 '+SAFETY_YEARS+' 年</span></p>'
-    +'<input class="fld" id="s-td" type="date" value="'+he(s.trainDate||'')+'" style="margin-bottom:4px">'
-    +'<p class="hint" id="s-exp" style="margin:0 0 13px 10px"></p>'
-    +'<p class="lb">證書字號</p><input class="fld" id="s-cn" value="'+he(s.certNo||'')+'" placeholder="證照上的字號（選填）" style="margin-bottom:13px">'
+    +'<p class="lb">職安證照</p>'
+    +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
     +'<p class="lb">備註</p><input class="fld" id="s-o" value="'+he(s.note)+'" placeholder="職務（選填）" style="margin-bottom:18px">'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
     +(name?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
@@ -1566,24 +1626,73 @@ function editStaff(name){
     ph.addEventListener('input',fp);
     ph.addEventListener('blur',fp);
   }
-  var td=$('s-td');
-  if(td){
-    var upd=function(){
-      var v=td.value,e=$('s-exp');
-      if(!e)return;
-      if(!v){e.textContent='填入訓練日期後會自動計算有效期限';e.style.color='';return;}
-      var ex=addYears(v,SAFETY_YEARS),d=daysBetween(twStr(),ex);
-      e.textContent='有效期限至 '+ex+(d<0?'　已逾期 '+Math.abs(d)+' 天':'　剩 '+d+' 天');
-      e.style.color=d<0?'var(--err)':(d<=SAFETY_WARN_DAYS?'var(--warn)':'');
-    };
-    td.addEventListener('change',upd);upd();
-  }
+}
+
+/* ── 證照清單（可增減）───────────────────────────────── */
+var EC=[];
+function certsHTML(){
+  var h='';
+  EC.forEach(function(c,i){
+    h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'>'
+      +'<div class="cbh"><span>證照 '+(i+1)+'</span>'
+      +'<button onclick="ecDel('+i+')">刪除</button></div>'
+      +'<p class="lb">種類</p>'
+      +'<input class="fld" id="c-t'+i+'" list="sfl" value="'+he(c.type||'')+'" placeholder="例：甲種職業安全衛生業務主管" style="margin-bottom:10px">'
+      +'<p class="lb">證書字號</p>'
+      +'<input class="fld" id="c-c'+i+'" value="'+he(c.cert||'')+'" placeholder="選填" style="margin-bottom:10px">'
+      +'<p class="lb">初訓／回訓日期　<span style="color:var(--tx2)">效期 '+SAFETY_YEARS+' 年</span></p>'
+      +'<input class="fld" type="date" id="c-d'+i+'" value="'+he(c.train||'')+'" onchange="ecExp('+i+')" style="margin-bottom:4px">'
+      +'<p class="hint" id="c-e'+i+'" style="margin:0 0 2px 10px">'+expText(c.train)+'</p>'
+      +'</div>';
+  });
+  return h+'<button class="addc"'+(EC.length?' style="margin-top:9px"':'')
+    +' onclick="ecAdd()">＋ 新增證照</button>';
+}
+function expText(v){
+  if(!v)return '填入訓練日期後會自動計算有效期限';
+  var ex=addYears(v,SAFETY_YEARS),d=daysBetween(twStr(),ex);
+  return '有效期限至 '+ex+(d<0?'　已逾期 '+Math.abs(d)+' 天':'　剩 '+d+' 天');
+}
+function expCol(v){
+  if(!v)return '';
+  var d=daysBetween(twStr(),addYears(v,SAFETY_YEARS));
+  return d<0?'var(--err)':(d<=SAFETY_WARN_DAYS?'var(--warn)':'var(--ok)');
+}
+function ecExp(i){
+  var v=$('c-d'+i)?$('c-d'+i).value:'',e=$('c-e'+i);
+  if(!e)return;
+  e.textContent=expText(v);e.style.color=expCol(v);
+}
+/** 把畫面上的值收回 EC，重畫時才不會遺失 */
+function ecSync(){
+  EC.forEach(function(c,i){
+    if($('c-t'+i))c.type=$('c-t'+i).value.trim();
+    if($('c-c'+i))c.cert=$('c-c'+i).value.trim();
+    if($('c-d'+i))c.train=$('c-d'+i).value;
+  });
+}
+function paintCerts(){
+  var el=$('certs');
+  if(el){el.innerHTML=certsHTML();EC.forEach(function(c,i){ecExp(i);});}
+}
+function ecAdd(){
+  ecSync();
+  if(EC.length>=10){toast('最多 10 張證照','no');return;}
+  EC.push({type:'',cert:'',train:''});
+  paintCerts();
+  var el=$('c-t'+(EC.length-1));if(el)el.focus();
+}
+function ecDel(i){
+  ecSync();EC.splice(i,1);paintCerts();
 }
 function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
+  ecSync();
+  var certs=EC.map(function(c){return {t:c.type||'',c:c.cert||'',d:c.train||''};})
+              .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
-      $('s-sf').value.trim(),$('s-td').value,$('s-cn').value.trim(),$('s-o').value.trim())
+      JSON.stringify(certs),$('s-o').value.trim())
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
