@@ -240,6 +240,16 @@ input,select,textarea{font-size:16px;}
 .nt-status{font-size:12px;color:var(--c-text-2);line-height:1.7;margin:12px 0;}
 .nt-status.warn{color:#9a6700;background:#fef7e0;border-radius:var(--radius);padding:9px 11px;}
 .nt-status.bad{color:var(--c-error);background:#fce8e6;border-radius:var(--radius);padding:9px 11px;}
+.nt-diag{display:none;margin-top:12px;background:var(--c-bg);border-radius:var(--radius);padding:10px 12px;}
+.nt-diag.open{display:block;}
+.dg-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;
+  border-bottom:1px solid var(--c-border);}
+.dg-row:last-of-type{border-bottom:none;}
+.dg-row span{color:var(--c-text-2);}
+.dg-ok{color:var(--c-success);}
+.dg-bad{color:var(--c-error);}
+.dg-why{font-size:12px;color:var(--c-text-2);line-height:1.7;margin-top:10px;
+  padding-top:10px;border-top:1px solid var(--c-border);}
 .actions-cell{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
 
 .toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
@@ -454,7 +464,11 @@ input,select,textarea{font-size:16px;}
         <label class="switch"><input type="checkbox" id="nt-empty" onchange="notifSaveUI()"><span class="slider"></span></label>
       </div>
       <div id="nt-status" class="nt-status"></div>
-      <button class="btn btn-outline btn-sm" onclick="notifTest()">發送測試通知</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="notifTest()">發送測試通知</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleDiag()">檢查設定</button>
+      </div>
+      <div id="nt-diag" class="nt-diag"></div>
     </div>
 
     <div class="section-card pw-card">
@@ -813,13 +827,26 @@ function notifToggle(el){
   }).catch(function(){el.checked=false;ntRenderUI();});
 }
 
+/**
+ * iPhone（PWA）只能透過 Service Worker 發通知，new Notification() 會直接失敗，
+ * 所以這裡一律等 Service Worker 就緒後再發，取不到才退回原生 API。
+ */
 function showNotification(title,body){
-  var opts={body:body,tag:'espc-daily',icon:'icon.png',badge:'icon.png'};
-  if(SW_REG&&SW_REG.showNotification){
-    try{SW_REG.showNotification(title,opts);return true;}catch(e){}
+  var opts={body:body,tag:'espc-daily',icon:'icon.png',badge:'icon.png',renotify:true};
+  function viaSW(reg){
+    try{reg.showNotification(title,opts);return true;}catch(e){return false;}
   }
-  if(navigator.serviceWorker&&navigator.serviceWorker.controller){
-    navigator.serviceWorker.controller.postMessage({type:'notify',title:title,body:body});
+  if(SW_REG&&SW_REG.showNotification&&viaSW(SW_REG))return true;
+
+  if(navigator.serviceWorker&&navigator.serviceWorker.ready){
+    navigator.serviceWorker.ready.then(function(reg){
+      SW_REG=reg;
+      if(!viaSW(reg)){
+        try{new Notification(title,opts);}catch(e){}
+      }
+    }).catch(function(){
+      try{new Notification(title,opts);}catch(e){}
+    });
     return true;
   }
   try{new Notification(title,opts);return true;}catch(e){return false;}
@@ -874,6 +901,55 @@ function ntTick(){
   if(now<target)return;
   c.last=t;lsSet(NT_KEY,c);
   fireDailyNotify(t);
+}
+
+function toggleDiag(){
+  var el=document.getElementById('nt-diag');
+  if(el.classList.contains('open')){el.classList.remove('open');return;}
+  renderDiag();
+  el.classList.add('open');
+}
+
+function renderDiag(){
+  var c=ntCfg();
+  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  var perm=ntSupported()?Notification.permission:'不支援';
+
+  var rows=[];
+  function add(label,val,ok){
+    rows.push('<div class="dg-row"><span>'+label+'</span><b class="'
+      +(ok===true?'dg-ok':ok===false?'dg-bad':'')+'">'+he(val)+'</b></div>');
+  }
+
+  add('提醒開關',c.on?'已開啟':'未開啟',!!c.on);
+  add('通知權限',perm==='granted'?'已允許':perm==='denied'?'已封鎖':perm==='default'?'尚未詢問':perm,
+      perm==='granted');
+  if(isIOS)add('加入主畫面',standalone?'是':'否（iPhone 必須）',standalone);
+  add('Service Worker',SW_REG?'已就緒':('serviceWorker' in navigator)?'載入中／失敗':'不支援',!!SW_REG);
+  add('提醒時間',c.time+(c.skipWeekend?'（六日不提醒）':''));
+  add('上次提醒日期',c.last||'尚未提醒過');
+  add('今天日期',todayStr_());
+  add('目前時間',fmtStamp(new Date()));
+
+  var reason='';
+  if(!c.on)reason='提醒開關沒開。';
+  else if(perm!=='granted')reason='沒有通知權限，請按上方開關重新授權。';
+  else if(isIOS&&!standalone)reason='iPhone 必須從主畫面圖示開啟才會跳通知。';
+  else if(c.last===todayStr_())reason='今天已經提醒過了（同一天只提醒一次）。';
+  else reason='設定看起來正常。若時間已過卻沒跳，多半是當時 App 已完全關閉——'
+             +'本機排程只在 App 開著或在背景時有效。';
+
+  document.getElementById('nt-diag').innerHTML=
+    rows.join('')+'<div class="dg-why">'+he(reason)+'</div>'
+    +'<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" onclick="notifResetToday()">清除「今天已提醒」重測</button></div>';
+}
+
+function notifResetToday(){
+  var c=ntCfg();c.last='';lsSet(NT_KEY,c);
+  toast('已清除，若現在已過提醒時間，30 秒內會跳出通知','success',4000);
+  renderDiag();
+  ntTick();
 }
 
 function notifTest(){
