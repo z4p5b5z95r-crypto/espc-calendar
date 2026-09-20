@@ -2186,19 +2186,43 @@ function loadUsers(){
     el.innerHTML=usersHTML();
   }).catch(function(){var el=$('users');if(el)el.innerHTML='<div class="empty">載入失敗</div>';});
 }
-var USERS=[],userQ='';
+var USERS=[],userQ='',userRg='',userTm='',userRo='';
 function usersHTML(){
+  var teams=[];
+  USERS.forEach(function(u){var t=(u.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
+  teams.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
   var h='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="newUser()">新增帳號</button>'
-    +'<input class="fld" placeholder="搜尋帳號或姓名" value="'+he(userQ)+'"'
-    +' oninput="userQ=this.value;paintUsers()" style="margin-bottom:12px">'
+    +'<input class="fld" placeholder="搜尋帳號、姓名或組別" value="'+he(userQ)+'"'
+    +' oninput="userQ=this.value;paintUsers()" style="margin-bottom:9px">'
+    +'<div style="display:flex;gap:6px;margin-bottom:12px">'
+    +'<select class="fld" onchange="userRg=this.value;paintUsers()" style="flex:1;min-width:0">'
+    +['','台北','台中','高雄','_n'].map(function(o){
+      return '<option value="'+o+'"'+(userRg===o?' selected':'')+'>'
+        +(o==='_n'?'未指定地區':(o||'全部地區'))+'</option>';}).join('')
+    +'</select>'
+    +'<select class="fld" onchange="userTm=this.value;paintUsers()" style="flex:1;min-width:0">'
+    +'<option value="">全部組別</option>'
+    +teams.map(function(t){
+      return '<option value="'+he(t)+'"'+(userTm===t?' selected':'')+'>'+he(t)+'</option>';}).join('')
+    +'<option value="_n"'+(userTm==='_n'?' selected':'')+'>未填組別</option>'
+    +'</select>'
+    +'<select class="fld" onchange="userRo=this.value;paintUsers()" style="flex:1;min-width:0">'
+    +'<option value="">全部角色</option>'
+    +ROLE_ORDER.map(function(k){
+      return '<option value="'+k+'"'+(userRo===k?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
+    +'</select></div>'
     +userListHTML();
   return h;
 }
 function userListHTML(){
   var q=userQ.toLowerCase();
   var list=USERS.filter(function(u){
+    var rg=(u.region||'').trim(),tm=(u.team||'').trim();
+    if(userRg==='_n'){if(rg)return false;}else if(userRg&&rg!==userRg)return false;
+    if(userTm==='_n'){if(tm)return false;}else if(userTm&&tm!==userTm)return false;
+    if(userRo&&normRole(u.role)!==userRo)return false;
     if(!q)return true;
-    return [u.username,u.engineerName,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;
+    return [u.username,u.engineerName,tm,rg,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;
   });
   var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號</div>'
     +'<div class="glist">';
@@ -2212,6 +2236,7 @@ function userListHTML(){
       +'<div style="flex:1;min-width:0">'
       +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
+      +(u.team?'　·　'+he(u.team):'')+(u.region?'　·　'+he(u.region):'')
       +(me?'　·　目前帳號':'')
       +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div></div>'
       +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
@@ -2244,26 +2269,42 @@ function editUser(name){
       return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">對應工程師　<span style="color:var(--tx3);font-weight:400">留空表示不自動篩選</span></p>'
-    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="與排程表上的姓名一致" style="margin-bottom:18px">'
+    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="與排程表上的姓名一致" style="margin-bottom:13px">'
+    +'<p class="lb">地區</p><select class="fld" id="e-g" style="margin-bottom:13px">'
+    +['','台北','台中','高雄'].map(function(o){
+      return '<option value="'+o+'"'+((u.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">組別</p>'
+    +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:18px">'
+    +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
     +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
     +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
        +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>');
   openSheet(h);
 }
+/** 目前所有帳號用過的組別 */
+function userTeams(){
+  var out=[];
+  USERS.forEach(function(u){var t=(u.team||'').trim();if(t&&out.indexOf(t)<0)out.push(t);});
+  return out.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
+}
 function saveUser(name){
   var u=null;
   USERS.forEach(function(x){if(x.username===name)u=x;});
   if(!u)return;
-  var role=$('e-r')?$('e-r').value:u.role;
+  var f={},any=false;
+  var role=$('e-r')&&!$('e-r').disabled?$('e-r').value:u.role;
+  if(role!==u.role){f.role=role;any=true;}
   var eng=$('e-e').value.trim();
-  var jobs=[];
-  if(role!==u.role)jobs.push(gas('setUserRole',TOKEN,name,role));
-  if(eng!==(u.engineerName||''))jobs.push(gas('updateEngineerName',TOKEN,name,eng));
-  if(!jobs.length){closeSheet();return;}
-  Promise.all(jobs).then(function(rs){
-    var bad=rs.filter(function(r){return !r||!r.ok;})[0];
-    if(bad){toast(bad.error||'儲存失敗','no');return;}
+  if(eng!==(u.engineerName||'')){f.engineerName=eng;any=true;}
+  var rg=$('e-g').value;
+  if(rg!==(u.region||'')){f.region=rg;any=true;}
+  var tm=$('e-t').value.trim();
+  if(tm!==(u.team||'')){f.team=tm;any=true;}
+  if(!any){closeSheet();return;}
+  gas('updateUser',TOKEN,name,f).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
     toast('已儲存','ok');closeSheet();loadUsers();
   }).catch(function(){toast('操作失敗','no');});
 }
@@ -2275,13 +2316,20 @@ function newUser(){
     +'<p class="lb">角色</p><select class="fld" id="n-r" style="margin-bottom:13px">'
     +ROLE_ORDER.slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">對應工程師（選填）</p><input class="fld" id="n-e" style="margin-bottom:18px">'
+    +'<p class="lb">對應工程師（選填）</p><input class="fld" id="n-e" style="margin-bottom:13px">'
+    +'<p class="lb">地區</p><select class="fld" id="n-g" style="margin-bottom:13px">'
+    +['','台北','台中','高雄'].map(function(o){
+      return '<option value="'+o+'">'+(o||'未指定')+'</option>';}).join('')+'</select>'
+    +'<p class="lb">組別（選填）</p>'
+    +'<input class="fld" id="n-t" list="utl2" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:18px">'
+    +'<datalist id="utl2">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<button class="btn btn-p btn-full" onclick="createUser()">建立</button>');
 }
 function createUser(){
   var u=$('n-u').value.trim(),p=$('n-p').value;
   if(!u||!p){toast('帳號與密碼不得為空','no');return;}
-  gas('createUser',TOKEN,u,p,$('n-r').value,$('n-e').value.trim()).then(function(r){
+  gas('createUser',TOKEN,u,p,$('n-r').value,$('n-e').value.trim(),
+      $('n-t').value.trim(),$('n-g').value).then(function(r){
     if(r&&r.ok){toast('帳號已建立','ok');closeSheet();loadUsers();}
     else toast((r&&r.error)||'建立失敗','no');
   }).catch(function(){toast('操作失敗','no');});
