@@ -10,7 +10,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ESPC 行程">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.2.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -100,6 +99,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .ib{background:var(--card2);width:36px;height:36px;border-radius:999px;font-size:15px;
   color:var(--tx2);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
 .ib:active{transform:scale(.94);}
+.ib svg,.who svg{display:block;}
 .ib.w{width:auto;padding:0 14px;font-size:13px;gap:5px;}
 .ib.act{background:var(--tint);color:var(--acc);}
 .bdg{background:var(--acc);color:var(--accTx);font-size:10px;min-width:17px;height:17px;
@@ -160,7 +160,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
   justify-content:space-around;background:var(--card);border-top:1px solid var(--line);
   padding:8px 10px calc(10px + env(safe-area-inset-bottom));}
 .nb{display:flex;align-items:center;padding:9px;border-radius:999px;color:var(--tx3);font-size:12.5px;}
-.nb i{font-size:22px;line-height:1;width:22px;text-align:center;}
+.nb svg{width:22px;height:22px;}
 .nb em{display:none;font-style:normal;font-weight:600;}
 .nb.on{background:var(--tint);color:var(--acc);padding:9px 17px 9px 14px;gap:7px;}
 .nb.on em{display:inline;}
@@ -177,6 +177,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .kv{font-size:13.5px;color:var(--tx2);line-height:2;}
 .kv b{color:var(--tx);font-weight:500;}
 .opts{display:flex;flex-wrap:wrap;gap:7px;}
+.ob svg{margin-right:-1px;}
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
   border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--tx2);}
 .ob.on{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:500;}
@@ -191,13 +192,13 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .link{display:flex;align-items:center;justify-content:space-between;gap:10px;
   background:var(--card);border-radius:var(--r);padding:14px 15px;margin-bottom:7px;width:100%;
   font-size:15px;text-align:left;}
-.link i{font-size:19px;color:var(--tx3);}
+.link svg{color:var(--tx3);flex-shrink:0;}
 .link:active{opacity:.7;}
 
 /* ── 上傳 ── */
 .drop{border:1.5px dashed var(--line);border-radius:18px;padding:36px 20px;text-align:center;cursor:pointer;}
 .drop:active,.drop.over{border-color:var(--acc);background:var(--tint);}
-.drop i{font-size:38px;color:var(--tx3);}
+.drop svg{color:var(--tx3);margin:0 auto;}
 #fi{display:none;}
 .tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
 .tbl th{background:var(--card2);padding:9px 11px;text-align:left;font-weight:500;
@@ -232,7 +233,7 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
     <div class="who">
       <div class="avt" id="u-av"></div>
       <div class="who-n" id="u-nm"></div>
-      <button class="ib" onclick="doLogout()" title="登出" style="width:32px;height:32px"><i class="ti ti-logout" style="font-size:15px"></i></button>
+      <button class="ib" onclick="doLogout()" title="登出" style="width:32px;height:32px"><span data-ic="logout"></span></button>
     </div>
     <div class="hd">
       <button class="ttl" id="h-ttl" onclick="onTitle()"></button>
@@ -245,10 +246,10 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
   <div id="page"></div>
 
   <div class="nav" id="nav">
-    <button class="nb on" data-t="today"><i class="ti ti-sun"></i><em>今日</em></button>
-    <button class="nb" data-t="cal"><i class="ti ti-calendar-month"></i><em>行事曆</em></button>
-    <button class="nb" data-t="book"><i class="ti ti-address-book"></i><em>通訊錄</em></button>
-    <button class="nb" data-t="more"><i class="ti ti-menu-2"></i><em>更多</em></button>
+    <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
+    <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
+    <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
+    <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
 
@@ -270,6 +271,29 @@ function gas(fn){
     return fetch(GAS_URL+'?payload='+encodeURIComponent(payload)).then(function(r){return r.json();});
   }
   return fetch(GAS_URL,{method:'POST',body:payload}).then(function(r){return r.json();});
+}
+
+
+/* ── 內嵌 SVG 圖示（不依賴外部字型，離線也正常）── */
+var ICON={
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+ book:'<path d="M20 3v18H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M5 8H3M5 12H3M5 16H3"/><circle cx="13" cy="10" r="2"/><path d="M10 16a3 3 0 0 1 6 0"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ logout:'<path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2"/><path d="M9 12h11M17 9l3 3-3 3"/>',
+ filter:'<path d="M4 4h16l-6 7v7l-4 2v-9z"/>',
+ upload:'<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5M12 4v12"/>',
+ lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+ users:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.1a4 4 0 0 1 0 7.8M21 21v-2a4 4 0 0 0-3-3.9"/>',
+ bell:'<path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
+ file:'<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M8 11h8M8 15h5"/>',
+ check:'<path d="M5 12l5 5L20 7"/>',
+ right:'<path d="M9 6l6 6-6 6"/>'
+};
+function ic(n,sz){
+  return '<svg viewBox="0 0 24 24" width="'+(sz||20)+'" height="'+(sz||20)+'" fill="none" '
+    +'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" '
+    +'style="display:block;flex-shrink:0">'+(ICON[n]||'')+'</svg>';
 }
 
 /* ── 小工具 ── */
@@ -298,12 +322,12 @@ var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','
 
 /* ── 主題 ── */
 function applyTheme(){
-  var t=ls('espc_theme')||'dark';
-  document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');
+  var t=ls('espc_theme')||'light';
+  document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');
   var mt=document.querySelector('meta[name=theme-color]');
-  if(mt)mt.setAttribute('content',t==='light'?'#f4f4f5':'#16161a');
+  if(mt)mt.setAttribute('content',t==='dark'?'#16161a':'#f4f4f5');
 }
-function toggleTheme(){lsS('espc_theme',(ls('espc_theme')||'dark')==='dark'?'light':'dark');applyTheme();render();}
+function toggleTheme(){lsS('espc_theme',(ls('espc_theme')||'light')==='dark'?'light':'dark');applyTheme();render();}
 applyTheme();
 
 /* ── 提示 ── */
@@ -375,6 +399,9 @@ function pcolor(n){if(!n)return '#71717a';
 window.addEventListener('DOMContentLoaded',function(){
   $('i-p').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
   $('i-u').addEventListener('keydown',function(e){if(e.key==='Enter')$('i-p').focus();});
+  document.querySelectorAll('[data-ic]').forEach(function(el){
+    el.innerHTML=ic(el.getAttribute('data-ic'),el.closest('.nb')?22:15);
+  });
   document.querySelectorAll('.nb').forEach(function(b){
     b.onclick=function(){go(b.getAttribute('data-t'));};
   });
@@ -416,8 +443,8 @@ function boot(u,r,eng){
   ROLE=r;UNAME=u;ENGNAME=eng;lsS('espc_eng',eng||'');
   $('login').style.display='none';
   $('app').style.display='flex';
-  $('u-av').textContent=(eng||u||'?').slice(0,1);
-  $('u-nm').textContent=(eng?eng+'　':'')+u+'（'+roleLabel(r)+'）';
+  $('u-av').textContent=((eng&&eng!==u?eng:u)||'?').slice(0,1);
+  $('u-nm').textContent=(eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）';
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
   if(r==='pm'&&eng)F.en=eng;
 
@@ -488,7 +515,7 @@ function rightButtons(){
 function filterBtn(){
   var n=nF();
   return '<button class="ib'+(n?' act w':'')+'" onclick="openFilter()">'
-    +'<i class="ti ti-filter" style="font-size:16px"></i>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
+    +ic('filter',17)+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
 }
 function nF(){return (F.rg?1:0)+(F.en?1:0)+F.ty.length;}
 
@@ -703,13 +730,13 @@ function paintBook(){
 function morePage(){
   var h='<div class="sec" style="margin-top:4px">排程</div>';
   if(canWrite(ROLE))
-    h+='<button class="link" onclick="go(\'more\',\'upload\')">上傳排程<i class="ti ti-upload"></i></button>';
+    h+='<button class="link" onclick="go(\'more\',\'upload\')">上傳排程'+ic('upload',19)+'</button>';
   h+='<div class="sec">帳號</div>'
-    +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼<i class="ti ti-lock"></i></button>';
+    +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
   if(ROLE==='admin')
-    h+='<button class="link" onclick="go(\'more\',\'admin\')">帳號管理<i class="ti ti-users"></i></button>';
+    h+='<button class="link" onclick="go(\'more\',\'admin\')">帳號管理'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
-    +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒<i class="ti ti-bell"></i></button>'
+    +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒'+ic('bell',19)+'</button>'
     +'<div class="link" style="cursor:default">深色模式'
     +'<button class="sw'+((ls('espc_theme')||'dark')==='dark'?' on':'')+'" onclick="toggleTheme()"></button></div>'
     +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
@@ -828,7 +855,7 @@ function openFilter(){
     +tys.map(function(t){
       var on=F.ty.indexOf(t)>=0;
       return '<button class="ob'+(on?' on':'')+'" onclick="pickTy(\''+esc(t)+'\')">'
-        +(on?'<i class="ti ti-check" style="font-size:14px"></i>':'')+he(t)+'</button>';}).join('')
+        +(on?ic('check',15):'')+he(t)+'</button>';}).join('')
     +'</div>'
     +'<button class="btn btn-full" style="margin-top:18px" onclick="F={rg:\'\',en:\'\',ty:[]};closeSheet();refetch()">清除全部篩選</button>';
   openSheet(h);
@@ -964,7 +991,7 @@ function uploadPage(){
   return '<div class="drop" id="dz" onclick="document.getElementById(\'fi\').click()"'
     +' ondragover="event.preventDefault();this.classList.add(\'over\')"'
     +' ondragleave="this.classList.remove(\'over\')" ondrop="onDrop(event)">'
-    +'<i class="ti ti-file-spreadsheet"></i>'
+    +ic('file',40)
     +'<p style="font-size:15px;margin-top:10px">點擊或拖曳 Excel 檔案</p>'
     +'<p class="hint" style="margin-top:6px">支援台北、台中、高雄格式<br>檔名可辨識地區時會直接上傳</p></div>'
     +'<div id="parse"></div>'
