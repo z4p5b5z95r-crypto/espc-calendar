@@ -86,25 +86,54 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
   top:3px;left:3px;transition:.18s;}
 .sw.on::after{transform:translateX(19px);}
 
-/* ── 登入 ── */
+/* ── 登入：淺灰底 + 白卡 + 橘色點綴 ── */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:var(--card2);padding:20px;
-  padding-top:calc(20px + env(safe-area-inset-top));
-  padding-bottom:calc(20px + env(safe-area-inset-bottom));}
-.lwrap{width:100%;max-width:370px;background:var(--card);border-radius:24px;
-  overflow:hidden;box-shadow:var(--sh);}
-.ltop{background:var(--brand);color:var(--accTx);padding:34px 22px 30px;text-align:center;position:relative;}
-.lth{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:999px;
-  color:var(--accTx);opacity:.75;display:flex;align-items:center;justify-content:center;}
-.lth:active{background:rgba(255,255,255,.18);}
-.logo{width:66px;height:66px;border-radius:21px;background:rgba(255,255,255,.22);
-  color:#ffffff;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
-.logo svg{width:36px;height:36px;}
-.ltop h1{font-size:25px;font-weight:700;letter-spacing:-.01em;}
-.lbody{padding:24px 20px 26px;}
+  background:var(--bg);padding:26px 22px;
+  padding-top:calc(26px + env(safe-area-inset-top));
+  padding-bottom:calc(26px + env(safe-area-inset-bottom));}
+.lwrap{width:100%;max-width:366px;position:relative;}
+.lth{position:absolute;top:-8px;right:-4px;width:38px;height:38px;border-radius:999px;
+  color:var(--tx3);display:flex;align-items:center;justify-content:center;}
+.lth:active{background:var(--card2);}
+.lhead{text-align:center;margin-bottom:22px;}
+
+/* 玻璃標記：灰白半透明玻璃，內含橘色日曆 */
+.glass{position:relative;width:86px;height:86px;margin:0 auto 18px;
+  border-radius:27px;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;isolation:isolate;
+  background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
+  border:1px solid rgba(255,255,255,.75);
+  box-shadow:0 12px 30px rgba(28,28,30,.13),
+             0 2px 6px rgba(28,28,30,.07),
+             inset 0 1px 0 rgba(255,255,255,.95),
+             inset 0 -10px 18px rgba(255,255,255,.35);
+  backdrop-filter:blur(16px) saturate(180%);
+  -webkit-backdrop-filter:blur(16px) saturate(180%);}
+/* 背後的色團，讓玻璃有東西可折射 */
+.blob{position:absolute;border-radius:50%;filter:blur(16px);z-index:-1;}
+.b1{width:64px;height:64px;background:rgba(243,111,33,.5);top:-14px;left:-10px;}
+.b2{width:54px;height:54px;background:rgba(119,120,123,.42);bottom:-16px;right:-8px;}
+/* 上緣高光 */
+.glass::after{content:"";position:absolute;inset:0;border-radius:27px;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,0) 42%);}
+.logo{position:relative;z-index:1;color:var(--brand);display:flex;
+  filter:drop-shadow(0 2px 4px rgba(243,111,33,.3));}
+.logo svg{width:42px;height:42px;}
+html[data-theme="dark"] .glass{
+  background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.05));
+  border-color:rgba(255,255,255,.18);
+  box-shadow:0 12px 30px rgba(0,0,0,.45),
+             inset 0 1px 0 rgba(255,255,255,.28),
+             inset 0 -10px 18px rgba(255,255,255,.05);}
+html[data-theme="dark"] .glass::after{
+  background:linear-gradient(160deg,rgba(255,255,255,.3) 0%,rgba(255,255,255,0) 44%);}
+
+.lhead h1{font-size:25px;font-weight:700;letter-spacing:-.01em;}
+.lform{background:var(--card);border-radius:20px;padding:19px 17px;
+  box-shadow:0 2px 12px rgba(28,28,30,.06);}
 .lf{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);
-  border-radius:999px;padding:0 6px 0 15px;margin-bottom:11px;transition:border-color .15s;}
-.lf:focus-within{border-color:var(--acc);}
+  border-radius:999px;padding:0 6px 0 15px;margin-bottom:10px;transition:border-color .15s;}
+.lf:focus-within{border-color:var(--brand);}
 .lfi{color:var(--tx3);display:flex;flex-shrink:0;}
 .lf:focus-within .lfi{color:var(--accT);}
 .lf input{flex:1;min-width:0;background:none;border:none;outline:none;
@@ -260,13 +289,17 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 
 <div id="login">
   <div class="lwrap">
-    <div class="ltop">
-      <button class="lth" onclick="toggleTheme()" title="切換深／淺色"><span data-ic="moon"></span></button>
-      <div class="logo"><span data-ic="logo"></span></div>
+    <button class="lth" onclick="toggleTheme()" title="切換深／淺色"><span data-ic="moon"></span></button>
+
+    <div class="lhead">
+      <div class="glass">
+        <span class="blob b1"></span><span class="blob b2"></span>
+        <div class="logo"><span data-ic="logo"></span></div>
+      </div>
       <h1>ESPC 監測行程</h1>
     </div>
 
-    <div class="lbody">
+    <div class="lform">
       <label class="lf">
         <span class="lfi"><span data-ic="user"></span></span>
         <input id="i-u" type="text" autocomplete="username" placeholder="帳號" autocapitalize="none" autocorrect="off">
@@ -278,8 +311,9 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
       </label>
       <div class="lerr" id="l-err"></div>
       <button class="btn btn-p btn-full" id="l-btn" onclick="doLogin()">登入</button>
-      <p class="lfoot">登入後將保持登入狀態<br>共用裝置請記得登出</p>
     </div>
+
+    <p class="lfoot">登入後將保持登入狀態<br>共用裝置請記得登出</p>
   </div>
 </div>
 
@@ -358,16 +392,16 @@ var ICON={
  sun2:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
  eyeoff:'<path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3 3.6M6.6 6.7A17 17 0 0 0 2 12s3.6 6 10 6a9.7 9.7 0 0 0 3.7-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
- logo:'<rect x="3" y="5" width="18" height="16" rx="3.2" fill="currentColor" stroke="none"/>'
-   +'<rect x="3" y="5" width="18" height="5.4" rx="3.2" fill="rgba(0,0,0,.22)" stroke="none"/>'
-   +'<rect x="3" y="8.6" width="18" height="1.8" fill="rgba(0,0,0,.22)" stroke="none"/>'
-   +'<rect x="7.2" y="2.4" width="1.9" height="4.2" rx=".95" fill="currentColor" stroke="none"/>'
-   +'<rect x="14.9" y="2.4" width="1.9" height="4.2" rx=".95" fill="currentColor" stroke="none"/>'
-   +'<g fill="rgba(0,0,0,.28)" stroke="none">'
-   +'<circle cx="7.6" cy="13.4" r="1.15"/><circle cx="11.2" cy="13.4" r="1.15"/>'
-   +'<circle cx="14.8" cy="13.4" r="1.15"/><circle cx="18" cy="13.4" r="1.15"/>'
-   +'<circle cx="7.6" cy="17" r="1.15"/><circle cx="14.8" cy="17" r="1.15"/><circle cx="18" cy="17" r="1.15"/>'
-   +'</g><circle cx="11.2" cy="17" r="1.75" fill="rgba(0,0,0,.42)" stroke="none"/>'
+ logo:'<rect x="3" y="5" width="18" height="16" rx="3.4" fill="currentColor" stroke="none"/>'
+   +'<rect x="3" y="5" width="18" height="5.6" rx="3.4" fill="#fff" fill-opacity=".34" stroke="none"/>'
+   +'<rect x="3" y="8.8" width="18" height="1.8" fill="#fff" fill-opacity=".34" stroke="none"/>'
+   +'<rect x="7.2" y="2.3" width="2" height="4.4" rx="1" fill="currentColor" stroke="none"/>'
+   +'<rect x="14.8" y="2.3" width="2" height="4.4" rx="1" fill="currentColor" stroke="none"/>'
+   +'<g fill="#fff" fill-opacity=".62" stroke="none">'
+   +'<circle cx="7.5" cy="13.6" r="1.2"/><circle cx="11.2" cy="13.6" r="1.2"/>'
+   +'<circle cx="14.9" cy="13.6" r="1.2"/><circle cx="18.1" cy="13.6" r="1.2"/>'
+   +'<circle cx="7.5" cy="17.3" r="1.2"/><circle cx="14.9" cy="17.3" r="1.2"/><circle cx="18.1" cy="17.3" r="1.2"/>'
+   +'</g><circle cx="11.2" cy="17.3" r="1.85" fill="#fff" stroke="none"/>'
 };
 function ic(n,sz){
   return '<svg viewBox="0 0 24 24" width="'+(sz||20)+'" height="'+(sz||20)+'" fill="none" '
@@ -784,34 +818,53 @@ function groupBy(list){
   list.forEach(function(r){
     var k=r.project||'（未分類）';
     if(!m[k]){m[k]={project:k,rows:[],types:[],locs:[],engs:[],cars:[],staff:[],
-      notes:[],reps:[],eqs:[],nums:[],qty:0,no:'',samp:'',tmap:{},tlist:[]};order.push(k);}
+      notes:[],reps:[],eqs:[],nums:[],qtys:[],no:'',samp:'',tmap:{},tlist:[]};order.push(k);}
     var g=m[k];g.rows.push(r);
 
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,r.engineer);
     add(g.notes,r.notes);add(g.reps,r.applicant);add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
-    var q=parseFloat(r.qty);if(!isNaN(q))g.qty+=q;
+    g.qtys.push(String(r.qty==null?'':r.qty).trim());
     if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
     var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
     ss.forEach(function(x){add(g.staff,x.trim());});
 
     // 依類別再分一層，數量／點位／儀器／報告編號各自歸屬
     var t=r.type||'（未分類）';
-    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qty:0,samp:''};g.tlist.push(t);}
+    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};g.tlist.push(t);}
     var tg=g.tmap[t];
     add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);add(tg.reps,r.applicant);
     if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
-    if(!isNaN(q))tg.qty+=q;
+    tg.qtys.push(String(r.qty==null?'':r.qty).trim());
   });
   return order.map(function(k){return m[k];});
 }
 
-/** 類別標籤：帶上各自的數量，例如「空品車（1）、PM2.5（2）」 */
+/** 數量彙整：全是純數字就加總，含「-1+1」這類寫法則原樣列出 */
+function qtyText(list){
+  var vals=[];
+  list.forEach(function(v){
+    v=String(v==null?'':v).trim();
+    if(v)vals.push(v);
+  });
+  if(!vals.length)return '';
+  // 全是純數字 → 逐筆加總（不可去重，兩筆各 1 要等於 2）
+  if(vals.every(function(v){return /^-?\d+(\.\d+)?$/.test(v);})){
+    var sum=vals.reduce(function(a,b){return a+parseFloat(b);},0);
+    return sum?String(Math.round(sum*1000)/1000):'';
+  }
+  // 含「-1+1」這類寫法 → 去重後原樣列出
+  var uniq=[];
+  vals.forEach(function(v){if(uniq.indexOf(v)<0)uniq.push(v);});
+  return uniq.join('、');
+}
+
+/** 類別標籤：帶上各自的數量，例如「空品車（-1+1）、PM2.5（2）」 */
 function typeLabel(g){
   return g.tlist.map(function(t){
-    var tg=g.tmap[t];
-    return t+(tg.qty?'（'+tg.qty+'）':'');
+    var q=qtyText(g.tmap[t].qtys);
+    return t+(q?'（'+q+'）':'');
   }).join('、');
 }
 
@@ -1112,10 +1165,10 @@ function openEv(d,proj){
 
   if(g.tlist.length<=1){
     // 只有一個類別 → 直接平舖
-    var t0=g.tmap[g.tlist[0]]||{locs:[],eqs:[],nums:[],reps:[],qty:0,samp:''};
+    var t0=g.tmap[g.tlist[0]]||{locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};
     h+='<div class="kv">'
       +kr('pin','點位',he(t0.locs.join(' / ')))
-      +kr('hash','數量',t0.qty?String(t0.qty):'')
+      +kr('hash','數量',he(qtyText(t0.qtys)))
       +kr('clock','採樣時間',he(t0.samp||g.samp))
       +kr('flask','採樣儀器',he(t0.eqs.join('　')))
       +kr('user','申報人員',t0.reps.map(telLink).join('、'))
@@ -1126,7 +1179,7 @@ function openEv(d,proj){
     g.tlist.forEach(function(t){
       var tg=g.tmap[t];
       h+='<div class="tsec"><div class="tsh" style="color:'+c+'">'+he(t)
-        +(tg.qty?'<span class="tq">'+tg.qty+'</span>':'')+'</div><div class="kv">'
+        +(qtyText(tg.qtys)?'<span class="tq">'+he(qtyText(tg.qtys))+'</span>':'')+'</div><div class="kv">'
         +kr('pin','點位',he(tg.locs.join(' / ')))
         +kr('clock','採樣時間',he(tg.samp))
         +kr('flask','採樣儀器',he(tg.eqs.join('　')))
@@ -1254,14 +1307,14 @@ function paintParse(uploading){
   }
   h+='</div><div class="scroll" style="margin-bottom:10px"><table class="tbl"><thead><tr>'
     +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>點位</th>'
-    +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th></tr></thead><tbody>';
+    +'<th>數量</th><th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th></tr></thead><tbody>';
   pRows.slice(0,60).forEach(function(r){
     h+='<tr><td>'+he(r.date)+'</td><td>'+(r.engineer?he(r.engineer):'—')+'</td>'
       +'<td>'+he(okNo(r.projectNo))+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
-      +'<td>'+he(r.location)+'</td><td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
+      +'<td>'+he(r.location)+'</td><td>'+he(r.qty)+'</td><td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
       +'<td>'+he(r.reportNum)+'</td><td class="rgc">'+(r.region||'—')+'</td></tr>';
   });
-  if(pRows.length>60)h+='<tr><td colspan="10" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
+  if(pRows.length>60)h+='<tr><td colspan="11" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
   h+='</tbody></table></div>';
   if(!uploading)h+='<div style="display:flex;gap:8px"><button class="btn btn-p" onclick="doUpload()">確認上傳</button>'
     +'<button class="btn" onclick="document.getElementById(\'parse\').innerHTML=\'\'">取消</button></div>';
@@ -1424,7 +1477,7 @@ function parseSheet(raw,sheet,fname){
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
       out.push({date:ds,engineer:eng,project:proj,projectNo:svNo(row[4]),type:type,
-        location:sv(row[8]),qty:parseFloat(String(row[9]!=null?row[9]:''))||0,
+        location:sv(row[8]),qty:sv(row[9]),
         sampTime:sv(row[10]),equipment:sv(row[11]),applicant:sv(row[12]),
         reportNum:sv(row[7]),notes:[sv(row[13]),sv(row[14])].filter(Boolean).join('；'),
         car:sv(row[15]),
@@ -1446,7 +1499,7 @@ function parseSheet(raw,sheet,fname){
       var samp=sv(row[9]);if(samp)lsm=samp;else samp=lsm;
       var car=sv(row[14]);if(car)lc=car;else car=lc;
       out.push({date:last,engineer:eng,project:proj,projectNo:no,type:type,
-        location:sv(row[7]),qty:parseFloat(String(row[8]!=null?row[8]:''))||0,
+        location:sv(row[7]),qty:sv(row[8]),
         sampTime:samp,equipment:sv(row[10]),applicant:sv(row[11]),
         reportNum:rpt,notes:sv(row[13]),car:car,
         staff:[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean),
