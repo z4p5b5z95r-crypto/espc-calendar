@@ -584,7 +584,8 @@ function daysBetween(a,b){
 function safetyOf(name){
   var sf=SAFETY[String(name||'').trim()];
   if(!sf)return null;
-  var o={type:sf.type||'',train:sf.train||'',expire:'',days:null,state:'nodate'};
+  var o={type:sf.type||'',train:sf.train||'',cert:sf.cert||'',
+         expire:'',days:null,state:'nodate'};
   if(o.train){
     o.expire=addYears(o.train,SAFETY_YEARS);
     o.days=daysBetween(twStr(),o.expire);
@@ -641,6 +642,7 @@ function showSafety(n){
     +'<h3 style="margin-top:3px">'+he(n)+'</h3></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">'
     +kr('shield','職安種類',he(o.type||'未填'))
+    +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
     +kr('clock','訓練日期',he(o.train||'未填'))
     +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+SAFETY_YEARS+' 年）</span>':'');
   var st='',col='';
@@ -1247,7 +1249,8 @@ function applyStaff(l){
   STAFF.forEach(function(s){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
-    if(s.safety||s.trainDate)SAFETY[s.name]={type:s.safety||'',train:s.trainDate||''};
+    if(s.safety||s.trainDate||s.certNo)
+      SAFETY[s.name]={type:s.safety||'',train:s.trainDate||'',cert:s.certNo||''};
   });
 }
 
@@ -1440,7 +1443,7 @@ function pickM(y,m){
 
 /* ══ 人員編輯 ══ */
 function editStaff(name){
-  var s={name:'',phone:'',region:'',team:'',safety:'',trainDate:'',note:''};
+  var s={name:'',phone:'',region:'',team:'',safety:'',trainDate:'',certNo:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
   var teams=TEAMS.slice();
   STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
@@ -1458,6 +1461,7 @@ function editStaff(name){
     +'<p class="lb">初訓／回訓日期　<span style="color:var(--tx2)">效期 '+SAFETY_YEARS+' 年</span></p>'
     +'<input class="fld" id="s-td" type="date" value="'+he(s.trainDate||'')+'" style="margin-bottom:4px">'
     +'<p class="hint" id="s-exp" style="margin:0 0 13px 10px"></p>'
+    +'<p class="lb">證書字號</p><input class="fld" id="s-cn" value="'+he(s.certNo||'')+'" placeholder="證照上的字號（選填）" style="margin-bottom:13px">'
     +'<p class="lb">備註</p><input class="fld" id="s-o" value="'+he(s.note)+'" placeholder="職務（選填）" style="margin-bottom:18px">'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
     +(name?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
@@ -1479,7 +1483,7 @@ function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
   gas('saveStaff',TOKEN,n,$('s-p').value.trim(),$('s-r').value,$('s-t').value.trim(),
-      $('s-sf').value.trim(),$('s-td').value,$('s-o').value.trim())
+      $('s-sf').value.trim(),$('s-td').value,$('s-cn').value.trim(),$('s-o').value.trim())
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
