@@ -24,6 +24,10 @@
   --err:#c62828; --errBg:rgba(198,40,40,.09);
   --warn:#a85600; --warnBg:rgba(243,111,33,.13);
   --r:14px; --sh:0 8px 24px rgba(0,0,0,.12);
+  --gl:rgba(255,255,255,.62);        /* 玻璃底 */
+  --glStrong:rgba(255,255,255,.78);  /* 需要更實的玻璃 */
+  --glLine:rgba(255,255,255,.7);     /* 玻璃邊緣高光 */
+  --blur:saturate(180%) blur(20px);
 }
 html[data-theme="dark"]{
   --bg:#1a1a1c; --card:#242427; --card2:#2d2d31; --line:#343438;
@@ -36,12 +40,25 @@ html[data-theme="dark"]{
   --err:#ef5350; --errBg:rgba(239,83,80,.16);
   --warn:#ffb74d; --warnBg:rgba(255,183,77,.14);
   --sh:0 8px 24px rgba(0,0,0,.4);
+  --gl:rgba(38,38,42,.6);
+  --glStrong:rgba(38,38,42,.78);
+  --glLine:rgba(255,255,255,.1);
+  --blur:saturate(180%) blur(20px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{-webkit-text-size-adjust:100%;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",Roboto,sans-serif;
   background:var(--bg);color:var(--tx);font-size:15px;line-height:1.5;
   -webkit-font-smoothing:antialiased;min-height:100vh;}
+/* 背景色團：讓毛玻璃有東西可折射 */
+body::before,body::after{content:"";position:fixed;border-radius:50%;z-index:-2;
+  pointer-events:none;filter:blur(70px);opacity:.5;}
+body::before{width:60vw;height:60vw;max-width:420px;max-height:420px;
+  background:rgba(243,111,33,.5);top:-14vh;right:-16vw;}
+body::after{width:55vw;height:55vw;max-width:380px;max-height:380px;
+  background:rgba(119,120,123,.42);bottom:-12vh;left:-18vw;}
+html[data-theme="dark"] body::before{opacity:.32;}
+html[data-theme="dark"] body::after{opacity:.3;}
 button,input,select,textarea{font-family:inherit;color:inherit;}
 button{background:none;border:none;cursor:pointer;color:inherit;}
 a{color:var(--accT);text-decoration:none;}
@@ -51,14 +68,16 @@ input,select,textarea{font-size:16px;}
 /* ── 通用元件 ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
   border-radius:999px;padding:11px 20px;font-size:14px;font-weight:500;
-  background:var(--card);border:1px solid var(--line);min-height:44px;transition:.15s;}
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);min-height:44px;transition:.15s;}
 .btn:active{transform:scale(.97);}
-.btn-p{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:600;}
+.btn-p{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:600;backdrop-filter:none;}
 .btn-d{color:var(--err);border-color:var(--err);}
 .btn-sm{padding:8px 15px;font-size:13px;min-height:38px;}
 .btn-full{width:100%;}
 .btn:disabled{opacity:.5;}
-.fld{width:100%;background:var(--card);border:1px solid var(--line);border-radius:999px;
+.fld{width:100%;background:var(--glStrong);backdrop-filter:var(--blur);
+  -webkit-backdrop-filter:var(--blur);border:1px solid var(--line);border-radius:999px;
   padding:12px 16px;font-size:16px;outline:none;min-height:46px;}
 .fld:focus{border-color:var(--acc);}
 select.fld{appearance:none;padding-right:38px;cursor:pointer;
@@ -68,7 +87,8 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .lb{font-size:12px;color:var(--tx3);margin:0 0 7px 6px;}
 .sec{font-size:12px;color:var(--tx3);margin:20px 6px 9px;}
 .sec:first-child{margin-top:8px;}
-.card{background:var(--card);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;}
+.card{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .muted{color:var(--tx2);font-size:13px;}
 .hint{font-size:12px;color:var(--tx3);line-height:1.7;}
@@ -98,8 +118,8 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .lhead{text-align:center;margin-bottom:22px;}
 
 /* 玻璃標記：灰白半透明玻璃，內含橘色日曆 */
-.glass{position:relative;width:86px;height:86px;margin:0 auto 18px;
-  border-radius:27px;display:flex;align-items:center;justify-content:center;
+.glass{position:relative;width:88px;height:88px;margin:0 auto 18px;
+  border-radius:20px;display:flex;align-items:center;justify-content:center;
   overflow:hidden;isolation:isolate;
   background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
   border:1px solid rgba(255,255,255,.75);
@@ -114,11 +134,11 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .b1{width:64px;height:64px;background:rgba(243,111,33,.5);top:-14px;left:-10px;}
 .b2{width:54px;height:54px;background:rgba(119,120,123,.42);bottom:-16px;right:-8px;}
 /* 上緣高光 */
-.glass::after{content:"";position:absolute;inset:0;border-radius:27px;pointer-events:none;
+.glass::after{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;
   background:linear-gradient(160deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,0) 42%);}
 .logo{position:relative;z-index:1;color:var(--brand);display:flex;
   filter:drop-shadow(0 2px 4px rgba(243,111,33,.3));}
-.logo svg{width:42px;height:42px;}
+.logo svg{width:48px;height:48px;}
 html[data-theme="dark"] .glass{
   background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.05));
   border-color:rgba(255,255,255,.18);
@@ -147,7 +167,9 @@ html[data-theme="dark"] .glass::after{
 
 /* ── 外框 ── */
 #app{display:none;flex-direction:column;min-height:100vh;padding-bottom:calc(66px + env(safe-area-inset-bottom));}
-.bar{position:sticky;top:0;z-index:40;background:var(--bg);padding-top:env(safe-area-inset-top);}
+.bar{position:sticky;top:0;z-index:40;padding-top:env(safe-area-inset-top);
+  background:var(--gl);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-bottom:1px solid var(--glLine);}
 .who{display:flex;align-items:center;gap:9px;padding:11px 16px 0;}
 .avt{width:26px;height:26px;border-radius:999px;background:var(--brand);color:var(--accTx);
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
@@ -193,7 +215,8 @@ html[data-theme="dark"] .glass::after{
 
 /* ── 年月選擇 ── */
 .pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
-  background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:20px;padding:14px;
   display:none;box-shadow:var(--sh);max-width:400px;margin:0 auto;}
 .pk.open{display:block;}
 .pkh{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
@@ -204,7 +227,8 @@ html[data-theme="dark"] .glass::after{
 .pkb.now{outline:1.5px solid var(--acc);color:var(--accT);font-weight:500;}
 
 /* ── 行程卡 ── */
-.ev{background:var(--card);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;
+.ev{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;
   display:flex;gap:11px;cursor:pointer;}
 .ev:active{opacity:.75;}
 .evb{width:3.5px;border-radius:999px;flex-shrink:0;}
@@ -217,8 +241,9 @@ html[data-theme="dark"] .glass::after{
 
 /* ── 底部列 ── */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;
-  justify-content:space-around;background:var(--card);border-top:1px solid var(--line);
-  padding:8px 10px calc(10px + env(safe-area-inset-bottom));}
+  justify-content:space-around;padding:8px 10px calc(10px + env(safe-area-inset-bottom));
+  background:var(--gl);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-top:1px solid var(--glLine);}
 .nb{display:flex;align-items:center;padding:9px;border-radius:999px;color:var(--tx3);font-size:12.5px;}
 .nb svg{width:22px;height:22px;}
 .nb em{display:none;font-style:normal;font-weight:600;}
@@ -228,7 +253,9 @@ html[data-theme="dark"] .glass::after{
 /* ── 底部面板 ── */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:70;display:none;align-items:flex-end;}
 .ov.open{display:flex;}
-.sheet{background:var(--bg);width:100%;max-width:520px;margin:0 auto;
+.sheet{width:100%;max-width:520px;margin:0 auto;
+  background:var(--gl);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-top:1px solid var(--glLine);
   border-radius:22px 22px 0 0;padding:16px 16px calc(26px + env(safe-area-inset-bottom));
   max-height:88vh;overflow-y:auto;animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
@@ -241,7 +268,8 @@ html[data-theme="dark"] .glass::after{
 .kr>svg{color:var(--tx3);margin-top:2px;flex-shrink:0;}
 .kk{color:var(--tx3);flex-shrink:0;min-width:62px;}
 .kvv{flex:1;min-width:0;color:var(--tx);line-height:1.7;word-break:break-word;}
-.tsec{background:var(--card);border-radius:var(--r);padding:11px 14px;margin-bottom:8px;}
+.tsec{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);padding:11px 14px;margin-bottom:8px;}
 .tsh{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;
   padding-bottom:7px;border-bottom:1px solid var(--line);}
 .tq{background:var(--card2);color:var(--tx2);font-size:11px;font-weight:500;
@@ -253,15 +281,17 @@ html[data-theme="dark"] .glass::after{
 .ob.on{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:500;}
 
 /* ── 清單 ── */
-.lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;background:var(--card);
-  border-radius:var(--r);margin-bottom:7px;}
+.lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:7px;}
 .pav{width:36px;height:36px;border-radius:999px;background:var(--card2);color:var(--tx2);
   display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
 .tag{font-size:11px;padding:4px 11px;border-radius:999px;background:var(--card2);color:var(--tx2);white-space:nowrap;}
 .tag.g{background:var(--tint);color:var(--accT);}
 .link{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  background:var(--card);border-radius:var(--r);padding:14px 15px;margin-bottom:7px;width:100%;
-  font-size:15px;text-align:left;}
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);padding:14px 15px;margin-bottom:7px;
+  width:100%;font-size:15px;text-align:left;}
 .link svg{color:var(--tx3);flex-shrink:0;}
 .link:active{opacity:.7;}
 
@@ -388,20 +418,23 @@ var ICON={
  note:'<path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
  hash:'<path d="M9 3 7 21M17 3l-2 18M4 8.5h16M3 15.5h16"/>',
+ hardhat:'<path d="M3 17.5a9 9 0 0 1 18 0"/><path d="M2 17.5h20"/>'
+   +'<path d="M9.5 9.2V6.4A2.4 2.4 0 0 1 12 4a2.4 2.4 0 0 1 2.5 2.4v2.8"/>'
+   +'<path d="M12 4V2.6"/>',
  moon:'<path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5z"/>',
  sun2:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
  eyeoff:'<path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3 3.6M6.6 6.7A17 17 0 0 0 2 12s3.6 6 10 6a9.7 9.7 0 0 0 3.7-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
- logo:'<rect x="3" y="5" width="18" height="16" rx="3.4" fill="currentColor" stroke="none"/>'
-   +'<rect x="3" y="5" width="18" height="5.6" rx="3.4" fill="#fff" fill-opacity=".34" stroke="none"/>'
-   +'<rect x="3" y="8.8" width="18" height="1.8" fill="#fff" fill-opacity=".34" stroke="none"/>'
-   +'<rect x="7.2" y="2.3" width="2" height="4.4" rx="1" fill="currentColor" stroke="none"/>'
-   +'<rect x="14.8" y="2.3" width="2" height="4.4" rx="1" fill="currentColor" stroke="none"/>'
-   +'<g fill="#fff" fill-opacity=".62" stroke="none">'
-   +'<circle cx="7.5" cy="13.6" r="1.2"/><circle cx="11.2" cy="13.6" r="1.2"/>'
-   +'<circle cx="14.9" cy="13.6" r="1.2"/><circle cx="18.1" cy="13.6" r="1.2"/>'
-   +'<circle cx="7.5" cy="17.3" r="1.2"/><circle cx="14.9" cy="17.3" r="1.2"/><circle cx="18.1" cy="17.3" r="1.2"/>'
-   +'</g><circle cx="11.2" cy="17.3" r="1.85" fill="#fff" stroke="none"/>'
+ logo:'<rect x="1.6" y="4.2" width="20.8" height="17.6" rx="3.9" fill="currentColor" stroke="none"/>'
+   +'<rect x="1.6" y="4.2" width="20.8" height="6.1" rx="3.9" fill="#fff" fill-opacity=".32" stroke="none"/>'
+   +'<rect x="1.6" y="8" width="20.8" height="2.3" fill="#fff" fill-opacity=".32" stroke="none"/>'
+   +'<rect x="6.4" y="1.4" width="2.2" height="4.8" rx="1.1" fill="currentColor" stroke="none"/>'
+   +'<rect x="15.4" y="1.4" width="2.2" height="4.8" rx="1.1" fill="currentColor" stroke="none"/>'
+   +'<g fill="#fff" fill-opacity=".66" stroke="none">'
+   +'<circle cx="6.2" cy="13.3" r="1.45"/><circle cx="10.1" cy="13.3" r="1.45"/>'
+   +'<circle cx="14" cy="13.3" r="1.45"/><circle cx="17.9" cy="13.3" r="1.45"/>'
+   +'<circle cx="6.2" cy="18.1" r="1.45"/><circle cx="14" cy="18.1" r="1.45"/><circle cx="17.9" cy="18.1" r="1.45"/>'
+   +'</g><circle cx="10.1" cy="18.1" r="1.9" fill="#fff" stroke="none"/>'
 };
 function ic(n,sz){
   return '<svg viewBox="0 0 24 24" width="'+(sz||20)+'" height="'+(sz||20)+'" fill="none" '
@@ -502,18 +535,137 @@ function cVer(v){
 
 /* ── 資料 ── */
 var NTC='espc_ntc';
-var PHONE={},STAFF=[],STAFF_VER='';
+var PHONE={},SAFETY={},STAFF=[],STAFF_VER='';
 var allRows=[],rows=[],curY,curM,pkY;
 var todayRows=[],todayFor='';
 var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
+// 職安類型建議清單，可自行輸入其他值
+var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
+  '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管'];
 var F={rg:'',en:'',ty:[]};
 var tab='today',sub='';
 
+/* ══ 職安效期 ══
+   訓練日起算 2 年有效，到期前 3 個月開始提醒 */
+var SAFETY_YEARS=2, SAFETY_WARN_DAYS=92;
+
+function addYears(d,n){
+  var a=String(d||'').split('-');
+  if(a.length<3)return '';
+  var y=parseInt(a[0],10)+n,m=parseInt(a[1],10),dd=parseInt(a[2],10);
+  var last=new Date(y,m,0).getDate();     // 處理 2/29
+  if(dd>last)dd=last;
+  return y+'-'+p2(m)+'-'+p2(dd);
+}
+function daysBetween(a,b){
+  var x=String(a||'').split('-'),y=String(b||'').split('-');
+  if(x.length<3||y.length<3)return null;
+  return Math.round((Date.UTC(+y[0],+y[1]-1,+y[2])-Date.UTC(+x[0],+x[1]-1,+x[2]))/86400000);
+}
+/** {type,train,expire,days,state}；state: ok / warn / expired / nodate */
+function safetyOf(name){
+  var sf=SAFETY[String(name||'').trim()];
+  if(!sf)return null;
+  var o={type:sf.type||'',train:sf.train||'',expire:'',days:null,state:'nodate'};
+  if(o.train){
+    o.expire=addYears(o.train,SAFETY_YEARS);
+    o.days=daysBetween(twStr(),o.expire);
+    o.state=o.days<0?'expired':(o.days<=SAFETY_WARN_DAYS?'warn':'ok');
+  }
+  return o;
+}
+function safetyText(o){
+  if(!o)return '';
+  if(o.state==='nodate')return '未填訓練日期';
+  if(o.state==='expired')return '已於 '+o.expire+' 到期（逾期 '+Math.abs(o.days)+' 天）';
+  return o.expire+' 到期（剩 '+o.days+' 天）';
+}
+/** 需要回訓的名單，依到期日排序 */
+function safetyDue(){
+  var out=[];
+  STAFF.forEach(function(x){
+    var o=safetyOf(x.name);
+    if(o&&(o.state==='warn'||o.state==='expired'))out.push({name:x.name,o:o});
+  });
+  out.sort(function(a,b){return (a.o.days==null?9e9:a.o.days)-(b.o.days==null?9e9:b.o.days);});
+  return out;
+}
+
+/** 職安標記：點工地帽看種類與效期，顏色隨狀態變化 */
+function hatMark(n){
+  var o=safetyOf(n);
+  if(!o)return '';
+  var cls='hat'+(o.state==='expired'?' bad':(o.state==='warn'?' warn':''));
+  return '<button class="'+cls+'" onclick="event.preventDefault();event.stopPropagation();'
+    +'showSafety(\''+esc(n)+'\')" title="職安人員">'+ic('hardhat',15)+'</button>';
+}
+
+function showSafety(n){
+  n=String(n||'').trim();
+  var o=safetyOf(n);
+  if(!o){toast(n+' 未登記職安資料','',3000);return;}
+  var h='<div class="shh"><div>'
+    +'<div class="evt" style="color:var(--accT)">職安人員</div>'
+    +'<h3 style="margin-top:3px">'+he(n)+'</h3></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">'
+    +kr('hardhat','職安種類',he(o.type||'未填'))
+    +kr('clock','訓練日期',he(o.train||'未填'))
+    +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+SAFETY_YEARS+' 年）</span>':'');
+  var st='',col='';
+  if(o.state==='expired'){st='已逾期 '+Math.abs(o.days)+' 天，請盡快安排回訓';col='var(--err)';}
+  else if(o.state==='warn'){st=o.days+' 天後到期，請安排回訓';col='var(--warn)';}
+  else if(o.state==='ok'){st='有效，剩 '+o.days+' 天';col='var(--accT)';}
+  else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
+  h+='<div class="kr">'+ic('note',16)+'<span class="kk">狀態</span>'
+    +'<span class="kvv" style="color:'+col+';font-weight:600">'+he(st)+'</span></div></div>';
+  if(PHONE[n])
+    h+='<a class="btn btn-full" style="margin-top:14px" href="tel:'+he(PHONE[n].replace(/-/g,''))+'">撥打 '+he(PHONE[n])+'</a>';
+  if(canWrite(ROLE))
+    h+='<button class="btn btn-p btn-full" style="margin-top:8px" onclick="editStaff(\''+esc(n)+'\')">編輯職安資料</button>';
+  openSheet(h);
+}
+
+/** 回訓名單 */
+function openDue(){
+  var due=safetyDue();
+  var h='<div class="shh"><div>'
+    +'<div class="evt" style="color:var(--warn)">職安回訓</div>'
+    +'<h3 style="margin-top:3px">需要安排回訓</h3>'
+    +'<p class="hint" style="margin-top:3px">效期 '+SAFETY_YEARS+' 年，到期前 3 個月開始提醒</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>';
+  if(!due.length)h+='<div class="empty">目前沒有即將到期的職安人員</div>';
+  due.forEach(function(x){
+    var bad=x.o.state==='expired';
+    h+='<div class="ev" onclick="showSafety(\''+esc(x.name)+'\')">'
+      +'<div class="evb" style="background:'+(bad?'var(--err)':'var(--warn)')+'"></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="evn" style="font-size:14px">'+he(x.name)+'</div>'
+      +'<div class="evm">'+he(x.o.type||'未填種類')+'</div>'
+      +'<div class="evm" style="color:'+(bad?'var(--err)':'var(--warn)')+';font-weight:500">'
+      +he(safetyText(x.o))+'</div></div></div>';
+  });
+  openSheet(h);
+}
+
+/** 月初提醒：每月第一次開啟時，若有人即將到期就帶到通訊錄並跳出名單 */
+var DUE_KEY='espc_due_notice';
+function checkDueNotice(){
+  if(!canWrite(ROLE))return;
+  var ym=twStr().slice(0,7);
+  if(ls(DUE_KEY)===ym)return;
+  var due=safetyDue();
+  lsS(DUE_KEY,ym);
+  if(!due.length)return;
+  setTimeout(function(){go('book');openDue();},600);
+}
+
+/** 姓名（電話）＋職安標記 */
 function telLink(n){
   if(!n)return '';n=String(n).trim();
-  var ph=PHONE[n];
-  if(!ph)return he(n);
-  return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)+' <span style="color:var(--tx3);font-size:.92em">'+he(ph)+'</span></a>';
+  var ph=PHONE[n],hat=hatMark(n);
+  if(!ph)return he(n)+hat;
+  return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)
+    +' <span style="color:var(--tx3);font-size:.92em">'+he(ph)+'</span></a>'+hat;
 }
 
 /** 專案編號若已被試算表轉成科學記號（舊資料），就不顯示免得亂碼 */
@@ -610,7 +762,7 @@ function boot(u,r,eng){
   if(fresh)cPrune(false);
 
   ntInit();
-  loadStaff(function(){loadToday(fresh);},fresh);
+  loadStaff(function(){loadToday(fresh);checkDueNotice();},fresh);
 }
 
 /* ══ 導覽 ══ */
@@ -890,7 +1042,21 @@ function bookPage(){
   var teams=TEAMS.slice();
   STAFF.forEach(function(s){var t=(s.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
 
-  var h='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
+  var h='';
+  // 回訓提醒：只有可維護通訊錄的人看得到
+  if(canWrite(ROLE)){
+    var due=safetyDue();
+    if(due.length){
+      var bad=due.filter(function(x){return x.o.state==='expired';}).length;
+      h+='<button class="duebar'+(bad?' bad':'')+'" onclick="openDue()">'
+        +ic('hardhat',18)
+        +'<span style="flex:1;text-align:left">'
+        +(bad?'<b>'+bad+' 人職安已逾期</b>':'<b>'+due.length+' 人職安即將到期</b>')
+        +(bad&&due.length>bad?'，另有 '+(due.length-bad)+' 人即將到期':'')
+        +'</span>'+ic('right',16)+'</button>';
+    }
+  }
+  h+='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
     +'<div style="display:flex;gap:7px;margin-bottom:12px">'
     +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1">'
     +['','台北','台中','高雄','_n'].map(function(o){
@@ -922,10 +1088,11 @@ function bookList(){
   list.forEach(function(s){
     var ph=(s.phone||'').trim();
     h+='<div class="lrow"><div class="pav">'+he(s.name.slice(0,1))+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'+he(s.name)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
+      +he(s.name)+hatMark(s.name)+'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
       +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
-      +(s.region?'　·　'+he(s.region):'')+'</div></div>'
+      +'</div></div>'
       +(s.team?'<span class="tag g">'+he(s.team)+'</span>':'')
       +(canWrite(ROLE)?'<button class="ib" style="width:32px;height:32px;font-size:13px" onclick="editStaff(\''+esc(s.name)+'\')">✎</button>':'')
       +'</div>';
@@ -1027,8 +1194,12 @@ function loadStaff(cb,force){
   }).catch(function(){if(cb)cb();});
 }
 function applyStaff(l){
-  STAFF=l||[];PHONE={};
-  STAFF.forEach(function(s){if(s.name)PHONE[s.name]=s.phone||'';});
+  STAFF=l||[];PHONE={};SAFETY={};
+  STAFF.forEach(function(s){
+    if(!s.name)return;
+    PHONE[s.name]=s.phone||'';
+    if(s.safety||s.trainDate)SAFETY[s.name]={type:s.safety||'',train:s.trainDate||''};
+  });
 }
 
 /* ══ 篩選 ══ */
@@ -1220,7 +1391,7 @@ function pickM(y,m){
 
 /* ══ 人員編輯 ══ */
 function editStaff(name){
-  var s={name:'',phone:'',region:'',team:'',note:''};
+  var s={name:'',phone:'',region:'',team:'',safety:'',trainDate:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
   var teams=TEAMS.slice();
   STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
@@ -1233,15 +1404,33 @@ function editStaff(name){
       return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')+'</select>'
     +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team)+'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
     +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<p class="lb">職安種類</p><input class="fld" id="s-sf" list="sfl" value="'+he(s.safety||'')+'" placeholder="留空表示非職安人員" style="margin-bottom:13px">'
+    +'<datalist id="sfl">'+SAFETY_TYPES.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<p class="lb">初訓／回訓日期　<span style="color:var(--tx2)">效期 '+SAFETY_YEARS+' 年</span></p>'
+    +'<input class="fld" id="s-td" type="date" value="'+he(s.trainDate||'')+'" style="margin-bottom:4px">'
+    +'<p class="hint" id="s-exp" style="margin:0 0 13px 10px"></p>'
     +'<p class="lb">備註</p><input class="fld" id="s-o" value="'+he(s.note)+'" placeholder="職務（選填）" style="margin-bottom:18px">'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
     +(name?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
   openSheet(h);
+  var td=$('s-td');
+  if(td){
+    var upd=function(){
+      var v=td.value,e=$('s-exp');
+      if(!e)return;
+      if(!v){e.textContent='填入訓練日期後會自動計算有效期限';e.style.color='';return;}
+      var ex=addYears(v,SAFETY_YEARS),d=daysBetween(twStr(),ex);
+      e.textContent='有效期限至 '+ex+(d<0?'　已逾期 '+Math.abs(d)+' 天':'　剩 '+d+' 天');
+      e.style.color=d<0?'var(--err)':(d<=SAFETY_WARN_DAYS?'var(--warn)':'');
+    };
+    td.addEventListener('change',upd);upd();
+  }
 }
 function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
-  gas('saveStaff',TOKEN,n,$('s-p').value.trim(),$('s-r').value,$('s-t').value.trim(),$('s-o').value.trim())
+  gas('saveStaff',TOKEN,n,$('s-p').value.trim(),$('s-r').value,$('s-t').value.trim(),
+      $('s-sf').value.trim(),$('s-td').value,$('s-o').value.trim())
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
