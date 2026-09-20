@@ -590,6 +590,14 @@ var tab='today',sub='';
 /* ══ 職安效期 ══
    訓練日起算 2 年有效，到期前 3 個月開始提醒 */
 var SAFETY_YEARS=2, SAFETY_WARN_DAYS=92;
+var YEAR_OPTS=[1,2,3,4,5,6];       // 可選效期；0 代表無期限
+/** 讀出證照效期年數：未填視為預設 2 年，0 為無期限 */
+function ecYears(c){
+  var y=(c&&c.years!==undefined&&c.years!==null&&c.years!=='')?parseInt(c.years,10):SAFETY_YEARS;
+  if(isNaN(y)||y<0)y=SAFETY_YEARS;
+  return y>10?10:y;
+}
+function yearLabel(y){return y?y+' 年':'無期限';}
 
 function addYears(d,n){
   var a=String(d||'').split('-');
@@ -606,10 +614,12 @@ function daysBetween(a,b){
 }
 /** 單張證照 → {type,cert,train,expire,days,state}；state: ok / warn / expired / nodate */
 function certOf(c){
-  var o={type:c.type||'',cert:c.cert||'',train:c.train||'',
+  var y=ecYears(c);
+  var o={type:c.type||'',cert:c.cert||'',train:c.train||'',years:y,
          expire:'',days:null,state:'nodate'};
+  if(!y){o.state='forever';return o;}          // 無期限，不會進提醒
   if(o.train){
-    o.expire=addYears(o.train,SAFETY_YEARS);
+    o.expire=addYears(o.train,y);
     o.days=daysBetween(twStr(),o.expire);
     o.state=o.days<0?'expired':(o.days<=SAFETY_WARN_DAYS?'warn':'ok');
   }
@@ -622,7 +632,7 @@ function safetyList(name){
   return a.map(certOf);
 }
 /** 最需要注意的那張（逾期 > 快到期 > 未填日期 > 有效），給工地帽燈號用 */
-var STATE_RANK={expired:0,warn:1,nodate:2,ok:3};
+var STATE_RANK={expired:0,warn:1,nodate:2,ok:3,forever:4};
 function safetyOf(name){
   var l=safetyList(name);
   if(!l.length)return null;
@@ -635,6 +645,7 @@ function safetyOf(name){
 }
 function safetyText(o){
   if(!o)return '';
+  if(o.state==='forever')return '無期限';
   if(o.state==='nodate')return '未填訓練日期';
   if(o.state==='expired')return '已於 '+o.expire+' 到期（逾期 '+Math.abs(o.days)+' 天）';
   return o.expire+' 到期（剩 '+o.days+' 天）';
@@ -653,7 +664,7 @@ function safetyDue(){
 
 /** 燈號：效期內綠、不滿 3 個月橘、逾期紅、未填日期橘 */
 function hatDot(o){
-  var c=(o.state==='expired')?'bad':(o.state==='ok'?'good':'warn');
+  var c=(o.state==='expired')?'bad':((o.state==='ok'||o.state==='forever')?'good':'warn');
   return '<span class="hdot '+c+'"></span>';
 }
 
@@ -694,12 +705,15 @@ function showSafety(n){
     if(o.state==='expired'){st='已逾期 '+Math.abs(o.days)+' 天，請盡快安排回訓';col='var(--err)';}
     else if(o.state==='warn'){st=o.days+' 天後到期，請安排回訓';col='var(--warn)';}
     else if(o.state==='ok'){st='有效，剩 '+o.days+' 天';col='var(--ok)';}
+    else if(o.state==='forever'){st='無期限，不需回訓';col='var(--ok)';}
     else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
     h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'><div class="kv">'
       +kr('shield','職安種類',he(o.type||'未填'))
       +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
       +kr('clock','訓練日期',he(o.train||'未填'))
-      +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+SAFETY_YEARS+' 年）</span>':'')
+      +kr('clip','有效期限',o.state==='forever'?'<span style="color:var(--tx3)">無期限</span>'
+        :(o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+o.years+' 年）</span>'
+                  :'<span style="color:var(--tx3)">—</span>'))
       +'<div class="kr">'+ic('note',16)+'<span class="kk">狀態</span>'
       +'<span class="kvv" style="color:'+col+';font-weight:600">'+he(st)+'</span></div>'
       +'</div></div>';
@@ -729,7 +743,7 @@ function openDue(startup,mine){
     +(startup?'⛑️ 職安提醒':'職安回訓')+'</div>'
     +'<h3 style="margin-top:3px">'+title+'</h3>'
     +'<p class="hint" style="margin-top:3px">'
-    +(mine?'請與主管或排程人員聯繫安排回訓':'效期 '+SAFETY_YEARS+' 年，到期前 3 個月開始提醒')+'</p></div>'
+    +(mine?'請與主管或排程人員聯繫安排回訓':'每張證照到期前 3 個月開始提醒')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>';
   if(!due.length)h+='<div class="empty">目前沒有即將到期的職安人員</div>';
   due.forEach(function(x){
@@ -1380,7 +1394,8 @@ function applyStaff(l){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
     var cs=(s.certs||[]).map(function(o){
-      return {type:String(o.t||'').trim(),cert:String(o.c||'').trim(),train:String(o.d||'').trim()};
+      return {type:String(o.t||'').trim(),cert:String(o.c||'').trim(),
+              train:String(o.d||'').trim(),years:o.y};
     }).filter(function(o){return o.type||o.cert||o.train;});
     if(!cs.length&&(s.safety||s.trainDate||s.certNo))      // 相容舊資料
       cs=[{type:s.safety||'',cert:s.certNo||'',train:s.trainDate||''}];
@@ -1594,7 +1609,7 @@ function editStaff(name){
   var s={name:'',phone:'',region:'',team:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
   EC=safetyList(name).map(function(o){
-    return {type:o.type,cert:o.cert,train:o.train};});
+    return {type:o.type,cert:o.cert,train:o.train,years:o.years};});
   var teams=TEAMS.slice();
   STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
   var h='<div class="shh"><h3>'+(name?'編輯人員':'新增人員')+'</h3>'
@@ -1640,28 +1655,37 @@ function certsHTML(){
       +'<input class="fld" id="c-t'+i+'" list="sfl" value="'+he(c.type||'')+'" placeholder="例：甲種職業安全衛生業務主管" style="margin-bottom:10px">'
       +'<p class="lb">證書字號</p>'
       +'<input class="fld" id="c-c'+i+'" value="'+he(c.cert||'')+'" placeholder="選填" style="margin-bottom:10px">'
-      +'<p class="lb">初訓／回訓日期　<span style="color:var(--tx2)">效期 '+SAFETY_YEARS+' 年</span></p>'
-      +'<input class="fld" type="date" id="c-d'+i+'" value="'+he(c.train||'')+'" onchange="ecExp('+i+')" style="margin-bottom:4px">'
-      +'<p class="hint" id="c-e'+i+'" style="margin:0 0 2px 10px">'+expText(c.train)+'</p>'
+      +'<div style="display:flex;gap:8px">'
+      +'<div style="flex:1.7;min-width:0"><p class="lb">初訓／回訓日期</p>'
+      +'<input class="fld" type="date" id="c-d'+i+'" value="'+he(c.train||'')+'" onchange="ecExp('+i+')"></div>'
+      +'<div style="flex:1;min-width:0"><p class="lb">效期</p>'
+      +'<select class="fld" id="c-y'+i+'" onchange="ecExp('+i+')">'
+      +YEAR_OPTS.concat([0]).map(function(y){
+        return '<option value="'+y+'"'+(ecYears(c)===y?' selected':'')+'>'+yearLabel(y)+'</option>';}).join('')
+      +'</select></div></div>'
+      +'<p class="hint" id="c-e'+i+'" style="margin:4px 0 2px 10px">'+expText(c.train,ecYears(c))+'</p>'
       +'</div>';
   });
   return h+'<button class="addc"'+(EC.length?' style="margin-top:9px"':'')
     +' onclick="ecAdd()">＋ 新增證照</button>';
 }
-function expText(v){
+function expText(v,y){
+  if(!y)return '此證照設為無期限，不會提醒回訓';
   if(!v)return '填入訓練日期後會自動計算有效期限';
-  var ex=addYears(v,SAFETY_YEARS),d=daysBetween(twStr(),ex);
+  var ex=addYears(v,y),d=daysBetween(twStr(),ex);
   return '有效期限至 '+ex+(d<0?'　已逾期 '+Math.abs(d)+' 天':'　剩 '+d+' 天');
 }
-function expCol(v){
-  if(!v)return '';
-  var d=daysBetween(twStr(),addYears(v,SAFETY_YEARS));
+function expCol(v,y){
+  if(!y||!v)return '';
+  var d=daysBetween(twStr(),addYears(v,y));
   return d<0?'var(--err)':(d<=SAFETY_WARN_DAYS?'var(--warn)':'var(--ok)');
 }
 function ecExp(i){
-  var v=$('c-d'+i)?$('c-d'+i).value:'',e=$('c-e'+i);
+  var e=$('c-e'+i);
   if(!e)return;
-  e.textContent=expText(v);e.style.color=expCol(v);
+  var v=$('c-d'+i)?$('c-d'+i).value:'';
+  var y=$('c-y'+i)?parseInt($('c-y'+i).value,10):SAFETY_YEARS;
+  e.textContent=expText(v,y);e.style.color=expCol(v,y);
 }
 /** 把畫面上的值收回 EC，重畫時才不會遺失 */
 function ecSync(){
@@ -1669,6 +1693,7 @@ function ecSync(){
     if($('c-t'+i))c.type=$('c-t'+i).value.trim();
     if($('c-c'+i))c.cert=$('c-c'+i).value.trim();
     if($('c-d'+i))c.train=$('c-d'+i).value;
+    if($('c-y'+i))c.years=parseInt($('c-y'+i).value,10);
   });
 }
 function paintCerts(){
@@ -1678,7 +1703,7 @@ function paintCerts(){
 function ecAdd(){
   ecSync();
   if(EC.length>=10){toast('最多 10 張證照','no');return;}
-  EC.push({type:'',cert:'',train:''});
+  EC.push({type:'',cert:'',train:'',years:SAFETY_YEARS});
   paintCerts();
   var el=$('c-t'+(EC.length-1));if(el)el.focus();
 }
@@ -1689,7 +1714,7 @@ function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
   ecSync();
-  var certs=EC.map(function(c){return {t:c.type||'',c:c.cert||'',d:c.train||''};})
+  var certs=EC.map(function(c){return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c)};})
               .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
       JSON.stringify(certs),$('s-o').value.trim())
