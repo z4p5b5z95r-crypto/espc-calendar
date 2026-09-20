@@ -300,6 +300,18 @@ function ic(n,sz){
 function he(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function p2(n){return String(n).padStart(2,'0');}
 function sv(v){return v!=null?String(v).trim():'';}
+/** 專案編號如 108E-251 會被判成數字，這裡還原成原字串 */
+function svNo(v){
+  if(typeof v==='number'&&v!==0&&Math.abs(v)<1e-4){
+    var m=v.toExponential().match(/^(-?)(\d)(?:\.(\d+))?e([+-]\d+)$/);
+    if(m){
+      var digits=m[2]+(m[3]||'');
+      var exp=parseInt(m[4],10)-(m[3]?m[3].length:0);
+      return m[1]+digits+'E'+exp;
+    }
+  }
+  return sv(v);
+}
 function $(id){return document.getElementById(id);}
 function ls(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
 function lsS(k,v){try{localStorage.setItem(k,v);}catch(e){}}
@@ -386,6 +398,15 @@ function telLink(n){
   var ph=PHONE[n];
   if(!ph)return he(n);
   return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)+' <span style="color:var(--tx3);font-size:.92em">'+he(ph)+'</span></a>';
+}
+
+/** 有篩選空品車時，空品車的行程要顯示車號 */
+function carTag(g){
+  if(F.ty.indexOf('空品車')<0)return '';
+  if(g.types.indexOf('空品車')<0)return '';
+  var cars=g.eqs.filter(function(x){return /號車/.test(x);});
+  if(!cars.length)cars=g.eqs.slice(0,2);
+  return cars.length?'（'+cars.join('、')+'）':'';
 }
 
 /* ── 專案配色 ── */
@@ -569,7 +590,7 @@ function todayPage(){
         h+='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')" style="padding:10px 13px">'
           +'<div class="dbox"><b>'+parseInt(dd[2])+'</b><span>'+DW[dowOf(d)]+'</span></div>'
           +'<div class="evb" style="background:'+c+'"></div>'
-          +'<div style="min-width:0;flex:1"><div class="evn" style="font-size:14px">'+he(g.project)+'</div>'
+          +'<div style="min-width:0;flex:1"><div class="evn" style="font-size:14px">'+he(g.project+carTag(g))+'</div>'
           +'<div class="evm">'+he(g.types.join('、'))
           +(g.locs[0]?'　·　'+he(g.locs[0]):'')+'</div></div></div>';
       });
@@ -583,7 +604,9 @@ function evCard(g,d,full){
   var h='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')">'
     +'<div class="evb" style="background:'+c+'"></div><div style="min-width:0;flex:1">'
     +'<div class="evt" style="color:'+c+'">'+he(g.types.join('、'))+'</div>'
-    +'<div class="evn">'+he(g.project)+(g.no?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(g.no)+'</span>':'')+'</div>';
+    +'<div class="evn">'+he(g.project)
+    +(carTag(g)?'<span style="color:'+c+'">'+he(carTag(g))+'</span>':'')
+    +(g.no?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(g.no)+'</span>':'')+'</div>';
   if(g.locs.length)h+='<div class="evm">點位：'+he(g.locs.join(' / '))+'</div>';
   if(full){
     if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
@@ -626,7 +649,7 @@ function calPage(){
     gs.forEach(function(g){
       h+='<span class="evc" style="background:'+pcolor(g.project)+'"'
         +' onclick="event.stopPropagation();openEv(\''+ds+'\',\''+he(esc(g.project))+'\')">'
-        +he(g.project)+'</span>';
+        +he(g.project+carTag(g))+'</span>';
     });
     h+='</div>';
   }
@@ -832,41 +855,70 @@ function applyF(){
   render();
 }
 
+var FT={rg:'',en:'',ty:[]};   // 面板上的暫存條件，按「篩選」才套用
+
 function openFilter(){
-  var engs=[],tys=[],seen={},seen2={};
+  FT={rg:F.rg,en:F.en,ty:F.ty.slice()};
+  paintFilter();
+  $('ov').classList.add('open');
+}
+
+function paintFilter(){
+  var engs=[],tys=[],s1={},s2={};
   allRows.concat(todayRows).forEach(function(r){
-    if(r.engineer&&!seen[r.engineer]){seen[r.engineer]=1;engs.push(r.engineer);}
-    if(r.type&&!seen2[r.type]){seen2[r.type]=1;tys.push(r.type);}
+    if(r.engineer&&!s1[r.engineer]){s1[r.engineer]=1;engs.push(r.engineer);}
+    if(r.type&&!s2[r.type]){s2[r.type]=1;tys.push(r.type);}
   });
-  if(F.en&&engs.indexOf(F.en)<0)engs.push(F.en);
-  F.ty.forEach(function(t){if(tys.indexOf(t)<0)tys.push(t);});
-  engs.sort();tys.sort();
+  if(FT.en&&engs.indexOf(FT.en)<0)engs.push(FT.en);
+  FT.ty.forEach(function(t){if(tys.indexOf(t)<0)tys.push(t);});
+  engs.sort();
+  tys.sort();
+  // 空品車最常用，固定排第一
+  var ai=tys.indexOf('空品車');
+  if(ai>0)tys.unshift(tys.splice(ai,1)[0]);
 
   var h='<div class="shh"><h3>篩選</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
     +['','台北','台中','高雄'].map(function(o){
-      return '<option value="'+o+'"'+(F.rg===o?' selected':'')+'>'+(o||'全部地區')+'</option>';}).join('')+'</select>'
+      return '<option value="'+o+'"'+(FT.rg===o?' selected':'')+'>'+(o||'全部地區')+'</option>';}).join('')
+    +'</select>'
     +'<p class="lb">工程師</p><select class="fld" id="f-en" style="margin-bottom:16px">'
     +'<option value="">全部工程師</option>'
-    +engs.map(function(o){return '<option value="'+he(o)+'"'+(F.en===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
+    +engs.map(function(o){
+      return '<option value="'+he(o)+'"'+(FT.en===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p><div class="opts">'
-    +'<button class="ob'+(F.ty.length?'':' on')+'" onclick="pickTy(\'\')">全部</button>'
+    +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button>'
     +tys.map(function(t){
-      var on=F.ty.indexOf(t)>=0;
-      return '<button class="ob'+(on?' on':'')+'" onclick="pickTy(\''+esc(t)+'\')">'
+      var on=FT.ty.indexOf(t)>=0;
+      return '<button class="ob'+(on?' on':'')+'" onclick="tyPick(\''+he(esc(t))+'\')">'
         +(on?ic('check',15):'')+he(t)+'</button>';}).join('')
     +'</div>'
-    +'<button class="btn btn-full" style="margin-top:18px" onclick="F={rg:\'\',en:\'\',ty:[]};closeSheet();refetch()">清除全部篩選</button>';
-  openSheet(h);
-  $('f-rg').onchange=function(){F.rg=this.value;refetch();};
-  $('f-en').onchange=function(){F.en=this.value;refetch();};
+    +'<div style="display:flex;gap:9px;margin-top:22px">'
+    +'<button class="btn" style="flex:1" onclick="clearFilter()">清除篩選</button>'
+    +'<button class="btn btn-p" style="flex:1.4" onclick="applyFilter()">篩選'
+    +(nFT()?'（'+nFT()+'）':'')+'</button></div>';
+  $('sheet').innerHTML=h;
+  $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
+  $('f-en').onchange=function(){FT.en=this.value;paintFilter();};
 }
-function pickTy(t){
-  if(!t)F.ty=[];
-  else{var i=F.ty.indexOf(t);if(i>=0)F.ty.splice(i,1);else F.ty.push(t);}
-  refetch();openFilter();
+function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+FT.ty.length;}
+function tyPick(t){
+  if(!t)FT.ty=[];
+  else{var i=FT.ty.indexOf(t);if(i>=0)FT.ty.splice(i,1);else FT.ty.push(t);}
+  paintFilter();
 }
+function applyFilter(){
+  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice()};
+  closeSheet();refetch();
+  toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
+}
+function clearFilter(){
+  FT={rg:'',en:'',ty:[]};F={rg:'',en:'',ty:[]};
+  closeSheet();refetch();
+  toast('已清除篩選','ok',2000);
+}
+
 function refetch(){
   var cc=cGet('today'),t=twStr();
   if(cc&&cc.date===t)todayRows=(cc.rows||[]).filter(passF);
@@ -909,7 +961,7 @@ function openEv(d,proj){
   var dd=d.split('-'),c=pcolor(g.project);
   var h='<div class="shh"><div>'
     +'<div class="evt" style="color:'+c+'">'+he(g.types.join('、'))+'</div>'
-    +'<h3 style="margin-top:3px">'+he(g.project)+'</h3>'
+    +'<h3 style="margin-top:3px">'+he(g.project+carTag(g))+'</h3>'
     +'<p class="hint" style="margin-top:3px">'+parseInt(dd[1])+'月'+parseInt(dd[2])+'日　週'+DW[dowOf(d)]
     +(g.no?'　·　'+he(g.no):'')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div><div class="kv">';
@@ -1206,7 +1258,7 @@ function parseSheet(raw,sheet,fname){
       if(!ds||parseInt(ds.slice(0,4),10)<2020)continue;
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
-      out.push({date:ds,engineer:eng,project:proj,projectNo:sv(row[4]),type:type,
+      out.push({date:ds,engineer:eng,project:proj,projectNo:svNo(row[4]),type:type,
         location:sv(row[8]),qty:parseFloat(String(row[9]!=null?row[9]:''))||0,
         sampTime:sv(row[10]),equipment:sv(row[11]),applicant:sv(row[12]),
         reportNum:sv(row[7]),notes:[sv(row[13]),sv(row[14])].filter(Boolean).join('；'),
@@ -1224,7 +1276,7 @@ function parseSheet(raw,sheet,fname){
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
       if(proj&&proj!==lp){lp=proj;lr='';lsm='';lc='';ln='';}
-      var no=sv(row[4]);if(no)ln=no;else no=ln;
+      var no=svNo(row[4]);if(no)ln=no;else no=ln;
       var rpt=sv(row[12]);if(rpt)lr=rpt;else rpt=lr;
       var samp=sv(row[9]);if(samp)lsm=samp;else samp=lsm;
       var car=sv(row[14]);if(car)lc=car;else car=lc;
