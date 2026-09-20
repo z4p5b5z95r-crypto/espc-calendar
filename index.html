@@ -400,6 +400,15 @@ function telLink(n){
   return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)+' <span style="color:var(--tx3);font-size:.92em">'+he(ph)+'</span></a>';
 }
 
+/** 專案編號若已被試算表轉成科學記號（舊資料），就不顯示免得亂碼 */
+function okNo(v){
+  v=String(v||'').trim();
+  if(!v)return '';
+  if(/^-?\d(\.\d+)?e[+-]\d+$/i.test(v))return '';
+  if(v==='0')return '';
+  return v;
+}
+
 /** 有篩選空品車時，空品車的行程要顯示車號 */
 function carTag(g){
   if(F.ty.indexOf('空品車')<0)return '';
@@ -675,7 +684,7 @@ function groupBy(list){
     function add(arr,v){if(v&&arr.indexOf(v)<0)arr.push(v);}
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,r.engineer);
     add(g.notes,r.notes);add(g.reps,r.applicant);add(g.eqs,r.equipment);add(g.nums,r.reportNum);
-    if(!g.no&&r.projectNo)g.no=r.projectNo;
+    if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
     if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
     var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
@@ -1092,7 +1101,7 @@ function paintParse(uploading){
     +'<th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th></tr></thead><tbody>';
   pRows.slice(0,60).forEach(function(r){
     h+='<tr><td>'+he(r.date)+'</td><td>'+(r.engineer?he(r.engineer):'—')+'</td>'
-      +'<td>'+he(r.projectNo)+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
+      +'<td>'+he(okNo(r.projectNo))+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
       +'<td>'+he(r.location)+'</td><td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
       +'<td>'+he(r.reportNum)+'</td><td class="rgc">'+(r.region||'—')+'</td></tr>';
   });
