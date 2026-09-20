@@ -1215,6 +1215,7 @@ function evCard(g,d,full){
   if(full){
     if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
     if(g.engs.length)h+='<div class="evm">工程師：'+g.engs.map(telLink).join('、')+'</div>';
+    if(g.staff.length)h+='<div class="evm">監測人員：'+g.staff.map(telLink).join('、')+'</div>';
     if(g.cars.length)h+='<div class="evm">公務車：'+he(g.cars.join('、'))+'</div>';
   }
   return h+'</div></div>';
@@ -1759,7 +1760,7 @@ function openEv(d,proj){
 
   var shared=kr('helmet','工程師',g.engs.map(telLink).join('、'))
     +kr('car','公務車',he(g.cars.join('、')))
-    +kr('users','現場人員',g.staff.map(telLink).join('、'))
+    +kr('users','監測人員',g.staff.map(telLink).join('、'))
     +kr('note','備註',he(g.notes.join('；')));
   if(shared)h+='<div class="kv" style="margin-top:6px">'+shared+'</div>';
   if(gs.length>1){
