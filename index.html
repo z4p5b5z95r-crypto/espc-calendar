@@ -331,6 +331,12 @@ html[data-theme="dark"] .glass::after{
 /* 防毒面罩：罩住整個圓圈 */
 .pavmask{position:absolute;top:18px;left:-1px;width:40px;height:40px;z-index:2;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+/* 沒戴帽子時的效期燈號 */
+.pavdot{position:absolute;top:17px;right:-1px;width:10px;height:10px;border-radius:999px;
+  border:1.5px solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14);z-index:7;}
+.pavdot.good{background:#2eaa5e;}
+.pavdot.warn{background:#f5a623;}
+.pavdot.bad{background:#e53935;}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.32));}
@@ -361,6 +367,74 @@ html[data-theme="dark"] .glass::after{
   box-shadow:var(--sh);animation:up .2s ease;line-height:1.6;text-align:center;}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
+
+/* ══════════ 桌機版（≥ 900px）══════════
+   導覽列移到最上方，內容置中限寬，行事曆格子加高 */
+.glist{display:block;}
+@media(min-width:900px){
+  /* 左右留白：內容最寬 1180px，兩側自動撐開 */
+  :root{--gut:max(24px,calc((100vw - 1180px) / 2));}
+  #app{padding-bottom:36px;}
+
+  /* 導覽列：靠 order 搬到最上方 */
+  .nav{order:-1;position:sticky;top:0;bottom:auto;height:62px;
+    justify-content:flex-start;gap:4px;padding:0 var(--gut);
+    border-top:none;border-bottom:1px solid var(--glLine);}
+  .nb{font-size:14.5px;padding:9px 15px;gap:8px;transition:background .15s;}
+  .nb em{display:inline;font-weight:500;}
+  .nb:hover{background:var(--card2);color:var(--tx2);}
+  .nb.on{padding:9px 18px;font-weight:600;}
+  .nb.on em{font-weight:600;}
+  .nb.on:hover{background:var(--tint);color:var(--accT);}
+
+  /* 標題列：單行排版，使用者資訊靠右 */
+  .bar{top:62px;display:flex;flex-wrap:wrap;align-items:center;
+    gap:16px;padding:0 var(--gut);}
+  .hd{order:1;flex:1;min-width:0;justify-content:flex-start;gap:14px;padding:15px 0;}
+  .who{order:2;flex:0 0 auto;padding:0;gap:10px;}
+  .who-n{flex:0 0 auto;font-size:13px;}
+  .fchips{order:3;flex-basis:100%;padding:0 0 11px;}
+  .ttl{font-size:27px;}
+  #page{padding:20px var(--gut) 0;}
+
+  /* 按鈕加上滑鼠效果 */
+  .ib{transition:background .15s,transform .1s;}
+  .ib:hover{background:var(--line);}
+  .ev,.lrow,.link,.cell{transition:background .15s,box-shadow .15s;}
+  .ev:hover,.lrow:hover,.link:hover{box-shadow:0 2px 10px rgba(0,0,0,.07);}
+  .cell:hover{background:var(--card);}
+  .evc{cursor:pointer;}
+
+  /* 月曆：格子加高，一格塞得下 6 筆 */
+  .dow{font-size:13px;padding:4px 0 8px;}
+  .cgrid{gap:4px;}
+  .cell{height:138px;padding:6px 5px;border-radius:12px;}
+  .dn{font-size:13px;text-align:left;padding-left:3px;}
+  .evc{font-size:12px;line-height:1.75;padding:0 7px;margin-top:3px;}
+  .legend{padding:18px 4px 4px;gap:12px;}
+
+  /* 年月選擇器對齊標題 */
+  .pk{top:132px;left:var(--gut);right:auto;margin:0;width:400px;}
+
+  /* 今日與通訊錄分兩欄 */
+  .glist{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+    gap:0 10px;align-items:start;}
+  .lrow{margin-bottom:8px;}
+
+  /* 上傳：拖放區加大 */
+  .drop{padding:58px 24px;border-radius:22px;}
+  .drop:hover{border-color:var(--acc);background:var(--tint);}
+  .scroll{max-height:none;}
+
+  /* 表單類頁面不要撐到 1180，太寬反而難讀 */
+  .narrow{max-width:620px;}
+
+  /* 底部面板改成置中對話框 */
+  .ov{align-items:center;}
+  .sheet{border-radius:22px;max-height:84vh;max-width:540px;
+    padding:20px 20px 24px;border:1px solid var(--glLine);}
+  #toast{bottom:28px;}
+}
 </style>
 </head>
 <body>
@@ -679,7 +753,7 @@ function safetyDue(){
 
 /* 證照專屬標記：防毒面罩（缺氧作業）、急救箱（急救人員）
    兩者都是自己畫的 SVG，用漸層＋高光做出跟 ⛑️ 一致的立體感 */
-var MASK_SVG='<svg class="pavmask" viewBox="0 0 40 40" aria-hidden="true">'
+var MASK_SVG='<svg class="pavmask" viewBox="0 0 40 40">'
  +'<rect x="0.6" y="15" width="38.8" height="6.4" rx="3.2" fill="#333a41"/>'
  +'<path d="M20 3.6c9.2 0 15.2 5.6 15.2 13.9 0 6.7-3.1 11.4-7.8 14.4-2 1.3-4.7 2.1-7.4 2.1s-5.4-.8-7.4-2.1C7.9 28.9 4.8 24.2 4.8 17.5 4.8 9.2 10.8 3.6 20 3.6Z" fill="url(#gmb)" stroke="#2b3138" stroke-width=".9"/>'
  +'<path d="M20 7.8c6.7 0 11.4 3.5 11.4 8.5 0 4.2-4.2 7.1-11.4 7.1S8.6 20.5 8.6 16.3c0-5 4.7-8.5 11.4-8.5Z" fill="url(#gmv)" stroke="#39434c" stroke-width=".9"/>'
@@ -688,29 +762,38 @@ var MASK_SVG='<svg class="pavmask" viewBox="0 0 40 40" aria-hidden="true">'
  +'<rect x="15.6" y="25.2" width="8.8" height="1.8" rx=".9" fill="#ffffff" opacity=".34"/>'
  +'<circle cx="17.4" cy="29.6" r="1.15" fill="#7c3204"/><circle cx="20" cy="29.6" r="1.15" fill="#7c3204"/>'
  +'<circle cx="22.6" cy="29.6" r="1.15" fill="#7c3204"/></svg>';
-var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24" aria-hidden="true">'
+var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24">'
  +'<path d="M9.6 5.6V4.4c0-.8.6-1.4 1.4-1.4h2c.8 0 1.4.6 1.4 1.4v1.2" fill="none" stroke="#a82820" stroke-width="2.1" stroke-linecap="round"/>'
  +'<rect x="2.3" y="5.4" width="19.4" height="15.2" rx="3.4" fill="url(#gkb)" stroke="#8e211a" stroke-width="1"/>'
  +'<path d="M5 8.2c1.4-1.2 3.4-1.6 5.4-1.5L5.6 12C4.3 11.2 4 9.4 5 8.2Z" fill="#ffffff" opacity=".26"/>'
  +'<rect x="10.6" y="9.1" width="2.8" height="7.8" rx="1.3" fill="#fff"/>'
  +'<rect x="8.1" y="11.6" width="7.8" height="2.8" rx="1.3" fill="#fff"/></svg>';
 
-/** 依證照種類判斷要掛哪些標記 */
+/** 依證照種類判斷要掛哪些標記
+ *  safety：職安業務主管類 → 戴工地帽
+ *  mask  ：缺氧／侷限空間 → 防毒面罩
+ *  kit   ：急救人員       → 急救箱 */
 function certBadges(name){
-  var b={mask:false,kit:false};
+  var b={safety:false,mask:false,kit:false};
   safetyList(name).forEach(function(o){
     var t=o.type||'';
+    if(/職安|職業安全|安全衛生|營造業[甲乙丙]種/.test(t))b.safety=true;
     if(/缺氧|侷限空間|局限空間/.test(t))b.mask=true;
     if(/急救/.test(t))b.kit=true;
   });
   return b;
 }
+/** 讓標記可以點開職安詳情 */
+function badgeClick(n){
+  return ' style="pointer-events:auto;cursor:pointer" onclick="event.stopPropagation();showSafety(\''
+    +esc(n)+'\')"';
+}
 
 /** 燈號：效期內綠、不滿 3 個月橘、逾期紅、未填日期橘 */
-function hatDot(o){
-  var c=(o.state==='expired')?'bad':((o.state==='ok'||o.state==='forever')?'good':'warn');
-  return '<span class="hdot '+c+'"></span>';
+function dotClass(o){
+  return (o.state==='expired')?'bad':((o.state==='ok'||o.state==='forever')?'good':'warn');
 }
+function hatDot(o){return '<span class="hdot '+dotClass(o)+'"></span>';}
 
 /** 頭像＋工地帽：帽子壓在圓圈上緣，像戴在頭上 */
 function avatarHat(name){
@@ -718,13 +801,15 @@ function avatarHat(name){
   var o=safetyOf(n);
   var b=certBadges(n);
   var h='<div class="pavw"><div class="pav">'+he(n.slice(0,1))+'</div>';
-  if(b.mask)h+=MASK_SVG;                       // 面罩罩住圓圈
-  if(o){
-    // emoji 無法改色，效期狀態改用右上角小圓點；有面罩時帽子上移露出面罩
+  if(b.mask)h+=MASK_SVG.replace('<svg','<svg'+badgeClick(n));     // 面罩罩住圓圈
+  if(b.safety){
+    // 只有職安類證照才戴帽子；燈號掛在帽沿，有面罩時帽子上移露出面罩
     h+='<button class="pavhat'+(b.mask?' up':'')+'" title="職安人員"'
       +' onclick="event.stopPropagation();showSafety(\''+esc(n)+'\')">⛑️'+hatDot(o)+'</button>';
   }
-  if(b.kit)h+=KIT_SVG;                         // 急救箱壓在最上層
+  if(b.kit)h+=KIT_SVG.replace('<svg','<svg'+badgeClick(n));       // 急救箱壓在最上層
+  // 沒戴帽子的人，燈號單獨放在圓圈右上角（全身只會有一顆）
+  if(!b.safety&&o)h+='<span class="pavdot '+dotClass(o)+'"></span>';
   return h+'</div>';
 }
 
@@ -1055,7 +1140,7 @@ function todayPage(){
   var mine=todayRows.filter(function(r){return r.date===t;});
   var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
   if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
-  else h+=groupBy(mine).map(function(g){return evCard(g,t,true);}).join('');
+  else h+='<div class="glist">'+groupBy(mine).map(function(g){return evCard(g,t,true);}).join('')+'</div>';
 
   // 接下來只看未來 7 天
   var end=addDays(t,7);
@@ -1069,6 +1154,7 @@ function todayPage(){
   h+='<div class="sec">接下來 7 天</div>';
   if(!order.length)h+='<div class="card"><div class="empty" style="padding:20px">未來 7 天沒有排程</div></div>';
   else{
+    h+='<div class="glist">';
     order.forEach(function(d){
       groupBy(fut[d]).forEach(function(g){
         var dd=d.split('-'),c=pcolor(g.project);
@@ -1080,6 +1166,7 @@ function todayPage(){
           +(g.locs.length?'　·　'+he(locBrief(g)):'')+'</div></div></div>';
       });
     });
+    h+='</div>';
   }
   return h;
 }
@@ -1310,7 +1397,8 @@ function bookList(){
     safetyList(s.name).forEach(function(o){bits.push(o.type,o.cert);});
     return bits.join(' ').toLowerCase().indexOf(q)>=0;
   });
-  var h='<div id="blist"><div class="sec" style="margin-top:0">共 '+list.length+' 位</div>';
+  var h='<div id="blist"><div class="sec" style="margin-top:0">共 '+list.length+' 位</div>'
+    +'<div class="glist">';
   if(!list.length)h+='<div class="empty">查無符合的人員</div>';
   list.forEach(function(s){
     var ph=(s.phone||'').trim();
@@ -1325,7 +1413,7 @@ function bookList(){
       +(canWrite(ROLE)?'<button class="ib" style="width:32px;height:32px;font-size:13px" onclick="editStaff(\''+esc(s.name)+'\')">✎</button>':'')
       +'</div>';
   });
-  return h+'</div>';
+  return h+'</div></div>';
 }
 /** 篩選證照時，在列上補一行種類與效期 */
 function sfNote(name){
