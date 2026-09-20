@@ -1151,31 +1151,22 @@ function bookPage(){
     }
   }
   h+='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
-    +'<div style="display:flex;gap:7px;margin-bottom:12px">'
-    +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1">'
+    +'<div style="display:flex;gap:6px;margin-bottom:12px">'
+    +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1;min-width:0">'
     +['','台北','台中','高雄','_n'].map(function(o){
       return '<option value="'+o+'"'+(bookRg===o?' selected':'')+'>'+(o==='_n'?'未指定地區':(o||'全部地區'))+'</option>';}).join('')
     +'</select>'
-    +'<select class="fld" onchange="bookTm=this.value;paintBook()" style="flex:1">'
+    +'<select class="fld" onchange="bookTm=this.value;paintBook()" style="flex:1;min-width:0">'
     +'<option value="">全部組別</option>'
     +teams.filter(function(t){return used[t];}).map(function(t){
       return '<option value="'+he(t)+'"'+(bookTm===t?' selected':'')+'>'+he(t)+'（'+used[t]+'）</option>';}).join('')
     +(blank?'<option value="_n"'+(bookTm==='_n'?' selected':'')+'>未填組別</option>':'')
-    +'</select></div>'
-    +'<select class="fld" onchange="bookSf=this.value;paintBook()" style="width:100%;margin-bottom:12px">'
-    +[['','全部人員'],['_y','職安人員'],['_n','非職安人員']].map(function(o){
-      return '<option value="'+o[0]+'"'+(bookSf===o[0]?' selected':'')+'>'+o[1]
-        +(o[0]?'（'+sfCount(o[0])+'）':'')+'</option>';}).join('')
-    +'<optgroup label="效期狀態">'
-    +[['_ok','🟢 效期內'],['_warn','🟠 不滿 3 個月'],['_bad','🔴 已逾期'],['_nd','未填訓練日期']]
-      .map(function(o){var c=sfCount(o[0]);
-        return c?'<option value="'+o[0]+'"'+(bookSf===o[0]?' selected':'')+'>'+o[1]+'（'+c+'）</option>':'';}).join('')
-    +'</optgroup>'
-    +(sfTypes().length?'<optgroup label="證照種類">'
-      +sfTypes().map(function(t){
-        return '<option value="t:'+he(t)+'"'+(bookSf==='t:'+t?' selected':'')+'>'+he(t)+'（'+sfCount('t:'+t)+'）</option>';}).join('')
-      +'</optgroup>':'')
     +'</select>'
+    +'<select class="fld" onchange="bookSf=this.value;paintBook()" style="flex:1;min-width:0">'
+    +'<option value="">全部證照</option>'
+    +sfTypes().map(function(t){
+      return '<option value="'+he(t)+'"'+(bookSf===t?' selected':'')+'>'+he(t)+'（'+sfCount(t)+'）</option>';}).join('')
+    +'</select></div>'
     +bookList();
   if(canWrite(ROLE))
     h+='<button class="btn btn-p btn-full" style="margin-top:12px" onclick="editStaff()">新增人員</button>';
@@ -1192,19 +1183,11 @@ function sfTypes(){
   out.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
   return out;
 }
-/** 證照條件：''全部 / _y 職安 / _n 非職安 / _ok _warn _bad _nd 狀態 / t:種類 */
+/** 證照條件：'' 全部，其餘為證照種類 */
 function passSf(name,f){
   if(!f)return true;
   var o=safetyOf(name);
-  if(f==='_y')return !!o;
-  if(f==='_n')return !o;
-  if(!o)return false;
-  if(f==='_ok')return o.state==='ok';
-  if(f==='_warn')return o.state==='warn';
-  if(f==='_bad')return o.state==='expired';
-  if(f==='_nd')return o.state==='nodate';
-  if(f.slice(0,2)==='t:')return o.type===f.slice(2);
-  return true;
+  return !!o&&o.type===f;
 }
 function sfCount(f){
   var n=0;
@@ -1234,7 +1217,7 @@ function bookList(){
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
       +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
       +'</div></div>'
-      +(bookSf&&bookSf!=='_n'?sfNote(s.name):'')
+      +(bookSf?sfNote(s.name):'')
       +(s.team?'<span class="tag g">'+he(s.team)+'</span>':'')
       +(canWrite(ROLE)?'<button class="ib" style="width:32px;height:32px;font-size:13px" onclick="editStaff(\''+esc(s.name)+'\')">✎</button>':'')
       +'</div>';
