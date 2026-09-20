@@ -866,28 +866,51 @@ function buildNotifyText(t,rows){
   return{title:head+' 今日 '+lines.length+' 項行程',body:lines.join('\n')};
 }
 
-function fireDailyNotify(t){
-  function go(rows){
+/**
+ * 發送當日提醒。
+ * @param done(ok) ok=true 代表「這天處理完了」，可以標記為已提醒；
+ *                 ok=false 代表抓不到資料，稍後的 tick 會再試一次。
+ */
+function fireDailyNotify(t,done){
+  function go(rows,fresh){
     var eng=ss('espc_eng_p').trim();
     var mine=eng?rows.filter(function(r){return String(r.engineer||'').trim()===eng;}):rows;
     var c=ntCfg();
-    if(!mine.length&&!c.notifyEmpty)return;
+    if(!mine.length&&!c.notifyEmpty){
+      // 確實沒行程才算處理完；資料是舊的就不要定案，等下次重試
+      if(done)done(!!fresh);
+      return;
+    }
     var msg=buildNotifyText(t,mine);
-    showNotification(msg.title,msg.body);
+    var ok=showNotification(msg.title,msg.body);
+    if(done)done(ok);
   }
+
   if(TOKEN){
     gas('getData',TOKEN,{dateFrom:t,dateTo:t}).then(function(r){
-      if(r&&r.ok){lsSet(NT_CACHE,{date:t,rows:r.rows||[]});go(r.rows||[]);}
-      else{var cc=lsGet(NT_CACHE,null);go(cc&&cc.date===t?cc.rows:[]);}
-    }).catch(function(){var cc=lsGet(NT_CACHE,null);go(cc&&cc.date===t?cc.rows:[]);});
+      if(r&&r.ok&&!r.unchanged){
+        lsSet(NT_CACHE,{date:t,rows:r.rows||[]});
+        go(r.rows||[],true);
+      }else{
+        var cc=lsGet(NT_CACHE,null);
+        if(cc&&cc.date===t)go(cc.rows,true);
+        else if(done)done(false);        // 抓不到 → 不標記，稍後重試
+      }
+    }).catch(function(){
+      var cc=lsGet(NT_CACHE,null);
+      if(cc&&cc.date===t)go(cc.rows,false);
+      else if(done)done(false);
+    });
   }else{
     var cc=lsGet(NT_CACHE,null);
-    if(cc&&cc.date===t)go(cc.rows);
-    else showNotification('ESPC 監測行程','請開啟 App 查看今日行程。');
+    if(cc&&cc.date===t)go(cc.rows,false);
+    else if(done)done(false);
   }
 }
 
+var ntBusy=false;
 function ntTick(){
+  if(ntBusy)return;
   var c=ntCfg();
   if(!c.on||!ntSupported()||Notification.permission!=='granted')return;
   var now=twDate();
@@ -899,8 +922,15 @@ function ntTick(){
   var target=new Date(now);
   target.setHours(parseInt(hm[0],10)||0,parseInt(hm[1],10)||0,0,0);
   if(now<target)return;
-  c.last=t;lsSet(NT_KEY,c);
-  fireDailyNotify(t);
+
+  // 通知確實送出（或確認今天真的沒行程）才標記已提醒，
+  // 失敗就不標記，下一次 tick 會再試。
+  ntBusy=true;
+  fireDailyNotify(t,function(ok){
+    ntBusy=false;
+    if(!ok)return;
+    var cc=ntCfg();cc.last=t;lsSet(NT_KEY,cc);
+  });
 }
 
 function toggleDiag(){
@@ -932,11 +962,19 @@ function renderDiag(){
   add('今天日期',todayStr_());
   add('目前時間',fmtStamp(new Date()));
 
+  var t=todayStr_();
+  var mineToday=todayRows.filter(function(r){return r.date===t;}).length;
+  add('今天的行程筆數',mineToday+' 筆'+(mineToday===0&&!c.notifyEmpty?'（沒行程且未開啟空通知→不會跳）':''),
+      mineToday>0?true:(c.notifyEmpty?true:false));
+
   var reason='';
   if(!c.on)reason='提醒開關沒開。';
   else if(perm!=='granted')reason='沒有通知權限，請按上方開關重新授權。';
   else if(isIOS&&!standalone)reason='iPhone 必須從主畫面圖示開啟才會跳通知。';
-  else if(c.last===todayStr_())reason='今天已經提醒過了（同一天只提醒一次）。';
+  else if(mineToday===0&&!c.notifyEmpty)
+    reason='今天沒有你的行程，而「沒有行程時仍提醒」是關閉的，所以不會跳通知。'
+          +'想要每天都收到就把那個開關打開。';
+  else if(c.last===t)reason='今天已經提醒過了（同一天只提醒一次）。可按下方按鈕重測。';
   else reason='設定看起來正常。若時間已過卻沒跳，多半是當時 App 已完全關閉——'
              +'本機排程只在 App 開著或在背景時有效。';
 
