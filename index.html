@@ -866,7 +866,7 @@ function showSafety(n){
     else if(o.state==='forever'){st='無期限，不需回訓';col='var(--ok)';}
     else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
     h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'><div class="kv">'
-      +kr('shield','職安種類',he(o.type||'未填'))
+      +kr('shield','證照',he(o.type||'未填'))
       +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
       +kr('clock','訓練日期',he(o.train||'未填'))
       +kr('clip','有效期限',o.state==='forever'?'<span style="color:var(--tx3)">無期限</span>'
