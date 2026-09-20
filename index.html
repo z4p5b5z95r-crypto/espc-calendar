@@ -600,6 +600,19 @@ function safetyDue(){
   return out;
 }
 
+/** 頭像＋工地帽：帽子壓在圓圈上緣，像戴在頭上 */
+function avatarHat(name){
+  var n=String(name||'').trim();
+  var o=safetyOf(n);
+  var h='<div class="pavw"><div class="pav">'+he(n.slice(0,1))+'</div>';
+  if(o){
+    var cls='pavhat'+(o.state==='expired'?' bad':(o.state==='warn'?' warn':''));
+    h+='<button class="'+cls+'" title="職安人員" onclick="event.stopPropagation();showSafety(\''
+      +esc(n)+'\')">'+ic('hardhat',22)+'</button>';
+  }
+  return h+'</div>';
+}
+
 /** 職安標記：點工地帽看種類與效期，顏色隨狀態變化 */
 function hatMark(n){
   var o=safetyOf(n);
@@ -803,7 +816,14 @@ function render(){
   $('h-ttl').textContent=titleText();
   $('h-rb').innerHTML=rightButtons();
   renderChips();
-  $('page').innerHTML=pageHTML();
+  try{
+    $('page').innerHTML=pageHTML();
+  }catch(err){
+    // 任一頁渲染失敗時給出明確訊息，而不是默默留著上一頁的內容
+    $('page').innerHTML='<div class="empty">畫面載入失敗<br><span style="font-size:12px">'
+      +he(err.message)+'</span></div>';
+    console.error(err);
+  }
   if(sub==='upload')paintHistory();
 }
 
