@@ -642,11 +642,17 @@ function toast(msg,kind,ms){
 
 /* ── 身分 ── */
 var TOKEN=ls('espc_token'),ROLE=ls('espc_role'),UNAME=ls('espc_user'),ENGNAME=ls('espc_eng');
-var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',viewer:'現場'};
-var ROLE_ORDER=['admin','supervisor','scheduler','pm','viewer'];
+var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',sampler:'現場'};
+var ROLE_ORDER=['admin','supervisor','scheduler','pm','sampler'];
 var ROLE_WRITE=['admin','supervisor','scheduler'];
-function roleLabel(r){return ROLE_LABEL[r]||r;}
-function canWrite(r){return ROLE_WRITE.indexOf(r)>=0;}
+/** 舊資料寫 viewer / Sampler 都收斂成 sampler */
+function normRole(r){
+  var k=String(r||'').trim().toLowerCase();
+  if(k==='viewer'||k==='sampler')return 'sampler';
+  return ROLE_ORDER.indexOf(k)>=0?k:'sampler';
+}
+function roleLabel(r){return ROLE_LABEL[normRole(r)]||r;}
+function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
 function saveSession(t,r,u,e){TOKEN=t;ROLE=r;UNAME=u;ENGNAME=e||'';
   lsS('espc_token',t);lsS('espc_role',r);lsS('espc_user',u);lsS('espc_eng',ENGNAME);}
 function clearSession(){
@@ -1042,6 +1048,7 @@ function doLogout(){
 }
 
 function boot(u,r,eng){
+  r=normRole(r);
   ROLE=r;UNAME=u;ENGNAME=eng;lsS('espc_eng',eng||'');
   $('login').style.display='none';
   $('app').style.display='flex';
@@ -2175,27 +2182,92 @@ function loadUsers(){
   gas('listUsers',TOKEN).then(function(r){
     var el=$('users');if(!el)return;
     if(!r||!r.ok){el.innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';return;}
-    var h='<button class="btn btn-p btn-full" style="margin-bottom:14px" onclick="newUser()">新增帳號</button>';
-    r.users.forEach(function(u){
-      var me=u.username===UNAME;
-      h+='<div class="card"><div class="row"><div style="min-width:0;flex:1">'
-        +'<div style="font-size:15px;font-weight:500">'+he(u.username)+(me?'　<span class="hint">目前帳號</span>':'')+'</div>'
-        +'<div class="hint" style="margin-top:3px">'+(u.engineerName?'工程師：'+he(u.engineerName):'未對應工程師')
-        +'　·　'+(u.active?'啟用中':'<span style="color:var(--err)">已停用</span>')+'</div></div>'
-        +'<span class="tag g">'+roleLabel(u.role)+'</span></div>'
-        +'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">'
-        +'<select class="fld btn-sm" style="flex:1 1 110px;min-height:36px;padding:0 30px 0 14px;font-size:13px" onchange="setRole(\''+esc(u.username)+'\',this.value)">'
-        +ROLE_ORDER.map(function(k){return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
-        +'</select>'
-        +'<button class="btn btn-sm" onclick="setEng(\''+esc(u.username)+'\',\''+esc(u.engineerName||'')+'\')">工程師</button>'
-        +'<button class="btn btn-sm" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
-        +(me?'':'<button class="btn btn-sm'+(u.active?' btn-d':'')+'" onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'
-          +(u.active?'停用':'啟用')+'</button>')
-        +'</div></div>';
-    });
-    el.innerHTML=h;
+    USERS=(r.users||[]).map(function(u){u.role=normRole(u.role);return u;});
+    el.innerHTML=usersHTML();
   }).catch(function(){var el=$('users');if(el)el.innerHTML='<div class="empty">載入失敗</div>';});
 }
+var USERS=[],userQ='';
+function usersHTML(){
+  var h='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="newUser()">新增帳號</button>'
+    +'<input class="fld" placeholder="搜尋帳號或姓名" value="'+he(userQ)+'"'
+    +' oninput="userQ=this.value;paintUsers()" style="margin-bottom:12px">'
+    +userListHTML();
+  return h;
+}
+function userListHTML(){
+  var q=userQ.toLowerCase();
+  var list=USERS.filter(function(u){
+    if(!q)return true;
+    return [u.username,u.engineerName,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;
+  });
+  var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號</div>'
+    +'<div class="glist">';
+  if(!list.length)h+='<div class="empty">查無符合的帳號</div>';
+  list.forEach(function(u){
+    var me=u.username===UNAME;
+    var nm=u.engineerName||u.username;
+    h+='<div class="lrow"'+(u.active?'':' style="opacity:.55"')+' onclick="editUser(\''+esc(u.username)+'\')">'
+      +'<div class="pav"'+(me?' style="background:var(--brand);color:var(--accTx)"':'')+'>'
+      +he(nm.slice(0,1))+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
+      +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
+      +(me?'　·　目前帳號':'')
+      +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div></div>'
+      +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
+      +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">›</span>'
+      +'</div>';
+  });
+  return h+'</div></div>';
+}
+/** 只重畫清單，搜尋時輸入框不會失焦 */
+function paintUsers(){
+  var el=$('ulist');
+  if(el)el.outerHTML=userListHTML();
+}
+
+/** 點一列開編輯面板：角色、對應工程師、重設密碼、停用都在這裡 */
+function editUser(name){
+  var u=null;
+  USERS.forEach(function(x){if(x.username===name)u=x;});
+  if(!u)return;
+  var me=u.username===UNAME;
+  var h='<div class="shh"><div>'
+    +'<div class="evt" style="color:var(--accT)">帳號設定</div>'
+    +'<h3 style="margin-top:3px">'+he(u.engineerName||u.username)+'</h3>'
+    +'<p class="hint" style="margin-top:3px">'+he(u.username)
+    +(me?'　·　目前帳號':'')+'</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">角色</p>'
+    +'<select class="fld" id="e-r" style="margin-bottom:13px"'+(me?' disabled':'')+'>'
+    +ROLE_ORDER.map(function(k){
+      return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">對應工程師　<span style="color:var(--tx3);font-weight:400">留空表示不自動篩選</span></p>'
+    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="與排程表上的姓名一致" style="margin-bottom:18px">'
+    +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
+    +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
+    +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
+       +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>');
+  openSheet(h);
+}
+function saveUser(name){
+  var u=null;
+  USERS.forEach(function(x){if(x.username===name)u=x;});
+  if(!u)return;
+  var role=$('e-r')?$('e-r').value:u.role;
+  var eng=$('e-e').value.trim();
+  var jobs=[];
+  if(role!==u.role)jobs.push(gas('setUserRole',TOKEN,name,role));
+  if(eng!==(u.engineerName||''))jobs.push(gas('updateEngineerName',TOKEN,name,eng));
+  if(!jobs.length){closeSheet();return;}
+  Promise.all(jobs).then(function(rs){
+    var bad=rs.filter(function(r){return !r||!r.ok;})[0];
+    if(bad){toast(bad.error||'儲存失敗','no');return;}
+    toast('已儲存','ok');closeSheet();loadUsers();
+  }).catch(function(){toast('操作失敗','no');});
+}
+
 function newUser(){
   openSheet('<div class="shh"><h3>新增帳號</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
     +'<p class="lb">帳號</p><input class="fld" id="n-u" style="margin-bottom:13px">'
@@ -2238,7 +2310,7 @@ function resetPw(u){
 }
 function setActive(u,a){
   gas('setUserStatus',TOKEN,u,a).then(function(r){
-    if(r&&r.ok){toast(a?'已啟用':'已停用','ok');loadUsers();}
+    if(r&&r.ok){toast(a?'已啟用':'已停用','ok');closeSheet();loadUsers();}
     else toast((r&&r.error)||'操作失敗','no');
   }).catch(function(){toast('操作失敗','no');});
 }
