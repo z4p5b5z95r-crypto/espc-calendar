@@ -347,9 +347,9 @@ html[data-theme="dark"] .glass::after{
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
 .pavtank:active{transform:scale(.9);}
 /* 漁船：圓圈正下方 */
-.pavship{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
-  width:26px;height:26px;z-index:4;pointer-events:none;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+.pavship{position:absolute;bottom:-11px;left:50%;transform:translateX(-50%);
+  width:35px;height:35px;z-index:4;
+  filter:drop-shadow(0 1.5px 2.5px rgba(0,0,0,.32));}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.32));}
@@ -666,6 +666,13 @@ function toast(msg,kind,ms){
 
 /* ── 身分 ── */
 var TOKEN=ls('espc_token'),ROLE=ls('espc_role'),UNAME=ls('espc_user'),ENGNAME=ls('espc_eng');
+var PW_MIN=4;               // 密碼最短長度；預設密碼是 4 碼數字
+/** 產生一組 4 碼數字當預設密碼 */
+function newPin(){
+  var n='';
+  for(var i=0;i<PW_MIN;i++)n+=Math.floor(Math.random()*10);
+  return n;
+}
 var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',sampler:'現場'};
 var ROLE_ORDER=['admin','supervisor','scheduler','pm','sampler'];
 var ROLE_WRITE=['admin','supervisor','scheduler'];
@@ -2423,7 +2430,8 @@ function saveUser(name){
 function newUser(){
   openSheet('<div class="shh"><h3>新增帳號</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
     +'<p class="lb">帳號</p><input class="fld" id="n-u" style="margin-bottom:13px">'
-    +'<p class="lb">密碼</p><input class="fld" id="n-p" type="password" placeholder="至少 6 字元" style="margin-bottom:13px">'
+    +'<p class="lb">密碼　<span style="color:var(--tx3);font-weight:400">預設隨機 4 碼數字，可自行修改</span></p>'
+    +'<input class="fld" id="n-p" type="text" inputmode="numeric" value="'+newPin()+'" style="margin-bottom:13px">'
     +'<p class="lb">角色</p><select class="fld" id="n-r" style="margin-bottom:13px">'
     +ROLE_ORDER.slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
@@ -2460,9 +2468,10 @@ function setEng(u,cur){
   }).catch(function(){toast('操作失敗','no');});
 }
 function resetPw(u){
-  var v=prompt('重設「'+u+'」的新密碼（至少 6 字元）：');
+  var v=prompt('重設「'+u+'」的新密碼（至少 '+PW_MIN+' 碼）：',newPin());
   if(!v)return;
-  if(v.length<6){toast('密碼至少 6 個字元','no');return;}
+  v=String(v).trim();
+  if(v.length<PW_MIN){toast('密碼至少 '+PW_MIN+' 個字元','no');return;}
   gas('adminResetPassword',TOKEN,u,v).then(function(r){
     if(r&&r.ok)toast('密碼已重設','ok');else toast((r&&r.error)||'重設失敗','no');
   }).catch(function(){toast('操作失敗','no');});
@@ -2478,7 +2487,7 @@ function setActive(u,a){
 function pwPage(){
   return '<div class="card" style="margin-top:6px">'
     +'<p class="lb" style="margin-left:0">目前密碼</p><input class="fld" id="pw-o" type="password" style="margin-bottom:13px">'
-    +'<p class="lb" style="margin-left:0">新密碼</p><input class="fld" id="pw-n" type="password" placeholder="至少 6 字元" style="margin-bottom:13px">'
+    +'<p class="lb" style="margin-left:0">新密碼</p><input class="fld" id="pw-n" type="password" placeholder="至少 '+PW_MIN+' 碼" style="margin-bottom:13px">'
     +'<p class="lb" style="margin-left:0">確認新密碼</p><input class="fld" id="pw-c" type="password" style="margin-bottom:6px">'
     +'<div class="lerr" id="pw-e"></div>'
     +'<button class="btn btn-p btn-full" onclick="changePw()">儲存</button></div>';
@@ -2487,7 +2496,7 @@ function changePw(){
   var o=$('pw-o').value,n=$('pw-n').value,c=$('pw-c').value,e=$('pw-e');
   e.textContent='';
   if(!o){e.textContent='請輸入目前密碼';return;}
-  if(n.length<6){e.textContent='新密碼至少需要 6 個字元';return;}
+  if(n.length<PW_MIN){e.textContent='新密碼至少需要 '+PW_MIN+' 個字元';return;}
   if(n!==c){e.textContent='兩次新密碼不一致';return;}
   if(n===o){e.textContent='新密碼不可與目前密碼相同';return;}
   gas('changePassword',TOKEN,n,o).then(function(r){
