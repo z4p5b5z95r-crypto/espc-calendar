@@ -681,7 +681,7 @@ function saveSession(t,r,u,e){TOKEN=t;ROLE=r;UNAME=u;ENGNAME=e||'';
   lsS('espc_token',t);lsS('espc_role',r);lsS('espc_user',u);lsS('espc_eng',ENGNAME);}
 function clearSession(){
   TOKEN=ROLE=UNAME=ENGNAME='';
-  ['espc_token','espc_role','espc_user','espc_eng','espc_sync'].forEach(lsD);
+  ['espc_token','espc_role','espc_user','espc_eng','espc_sync','espc_tab'].forEach(lsD);
   try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);
     if(k&&k.indexOf('espc_c_')===0)localStorage.removeItem(k);}}catch(e){}
 }
@@ -1100,12 +1100,41 @@ function boot(u,r,eng){
   if(fresh)cPrune(false);
 
   ntInit();
-  loadStaff(function(){loadToday(fresh);checkDueNotice();},fresh);
+  var back=restoreTab();          // 重新整理後回到原本那一頁
+  loadStaff(function(){
+    if(back)go(back.t,back.s);
+    else loadToday(fresh);
+    checkDueNotice();
+  },fresh);
+  if(!back)loadToday(fresh);      // 沒有記錄就照原本流程先畫今日
+}
+
+/** 讀出上次所在的頁籤，順便擋掉沒權限或已失效的目的地 */
+function restoreTab(){
+  var v;
+  try{v=JSON.parse(ls(TAB_KEY)||'null');}catch(e){v=null;}
+  if(!v||!v.t)return null;
+  var okTab=['today','cal','book','upload','more'];
+  if(okTab.indexOf(v.t)<0)return null;
+  if(v.t==='upload'&&!canWrite(ROLE))return null;
+  if(v.s==='upload'&&!canWrite(ROLE))v.s='';
+  if(v.s==='admin'&&ROLE!=='admin')v.s='';
+  if(v.t==='today')return null;                 // 今日是預設頁，照原流程走
+  if(v.t==='cal'&&typeof v.y==='number'&&typeof v.m==='number'){
+    curY=v.y;curM=v.m;                          // 連月份一起還原
+  }
+  return {t:v.t,s:v.s||''};
 }
 
 /* ══ 導覽 ══ */
+var TAB_KEY='espc_tab';
+/** 記住目前位置，重新整理瀏覽器後回到同一頁 */
+function saveTab(){
+  try{lsS(TAB_KEY,JSON.stringify({t:tab,s:sub,y:curY,m:curM}));}catch(e){}
+}
 function go(t,s){
   tab=t;sub=s||'';
+  saveTab();
   $('pk').classList.remove('open');
   closeSheet();
   document.querySelectorAll('.nb').forEach(function(b){
@@ -1600,11 +1629,11 @@ function paintMonth(list){
 
 function moveM(d){
   curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
-  allRows=[];rows=[];render();loadMonth();
+  allRows=[];rows=[];saveTab();render();loadMonth();
 }
 function goToday(){
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
-  allRows=[];rows=[];render();loadMonth();
+  allRows=[];rows=[];saveTab();render();loadMonth();
 }
 
 function loadStaff(cb,force){
@@ -1858,7 +1887,7 @@ function renderPk(){
 }
 function pickM(y,m){
   curY=y;curM=m;$('pk').classList.remove('open');
-  allRows=[];rows=[];render();loadMonth();
+  allRows=[];rows=[];saveTab();render();loadMonth();
 }
 
 /* ══ 人員編輯 ══ */
