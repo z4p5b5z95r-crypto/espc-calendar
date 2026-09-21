@@ -377,6 +377,15 @@ html[data-theme="dark"] .glass::after{
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
 
+/* 下載／上傳進度條：任何請求在跑時顯示 */
+.pbar{position:fixed;left:0;right:0;top:env(safe-area-inset-top);height:3px;z-index:80;
+  overflow:hidden;opacity:0;transition:opacity .25s;pointer-events:none;}
+.pbar.on{opacity:1;}
+.pbar::after{content:"";position:absolute;inset:0 auto 0 0;width:42%;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);
+  animation:pslide 1.05s linear infinite;}
+@keyframes pslide{from{transform:translateX(-110%)}to{transform:translateX(360%)}}
+
 /* ══════════ 桌機版（≥ 900px）══════════
    導覽列移到最上方，內容置中限寬，行事曆格子加高 */
 .glist{display:block;}
@@ -510,6 +519,7 @@ html[data-theme="dark"] .glass::after{
 <linearGradient id="gmf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9922F"/><stop offset="1" stop-color="#C04C06"/></linearGradient>
 <linearGradient id="gkb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ee5449"/><stop offset=".55" stop-color="#d33a2f"/><stop offset="1" stop-color="#ad2b22"/></linearGradient>
 </defs></svg>
+<div class="pbar" id="busy"></div>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
 <input id="fi" type="file" accept=".xlsx,.xls" onchange="onPick(event)">
@@ -521,13 +531,37 @@ html[data-theme="dark"] .glass::after{
    ══════════════════════════════════════════════════════════ */
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
+var BUSY=0;
+function busy(on){
+  BUSY=Math.max(0,BUSY+(on?1:-1));
+  var b=$('busy');
+  if(b)b.classList.toggle('on',BUSY>0);
+}
+/* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
+var GAS_TIMEOUT={saveData:240000,clearAll:180000,archiveYear:240000,seedStaff:120000};
 function gas(fn){
   var args=Array.prototype.slice.call(arguments,1);
   var payload=JSON.stringify({fn:fn,args:args});
+  var ms=GAS_TIMEOUT[fn]||45000;
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=setTimeout(function(){if(ctl)ctl.abort();},ms);
+  var opt=ctl?{signal:ctl.signal}:{};
+  var req;
   if(payload.length<1800){
-    return fetch(GAS_URL+'?payload='+encodeURIComponent(payload)).then(function(r){return r.json();});
+    req=fetch(GAS_URL+'?payload='+encodeURIComponent(payload),opt);
+  }else{
+    opt.method='POST';opt.body=payload;
+    req=fetch(GAS_URL,opt);
   }
-  return fetch(GAS_URL,{method:'POST',body:payload}).then(function(r){return r.json();});
+  busy(true);
+  return req.then(function(r){return r.json();})
+    .then(function(j){clearTimeout(timer);busy(false);return j;})
+    .catch(function(e){
+      clearTimeout(timer);busy(false);
+      if(e&&e.name==='AbortError')
+        throw new Error('連線逾時（'+Math.round(ms/1000)+' 秒），請檢查網路後再試');
+      throw e;
+    });
 }
 
 
@@ -1495,8 +1529,8 @@ function loadToday(force){
   var t=twStr();
   if(!force&&todayFor===t){render();return;}
   var c=force?null:cGet('today');
-  if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
-  else{$('page').innerHTML='<div class="load"><div class="spin"></div> 載入中…</div>';c=null;}
+  if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}   // 先用快取畫出來，進度條會顯示正在更新
+  else{$('page').innerHTML='<div class="load"><div class="spin"></div> 載入今日行程…</div>';c=null;}
   var o={dateFrom:t,dateTo:todayRange(t)};
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
@@ -1520,8 +1554,9 @@ function loadMonth(force){
   var first=curY+'-'+p2(curM+1)+'-01';
   var last=curY+'-'+p2(curM+1)+'-'+p2(new Date(curY,curM+1,0).getDate());
   var c=force?null:cGet(key);
-  if(c&&c.rows)paintMonth(c.rows);
-  else{$('page').innerHTML='<div class="load"><div class="spin"></div> 載入中…</div>';c=null;}
+  if(c&&c.rows)paintMonth(c.rows);            // 先用快取畫出來，進度條會顯示正在更新
+  else{$('page').innerHTML='<div class="load"><div class="spin"></div> 載入 '
+    +curY+' 年 '+(curM+1)+' 月行程…</div>';c=null;}
   var o={dateFrom:first,dateTo:last};
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
@@ -1536,9 +1571,12 @@ function paintMonth(list){allRows=normRows(list||[]);applyF();}
 
 function moveM(d){
   curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
-  allRows=[];loadMonth();render();
+  allRows=[];rows=[];render();loadMonth();
 }
-function goToday(){var n=twDate();curY=n.getFullYear();curM=n.getMonth();allRows=[];loadMonth();render();}
+function goToday(){
+  var n=twDate();curY=n.getFullYear();curM=n.getMonth();
+  allRows=[];rows=[];render();loadMonth();
+}
 
 function loadStaff(cb,force){
   var c=force?null:cGet('staff');
@@ -1791,7 +1829,7 @@ function renderPk(){
 }
 function pickM(y,m){
   curY=y;curM=m;$('pk').classList.remove('open');
-  allRows=[];loadMonth();render();
+  allRows=[];rows=[];render();loadMonth();
 }
 
 /* ══ 人員編輯 ══ */
@@ -1965,7 +2003,8 @@ function paintParse(uploading){
   if(!pRows.length)return void($('parse').innerHTML=h+'<p class="hint">找不到有效資料，請確認檔案格式。</p></div>');
   if(uploading){
     h+='<div style="display:flex;align-items:center;gap:10px"><div class="spin"></div>'
-      +'<span style="font-size:14px">地區「'+he(det)+'」，上傳中…</span></div>';
+      +'<div><div style="font-size:14px">地區「'+he(det)+'」，上傳中…</div>'
+      +'<div class="hint" style="margin-top:2px">'+ok.length+' 筆資料寫入試算表，可能需要 1～2 分鐘，請不要關閉頁面</div></div></div>';
   }else{
     h+='<p class="lb" style="margin-left:0">地區</p><select class="fld" onchange="setRegion(this.value)">'
       +'<option value=""'+(det?'':' selected')+'>請選擇…</option>'
@@ -2021,7 +2060,10 @@ function doUpload(force){
     todayFor='';allRows=[];
     cPrune(true);cVer('up-'+Date.now());
     loadHistory();loadToday(true);
-  }).catch(function(){toast('上傳失敗，請稍後再試','no');paintParse(false);});
+  }).catch(function(e){
+    toast(e&&e.message?e.message:'上傳失敗，請稍後再試','no',6000);
+    paintParse(false);
+  });
 }
 function forceUp(){
   if(!confirm('強制覆蓋？\n\n會用這份檔案取代同地區、同日期的資料，無法還原。'))return;
@@ -2032,9 +2074,19 @@ function forceUp(){
 var HIST=[];
 function loadHistory(){
   gas('getUploadHistory',TOKEN).then(function(r){
-    HIST=(r&&r.ok)?(r.records||[]):[];
+    if(!r||!r.ok){
+      var el=$('hist');
+      if(el)el.innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')
+        +'<br><button class="btn btn-sm" style="margin-top:10px" onclick="loadHistory()">重試</button></div>';
+      return;
+    }
+    HIST=r.records||[];
     paintHistory();
-  }).catch(function(){HIST=[];paintHistory();});
+  }).catch(function(e){
+    var el=$('hist');
+    if(el)el.innerHTML='<div class="empty">'+he(e.message||'載入失敗')
+      +'<br><button class="btn btn-sm" style="margin-top:10px" onclick="loadHistory()">重試</button></div>';
+  });
 }
 function paintHistory(){
   var el=$('hist');if(!el)return;
