@@ -381,14 +381,6 @@ html[data-theme="dark"] .glass::after{
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
 
-/* 下載／上傳指示：畫面中央的轉圈，不擋操作 */
-.pbar{position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;
-  opacity:0;visibility:hidden;transition:opacity .2s;pointer-events:none;}
-.pbar.on{opacity:1;visibility:visible;}
-.pbar::after{content:"";width:46px;height:46px;border-radius:50%;
-  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  border:2.5px solid var(--line);border-top-color:var(--acc);
-  box-shadow:var(--sh);animation:sp .7s linear infinite;}
 
 /* ══════════ 桌機版（≥ 900px）══════════
    導覽列移到最上方，內容置中限寬，行事曆格子加高 */
@@ -525,7 +517,6 @@ html[data-theme="dark"] .glass::after{
 <linearGradient id="gsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f7fb8"/><stop offset=".55" stop-color="#225c8d"/><stop offset="1" stop-color="#14405f"/></linearGradient>
 <linearGradient id="gsw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cfdce6"/></linearGradient>
 </defs></svg>
-<div class="pbar" id="busy"></div>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
 <input id="fi" type="file" accept=".xlsx,.xls" onchange="onPick(event)">
@@ -537,20 +528,6 @@ html[data-theme="dark"] .glass::after{
    ══════════════════════════════════════════════════════════ */
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
-var BUSY=0,_bTimer=null;
-function busy(on){
-  BUSY=Math.max(0,BUSY+(on?1:-1));
-  var b=$('busy');
-  if(!b)return;
-  if(BUSY>0){
-    // 延遲一點再顯示，快取命中的瞬間請求就不會閃一下
-    if(_bTimer===null&&!b.classList.contains('on'))
-      _bTimer=setTimeout(function(){_bTimer=null;if(BUSY>0)b.classList.add('on');},240);
-  }else{
-    if(_bTimer!==null){clearTimeout(_bTimer);_bTimer=null;}
-    b.classList.remove('on');
-  }
-}
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
 var GAS_TIMEOUT={saveData:240000,clearAll:180000,archiveYear:240000,seedStaff:120000};
 function gas(fn){
@@ -567,11 +544,10 @@ function gas(fn){
     opt.method='POST';opt.body=payload;
     req=fetch(GAS_URL,opt);
   }
-  busy(true);
   return req.then(function(r){return r.json();})
-    .then(function(j){clearTimeout(timer);busy(false);return j;})
+    .then(function(j){clearTimeout(timer);return j;})
     .catch(function(e){
-      clearTimeout(timer);busy(false);
+      clearTimeout(timer);
       if(e&&e.name==='AbortError')
         throw new Error('連線逾時（'+Math.round(ms/1000)+' 秒），請檢查網路後再試');
       throw e;
@@ -1070,7 +1046,7 @@ window.addEventListener('DOMContentLoaded',function(){
   $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeSheet();});
 
   if(TOKEN){
-    $('login').innerHTML='<div class="load"><div class="spin"></div> 載入中…</div>';
+    $('login').innerHTML=loader('登入中…');
     gas('getMe',TOKEN).then(function(r){
       if(r&&r.ok)boot(r.username,r.role,r.engineerName||'');
       else{clearSession();location.reload();}
@@ -1215,9 +1191,14 @@ function clrF(k,v){
 }
 
 /* ══ 頁面內容 ══ */
+/** 統一的載入動畫，放在資料將要出現的位置 */
+function loader(txt){
+  return '<div class="load"><div class="spin"></div> '+he(txt||'載入中…')+'</div>';
+}
+
 function pageHTML(){
   if(tab==='upload'||sub==='upload')return uploadPage();
-  if(sub==='admin')return '<div id="users"><div class="load"><div class="spin"></div></div></div>';
+  if(sub==='admin')return '<div id="users">'+loader('載入帳號…')+'</div>';
   if(sub==='notify')return notifyPage();
   if(sub==='pw')return pwPage();
   if(tab==='today')return todayPage();
@@ -1401,7 +1382,7 @@ function locBrief(g){
 }
 
 /* ── 通訊錄 ── */
-var bookQ='',bookRg='',bookTm='',bookSf='';
+var bookQ='',bookRg='',bookTm='',bookSf='',STAFF_READY=false;
 function bookPage(){
   var q=bookQ.toLowerCase();
   var list=STAFF.filter(function(s){
@@ -1479,6 +1460,7 @@ function certByType(name,t){
 }
 
 function bookList(){
+  if(!STAFF_READY)return '<div id="blist">'+loader('載入通訊錄…')+'</div>';
   var q=bookQ.toLowerCase();
   var list=STAFF.filter(function(s){
     var rg=(s.region||'').trim(),tm=(s.team||'').trim();
@@ -1559,7 +1541,7 @@ function loadToday(force){
   var c=force?null:cGet('today');
   if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
   else{
-    if(onTab)$('page').innerHTML='<div class="load"><div class="spin"></div> 載入今日行程…</div>';
+    if(onTab)$('page').innerHTML=loader('載入今日行程…');
     c=null;
   }
   var o={dateFrom:t,dateTo:todayRange(t)};
@@ -1593,8 +1575,7 @@ function loadMonth(force){
   var c=force?null:cGet(key);
   if(c&&c.rows)paintMonth(c.rows);
   else{
-    if(onTab)$('page').innerHTML='<div class="load"><div class="spin"></div> 載入 '
-      +curY+' 年 '+(curM+1)+' 月行程…</div>';
+    if(onTab)$('page').innerHTML=loader('載入 '+curY+' 年 '+(curM+1)+' 月行程…');
     c=null;
   }
   var o={dateFrom:first,dateTo:last};
@@ -1657,7 +1638,7 @@ function normRows(list){
 }
 
 function applyStaff(l){
-  STAFF=l||[];PHONE={};SAFETY={};ALIAS={};
+  STAFF=l||[];PHONE={};SAFETY={};ALIAS={};STAFF_READY=true;
   STAFF.forEach(function(s){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
@@ -2020,7 +2001,7 @@ function uploadPage(){
     +'<p style="font-size:15px;margin-top:10px">點擊或拖曳 Excel 檔案</p>'
     +'<p class="hint" style="margin-top:6px">支援台北、台中、高雄格式<br>檔名可辨識地區時會直接上傳</p></div>'
     +'<div id="parse"></div>'
-    +'<div class="sec">上傳記錄</div><div id="hist"><div class="load"><div class="spin"></div></div></div>'
+    +'<div class="sec">上傳記錄</div><div id="hist">'+loader('載入上傳記錄…')+'</div>'
     +(ROLE==='admin'?'<div class="sec">危險操作</div>'
       +'<div class="card"><p class="hint" style="margin-bottom:12px">清除所有排程資料，無法還原。</p>'
       +'<button class="btn btn-d btn-sm" onclick="clearAll()">清除全部資料</button></div>':'');
@@ -2032,7 +2013,7 @@ function onPick(e){var f=e.target.files[0];if(f)handleFile(f);e.target.value='';
 function handleFile(file){
   pName=file.name;
   pMtime=file.lastModified?new Date(file.lastModified).toISOString():'';
-  $('parse').innerHTML='<div class="load"><div class="spin"></div> 解析中…</div>';
+  $('parse').innerHTML=loader('解析中…');
   readXlsx(file).then(function(list){
     pRows=list;
     var ok=list.filter(function(r){return r.engineer&&r.date;});
@@ -2115,7 +2096,7 @@ function doUpload(force){
 }
 function forceUp(){
   if(!confirm('強制覆蓋？\n\n會用這份檔案取代同地區、同日期的資料，無法還原。'))return;
-  $('parse').innerHTML='<div class="load"><div class="spin"></div> 強制覆蓋中…</div>';
+  $('parse').innerHTML=loader('強制覆蓋中…');
   doUpload(true);
 }
 
