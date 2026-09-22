@@ -338,6 +338,8 @@ html[data-theme="dark"] .glass::after{
 .mki{width:1.25em;height:1.25em;display:block;flex-shrink:0;
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
 .mke{font-size:1.15em;line-height:1;display:block;flex-shrink:0;}
+.mkw{width:2em;height:1.3em;display:block;flex-shrink:0;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
 .hat svg:not(.mki){width:1.05em;height:1.05em;color:var(--accT);}
 .hat:active{transform:scale(.88);}
 .hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
@@ -369,9 +371,9 @@ html[data-theme="dark"] .glass::after{
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
 .pavtank:active{transform:scale(.9);}
 /* 漁船：圓圈正下方 */
-.pavship{position:absolute;bottom:-11px;left:50%;transform:translateX(-50%);
-  width:35px;height:35px;z-index:4;
-  filter:drop-shadow(0 1.5px 2.5px rgba(0,0,0,.32));}
+.pavship{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+  width:56px;height:36px;z-index:5;pointer-events:none;
+  filter:drop-shadow(0 1.5px 2.5px rgba(0,0,0,.28));}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.32));}
@@ -537,8 +539,10 @@ html[data-theme="dark"] .glass::after{
 <linearGradient id="gmv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf6ff"/><stop offset=".6" stop-color="#bcd8e9"/><stop offset="1" stop-color="#95b8ce"/></linearGradient>
 <linearGradient id="gmf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9922F"/><stop offset="1" stop-color="#C04C06"/></linearGradient>
 <linearGradient id="gkb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ee5449"/><stop offset=".55" stop-color="#d33a2f"/><stop offset="1" stop-color="#ad2b22"/></linearGradient>
-<linearGradient id="gsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f7fb8"/><stop offset=".55" stop-color="#225c8d"/><stop offset="1" stop-color="#14405f"/></linearGradient>
-<linearGradient id="gsw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cfdce6"/></linearGradient>
+<linearGradient id="gwd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98a4b"/><stop offset=".48" stop-color="#a5672f"/><stop offset="1" stop-color="#7a481f"/></linearGradient>
+<linearGradient id="gwr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8b87e"/><stop offset="1" stop-color="#c18748"/></linearGradient>
+<linearGradient id="gwi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8c5626"/><stop offset="1" stop-color="#b57c3f"/></linearGradient>
+<linearGradient id="gwv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2fbff"/><stop offset=".45" stop-color="#bfe3f6"/><stop offset="1" stop-color="#6fb4dd"/></linearGradient>
 </defs></svg>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
@@ -549,7 +553,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-22a';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-22b';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -849,14 +853,33 @@ var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24">'
  +'<rect x="10.6" y="9.1" width="2.8" height="7.8" rx="1.3" fill="#fff"/>'
  +'<rect x="8.1" y="11.6" width="7.8" height="2.8" rx="1.3" fill="#fff"/></svg>';
 
-var SHIP_SVG='<svg class="pavship" viewBox="0 0 24 24">'
- +'<path d="M14.6 2.6v9.4" stroke="#6b7c88" stroke-width="1.3" stroke-linecap="round"/>'
- +'<path d="M14.6 4.4 8.6 7.2l6 2.4Z" fill="url(#gmf)" stroke="#8f3805" stroke-width=".6" stroke-linejoin="round"/>'
- +'<rect x="13.4" y="9.4" width="6.6" height="4.4" rx="1.2" fill="url(#gsw)" stroke="#5b7285" stroke-width=".7"/>'
- +'<circle cx="16.7" cy="11.6" r="1.1" fill="#225c8d"/>'
- +'<path d="M2.4 13.4h19.2c-.55 4-3.6 6.5-9.6 6.5S2.95 17.4 2.4 13.4Z" fill="url(#gsh)" stroke="#123a56" stroke-width=".8"/>'
- +'<path d="M3.1 15h17.8c-.18.9-.45 1.75-.85 2.45H3.95A7.5 7.5 0 0 1 3.1 15Z" fill="#fff" opacity=".85"/>'
- +'<path d="M4.3 14.1c1.6-.5 3.6-.7 5.2-.5l-3 4.3c-1.4-.8-2.2-2.3-2.2-3.8Z" fill="#fff" opacity=".2"/></svg>';
+var SHIP_SVG='<svg class="pavship" viewBox="0 0 56 36">'
+ // 後方水花
+ +'<path d="M3 25.4c2.6-2.6 5.4-1.6 7 .4 1.4-2.6 4.2-2.6 5.6-.2 1.3-2.4 3.9-2.4 5.2 0 1.4-2.6 4.2-2.6 5.6 0 1.3-2.4 4-2.4 5.2 0 1.5-2.6 4.3-2.4 5.7.2 1.6-2 4.4-3 7.2-.4V33H3Z" fill="url(#gwv)" opacity=".92"/>'
+ // 舷外機：托架、傳動軸、引擎蓋
+ +'<path d="M8.6 11.4h4.2v5.2H8.6Z" fill="#3b444c" stroke="#232a30" stroke-width=".8" stroke-linejoin="round"/>'
+ +'<rect x="9.1" y="15.6" width="3.2" height="5.4" rx="1.2" fill="url(#gmb)" stroke="#232a30" stroke-width=".8"/>'
+ +'<path d="M11.8 19.4h3.4l-.6 2.6h-2.8Z" fill="#2f363d"/>'
+ +'<rect x="4.6" y="3.4" width="9.4" height="9" rx="3" fill="url(#gmb)" stroke="#232a30" stroke-width="1"/>'
+ +'<rect x="6.2" y="5" width="6" height="2.2" rx="1.1" fill="#ffffff" opacity=".3"/>'
+ +'<path d="M5.8 10.4h7" stroke="#232a30" stroke-width=".8" opacity=".6" stroke-linecap="round"/>'
+ // 船身
+ +'<path d="M9.6 13.2 50.4 9.8c2 .1 2.9 1.3 2.3 3.2-1.9 6.4-7.4 11.3-18.6 12.8-12 1.6-21.4-2.4-24.8-9.4-.6-1.4-.5-2.7.3-3.2Z" fill="url(#gwd)" stroke="#59340f" stroke-width="1.1" stroke-linejoin="round"/>'
+ // 船艙內側
+ +'<path d="M12.4 14.6 49.9 11.5c1 .1 1.3.7 1 1.8-1 3.4-3.6 5.9-8.4 7L17 22.2c-2.2-1.6-3.8-3.6-4.8-6-.3-.8-.2-1.4.2-1.6Z" fill="url(#gwi)"/>'
+ // 舷邊亮帶
+ +'<path d="M9.6 13.2 50.4 9.8c2 .1 2.9 1.3 2.3 3.2l-.3.9L11 17.3c-.6-.8-1-1.5-1.3-2.2-.5-1.2-.5-2.2-.1-1.9Z" fill="url(#gwr)" stroke="#59340f" stroke-width=".9" stroke-linejoin="round"/>'
+ // 木紋
+ +'<path d="M14.6 20.6c9.4 2.6 21 3 31.4.6" fill="none" stroke="#6b3f18" stroke-width=".85" opacity=".5" stroke-linecap="round"/>'
+ +'<path d="M46.6 11.3 45 22.4" fill="none" stroke="#6b3f18" stroke-width=".85" opacity=".45" stroke-linecap="round"/>'
+ +'<path d="M50.1 10.9c1.6.2 2.2 1.2 1.8 2.9" fill="none" stroke="#6b3f18" stroke-width=".85" opacity=".45" stroke-linecap="round"/>'
+ // 船首浪花
+ +'<path d="M46.4 23.6c3 .2 5.4 1.9 6.6 4.6-3 .9-5.7 0-7.8-2.4Z" fill="url(#gwv)"/>'
+ +'<path d="M9.4 25c-2.2.6-3.8 2-4.6 4 2.7.6 4.9-.4 6.2-2.4Z" fill="url(#gwv)"/>'
+ +'<circle cx="51.4" cy="20.6" r="1.6" fill="#eaf7ff"/>'
+ +'<circle cx="54" cy="24.4" r="1.1" fill="#eaf7ff"/>'
+ +'<circle cx="3.4" cy="22.4" r="1.2" fill="#eaf7ff"/>'
+ +'</svg>';
 
 /** 依證照種類判斷要掛哪些標記
  *  safety：職安業務主管類 → 戴工地帽
@@ -918,7 +941,7 @@ function hatMark(n){
   if(b.safety)inner+='⛑️';                                        // 職安業務主管
   if(b.mask)inner+=MASK_SVG.replace('class="pavmask"','class="mki"');
   if(b.tank)inner+='<span class="mke">🛢️</span>';
-  if(b.ship)inner+=SHIP_SVG.replace('class="pavship"','class="mki"');
+  if(b.ship)inner+=SHIP_SVG.replace('class="pavship"','class="mkw"');
   if(b.kit)inner+=KIT_SVG.replace('class="pavkit"','class="mki"');
   if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
