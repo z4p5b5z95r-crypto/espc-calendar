@@ -198,8 +198,11 @@ html[data-theme="dark"] .glass::after{
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
 .who-n{font-size:12px;color:var(--tx2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 13px 10px;}
-.ttl{font-size:24px;font-weight:600;padding:3px 5px;border-radius:999px;letter-spacing:-.01em;}
-.ttl.tap::after{content:" ▾";font-size:13px;color:var(--tx3);font-weight:400;}
+.ttl{font-size:20px;font-weight:600;padding:3px 5px;border-radius:999px;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.ttl.tap::after{content:" ▾";font-size:12px;color:var(--tx3);font-weight:400;}
+/* 手機用滑的換月，箭頭只在桌機出現 */
+.navm{display:none;}
 .rb{display:flex;gap:5px;align-items:center;}
 .ib{background:var(--card2);width:36px;height:36px;border-radius:999px;font-size:15px;
   color:var(--tx2);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -344,13 +347,6 @@ html[data-theme="dark"] .glass::after{
 .sl-out-r{animation:slOutR .14s ease-in forwards;}
 .sl-in-r{animation:slInR .2s cubic-bezier(.22,.7,.3,1);}
 .sl-in-l{animation:slInL .2s cubic-bezier(.22,.7,.3,1);}
-/* 載入中的空月曆 */
-.calwrap{position:relative;}
-.cell.skel{background:var(--card2);opacity:.4;pointer-events:none;}
-.calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
-.calload .spin{width:34px;height:34px;border-width:2.5px;
-  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  box-shadow:var(--sh);}
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
 .pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
@@ -510,6 +506,8 @@ html[data-theme="dark"] .glass::after{
   .ttl{font-size:27px;}
   #page{padding:20px var(--gut) 0;}
 
+  /* 桌機沒有滑動手勢，把換月箭頭放回來 */
+  .navm{display:inline-flex;}
   /* 按鈕加上滑鼠效果 */
   .ib{transition:background .15s,transform .1s;}
   .ib:hover{background:var(--line);}
@@ -628,7 +626,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23u';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23w';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1336,12 +1334,22 @@ function titleText(){
   return '更多';
 }
 
+/** 行事曆的重新整理：重抓當月行程和各地區更新時間 */
+function refreshCal(){
+  loadMonth(true);
+  loadRegionUpdates(true);
+}
+
 function rightButtons(){
   if(sub)return '<button class="ib" onclick="go(\''+tab+'\')" title="返回">✕</button>';
-  if(tab==='cal')
-    return '<button class="ib" onclick="moveM(-1)">‹</button>'
-      +'<button class="ib w" onclick="goToday()">今天</button>'
-      +'<button class="ib" onclick="moveM(1)">›</button>'+filterBtn();
+  if(tab==='cal'){
+    var n=twDate(),now=(n.getFullYear()===curY&&n.getMonth()===curM);
+    return '<button class="ib navm" onclick="moveM(-1)" title="上個月">‹</button>'
+      +(now?'':'<button class="ib w" onclick="goToday()">今天</button>')
+      +'<button class="ib navm" onclick="moveM(1)" title="下個月">›</button>'
+      +'<button class="ib" onclick="refreshCal()" title="重新整理">↻</button>'
+      +filterBtn();
+  }
   if(tab==='today')
     return '<button class="ib" onclick="loadToday(true)" title="重新整理">↻</button>'+filterBtn();
   if(tab==='book')
@@ -1509,7 +1517,8 @@ function calPage(){
   h+='</div>';
 
   var ps=Object.keys(pmap);
-  if(ps.length){
+  if(calLoading)h+='<div class="load" style="padding:26px"><div class="spin"></div> 載入行程…</div>';
+  else if(ps.length){
     h+='<div class="legend">';
     ps.forEach(function(p){h+='<div class="lg"><span class="lgd" style="background:'+pmap[p]+'"></span>'+he(p)+'</div>';});
     h+='</div>';
@@ -1831,7 +1840,7 @@ function paintToday(t,all){
 /* ══ 下載範圍 ══════════════════════════════════════
    有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
    再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
-var allScope='',todayScope='';
+var allScope='',todayScope='',calLoading=false;
 function scopeKey(){return (F.en?'e:'+F.en:'')+(F.me?'m:'+F.me:'');}
 function scopeOpts(o){
   if(F.en)o.engineer=F.en;
@@ -1861,22 +1870,26 @@ function loadMonth(force){
   var onTab=(tab==='cal'&&!sub);        // 在別的頁籤時只默默更新，不動版面
   allScope=sk;
   var c=force?null:cGet(key);
-  if(c&&c.rows)paintMonth(c.rows);
+  if(c&&c.rows){calLoading=false;paintMonth(c.rows);}
   else{
-    if(onTab)$('page').innerHTML=calSkeleton();
+    calLoading=true;
+    if(onTab)render();          // 先把日期格子畫出來，行程位置放轉圈
     c=null;
   }
   var o=scopeOpts({dateFrom:first,dateTo:last});
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
-    if(!r||!r.ok){if(!c)toast((r&&r.error)||'載入失敗','no');return;}
+    calLoading=false;
+    if(!r||!r.ok){if(!c)toast((r&&r.error)||'載入失敗','no');paintMonth(allRows);return;}
     cVer(r.version);
     if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月
-    if(r.unchanged)return;
+    if(r.unchanged){paintMonth(allRows);return;}
     cSet(key,{version:r.version||'',rows:r.rows||[]});
     paintMonth(r.rows||[]);
   }).catch(function(){
+    calLoading=false;
     if(!c&&tab==='cal'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
+    else paintMonth(allRows);
   });
 }
 function paintMonth(list){
@@ -2266,15 +2279,6 @@ function slideEl(el,dir,fn){
 }
 function slidePage(dir,fn){slideEl($('page'),dir,fn);}
 function slideSheet(dir,fn){slideEl($('sheet'),dir,fn);}
-
-/** 載入中的空月曆：格子先排好，中間轉圈 */
-function calSkeleton(){
-  var h='<div class="calwrap"><div class="dow">'
-    +DW.map(function(d,i){return '<span'+(i===0?' class="sun"':'')+'>'+d+'</span>';}).join('')
-    +'</div><div class="cgrid">';
-  for(var i=0;i<42;i++)h+='<div class="cell skel"></div>';
-  return h+'</div><div class="calload"><div class="spin"></div></div></div>';
-}
 
 /* ══ 手勢 ══════════════════════════════════════════
    月曆：長按格子看當日全部、左右滑換月
