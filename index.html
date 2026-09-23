@@ -638,7 +638,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24j';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24k';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -830,6 +830,7 @@ function cVer(v){
   if(!v)return ls(CK+'ver');
   var cur=ls(CK+'ver');
   if(cur&&cur!==v){
+    MONTH_DONE={};
     try{
       var del=[];
       for(var i=0;i<localStorage.length;i++){
@@ -1304,10 +1305,13 @@ function go(t,s){
     b.classList.toggle('on',b.getAttribute('data-t')===t);
   });
   window.scrollTo(0,0);
+  // 進行事曆但手上沒資料時，先標成載入中，第一次 render 才不會閃「本月沒有排程」
+  var needMonth=(t==='cal'&&!sub&&!allRows.length);
+  if(needMonth)calLoading=true;
   render();                                  // 先畫出容器，再載資料
   if(tab==='upload'||sub==='upload')loadHistory();
   else if(sub==='admin')loadUsers();
-  else if(t==='cal'){if(!allRows.length)loadMonth();loadRegionUpdates();}
+  else if(t==='cal'){if(needMonth)loadMonth();loadRegionUpdates();}
   else if(t==='today'&&!todayFor)loadToday();
   else if(t==='book')loadStaff(null);
 }
@@ -1528,10 +1532,12 @@ function calPage(){
   h+='</div>';
 
   // 載入中：轉圈蓋在月曆正中間，資料到齊（或確定沒行程）才消失
-  h='<div class="calwrap'+(calLoading?' busy':'')+'">'+h
-    +(calLoading?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
+  // MONTH_DONE 記錄哪些月份真的載完了，避免「還沒載就說沒排程」
+  var busy=calLoading||!MONTH_DONE[curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'')];
+  h='<div class="calwrap'+(busy?' busy':'')+'">'+h
+    +(busy?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
     +'</div>';
-  if(!calLoading&&!Object.keys(pmap).length)
+  if(!busy&&!Object.keys(pmap).length)
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
   h+=regionUpdatesHTML();
   return h;
@@ -1851,7 +1857,7 @@ function paintToday(t,all){
 /* ══ 下載範圍 ══════════════════════════════════════
    有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
    再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
-var allScope='',todayScope='',calLoading=false;
+var allScope='',todayScope='',calLoading=false,MONTH_DONE={};
 function scopeKey(){return (F.en?'e:'+F.en:'')+(F.st?'s:'+F.st:'');}
 function scopeOpts(o){
   if(F.en)o.engineer=F.en;
@@ -1904,6 +1910,7 @@ function loadMonth(force){
   });
 }
 function paintMonth(list){
+  MONTH_DONE[curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'')]=1;
   allRows=normRows(list||[]);
   rows=allRows.filter(passF);
   var t=twStr(),c=jGet(NTC,null);
