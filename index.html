@@ -313,6 +313,9 @@ html[data-theme="dark"] .glass::after{
   border-radius:22px 22px 0 0;padding:16px 16px calc(26px + env(safe-area-inset-bottom));
   height:82vh;overflow-y:auto;overscroll-behavior:contain;animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+.strack{position:relative;}
+.spane{will-change:transform;}
+.spane.ghost{position:absolute;left:0;right:0;top:0;pointer-events:none;}
 .shh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .shh h3{font-size:19px;font-weight:600;line-height:1.3;}
 .kv{font-size:13.5px;color:var(--tx2);}
@@ -345,10 +348,6 @@ html[data-theme="dark"] .glass::after{
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
 /* 換月／換日的滑動動畫 */
-@keyframes slInR{from{transform:translateX(34%);opacity:.3}to{transform:none;opacity:1}}
-@keyframes slInL{from{transform:translateX(-34%);opacity:.3}to{transform:none;opacity:1}}
-.sl-in-r{animation:slInR .3s cubic-bezier(.28,.78,.32,1);}
-.sl-in-l{animation:slInL .3s cubic-bezier(.28,.78,.32,1);}
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
 .pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
@@ -628,7 +627,9 @@ html[data-theme="dark"] .glass::after{
 <linearGradient id="gwr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3783c"/><stop offset="1" stop-color="#8a5526"/></linearGradient>
 <linearGradient id="gmc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7d868f"/><stop offset=".45" stop-color="#454e56"/><stop offset="1" stop-color="#262d33"/></linearGradient>
 </defs></svg>
-<div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="ov" id="ov"><div class="sheet" id="sheet">
+  <div class="strack" id="strack"><div class="spane" id="sheetin"></div></div>
+</div></div>
 <div id="toast"></div>
 <input id="fi" type="file" accept=".xlsx,.xls" onchange="onPick(event)">
 
@@ -637,7 +638,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24g';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24i';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2047,7 +2048,7 @@ function paintFilter(){
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
     +tyGroupsHTML(tys)
     +'<div style="height:8px"></div>';
-  $('sheet').innerHTML=h;
+  $('sheetin').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
 
   var q=$('f-q');
@@ -2149,7 +2150,7 @@ function paintPicker(){
       return '<button class="et'+(PK.team===t?' on':'')+'" onclick="pickTeam(\''+esc(t)+'\')">'
         +he(t==='_n'?'未分組':t)+'</button>';}).join('')
     +'</div><div id="pkgrid">'+pickGridHTML()+'</div>';
-  $('sheet').innerHTML=h;
+  $('sheetin').innerHTML=h;
   var q=$('pk-q');
   if(q)q.oninput=function(){PK.q=this.value;paintPickGrid();};
 }
@@ -2326,20 +2327,38 @@ function slidePage(dir,fn){
   },SLIDE_MS+40);
 }
 /** 面板換日：內容直接換掉，再從對應方向滑進來 */
+/** 換日：舊內容與新內容同時橫移，不會有閃爍 */
 function slideSheet(dir,fn){
-  var el=$('sheet');
-  var h0=(el&&el.offsetHeight)||0;
-  fn();
-  el=$('sheet');
-  if(!el||typeof el.classList==='undefined')return;
-  // 先撐住原本高度，等新內容滑進來再放開，避免面板抽動
-  if(el.style&&h0)el.style.minHeight=h0+'px';
-  el.classList.remove('sl-in-l','sl-in-r');
-  el.classList.add(dir>0?'sl-in-r':'sl-in-l');
+  var sh=$('sheet'),track=$('strack'),pane=$('sheetin');
+  if(!sh||!track||!pane||!pane.innerHTML||typeof document.createElement!=='function'
+     ||!track.appendChild||!pane.style){
+    fn();return;
+  }
+  var oldHTML=pane.innerHTML;
+  fn();                                   // 內層換成新的一天
+
+  var g;
+  try{
+    g=document.createElement('div');
+    g.className='spane ghost';
+    g.innerHTML=oldHTML;
+    track.appendChild(g);
+  }catch(e){return;}
+  sh.scrollTop=0;
+
+  var into=(dir>0?'100%':'-100%');
+  var away=(dir>0?'-100%':'100%');
+  pane.style.transition='none';
+  pane.style.transform='translateX('+into+')';
+  raf(function(){
+    pane.style.transition=SLIDE_EASE;
+    pane.style.transform='translateX(0)';
+    if(g.style){g.style.transition=SLIDE_EASE;g.style.transform='translateX('+away+')';}
+  });
   setTimeout(function(){
-    if(el.classList)el.classList.remove('sl-in-l','sl-in-r');
-    if(el.style)el.style.minHeight='';
-  },SLIDE_MS);
+    if(g&&g.parentNode)g.parentNode.removeChild(g);
+    pane.style.transition='';pane.style.transform='';
+  },SLIDE_MS+40);
 }
 
 /* ══ 手勢 ══════════════════════════════════════════
@@ -2402,7 +2421,7 @@ function initSwipe(){
 /* ══ 底部面板 ══ */
 var _lockY=0;
 function openSheet(html){
-  $('sheet').innerHTML=html;
+  $('sheetin').innerHTML=html;
   _lockY=window.pageYOffset||document.documentElement.scrollTop||0;
   document.body.style.top=(-_lockY)+'px';
   document.body.classList.add('locked');
@@ -2450,7 +2469,9 @@ function gotoDay(d,n){
 var EV_OPEN={};
 function openDay(d,focus){
   var gs=groupBy(dayRows(d));
-  var same=$('ov').classList.contains('open')&&EV_D===d;   // 同一天就地重畫，保留捲動位置
+  // 面板已經開著就只換內容，不要再跑一次彈出動畫（會整個閃一下）
+  var isOpen=$('ov').classList.contains('open');
+  var same=isOpen&&EV_D===d;               // 同一天就地重畫，保留捲動位置
   if(EV_D!==d)EV_OPEN={};
   EV_D=d;
   if(focus)EV_OPEN[focus]=true;
@@ -2474,10 +2495,10 @@ function openDay(d,focus){
       +'</div>';
   });
 
-  if(same){
+  if(isOpen){
     var sh=$('sheet'),top=sh.scrollTop;
-    sh.innerHTML=h;
-    sh.scrollTop=top;
+    $('sheetin').innerHTML=h;
+    sh.scrollTop=same?top:0;               // 換日就回到頂端，同一天保留位置
   }else openSheet(h);
 
   if(focus)setTimeout(function(){
