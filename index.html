@@ -261,14 +261,11 @@ html[data-theme="dark"] .glass::after{
 .evc{display:block;font-size:9.5px;line-height:1.5;padding:0 4px;margin-top:2px;
   border-radius:999px;color:#fff;overflow:hidden;white-space:nowrap;}
 @media(min-width:420px){.cell{height:84px;}.evc{font-size:10.5px;}}
-/* 載入中：轉圈浮在月曆中央，格子壓淡 */
+/* 載入中：轉圈加文字，置中蓋在月曆上，格子壓淡 */
 .calwrap{position:relative;}
 .calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  pointer-events:none;}
-.calload .spin{width:38px;height:38px;border-width:3px;
-  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  box-shadow:var(--sh);}
-.calwrap.busy .cgrid{opacity:.32;}
+  gap:10px;color:var(--tx3);font-size:13px;pointer-events:none;}
+.calwrap.busy .cgrid{opacity:.3;}
 
 /* ── 年月選擇 ── */
 .pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
@@ -640,7 +637,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24c';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1531,7 +1528,7 @@ function calPage(){
 
   // 載入中：轉圈蓋在月曆正中間，資料到齊（或確定沒行程）才消失
   h='<div class="calwrap'+(calLoading?' busy':'')+'">'+h
-    +(calLoading?'<div class="calload"><div class="spin"></div></div>':'')
+    +(calLoading?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
     +'</div>';
   if(!calLoading&&!Object.keys(pmap).length)
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
