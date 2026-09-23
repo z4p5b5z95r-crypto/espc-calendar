@@ -212,7 +212,11 @@ html[data-theme="dark"] .glass::after{
 .ib.act{background:var(--tint);color:var(--accT);}
 .bdg{background:var(--acc);color:var(--accTx);font-size:10px;min-width:17px;height:17px;
   border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-weight:600;}
-#page{flex:1;padding:0 12px;}
+.pwrap{flex:1;position:relative;overflow-x:hidden;}
+#page{padding:0 12px;}
+/* 換月時的舊畫面，疊在上面一起滑走 */
+.pghost{position:absolute;left:0;right:0;top:0;padding:0 12px;pointer-events:none;
+  will-change:transform;}
 
 /* ── 篩選標籤 ── */
 .fchips{display:flex;gap:6px;padding:0 13px 9px;flex-wrap:wrap;}
@@ -339,14 +343,10 @@ html[data-theme="dark"] .glass::after{
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
 /* 換月／換日的滑動動畫 */
-@keyframes slOutL{to{transform:translateX(-14%);opacity:0}}
-@keyframes slOutR{to{transform:translateX(14%);opacity:0}}
-@keyframes slInR{from{transform:translateX(18%);opacity:0}to{transform:none;opacity:1}}
-@keyframes slInL{from{transform:translateX(-18%);opacity:0}to{transform:none;opacity:1}}
-.sl-out-l{animation:slOutL .14s ease-in forwards;}
-.sl-out-r{animation:slOutR .14s ease-in forwards;}
-.sl-in-r{animation:slInR .2s cubic-bezier(.22,.7,.3,1);}
-.sl-in-l{animation:slInL .2s cubic-bezier(.22,.7,.3,1);}
+@keyframes slInR{from{transform:translateX(34%);opacity:.3}to{transform:none;opacity:1}}
+@keyframes slInL{from{transform:translateX(-34%);opacity:.3}to{transform:none;opacity:1}}
+.sl-in-r{animation:slInR .3s cubic-bezier(.28,.78,.32,1);}
+.sl-in-l{animation:slInL .3s cubic-bezier(.28,.78,.32,1);}
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
 .pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
@@ -361,7 +361,15 @@ html[data-theme="dark"] .glass::after{
 .pbody{border-top:1px solid var(--line);padding:6px 13px 10px;}
 .pbody .dcard{background:none;border:none;border-radius:0;padding:0;margin-bottom:0;
   backdrop-filter:none;-webkit-backdrop-filter:none;}
-.pbody .dcard+.dcard{border-top:1px solid var(--line);margin-top:6px;padding-top:6px;}
+/* 每個測項獨立一張小卡 */
+.tcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;margin-bottom:9px;}
+.tch{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 12px;font-size:12px;font-weight:600;background:var(--tint);}
+.tcb{padding:2px 12px 7px;}
+/* 共用資訊 */
+.shbox{margin-top:11px;padding-top:9px;border-top:1.5px dashed var(--line);}
+.shh2{font-size:11px;color:var(--tx3);margin:0 0 3px 2px;}
 .fold{display:flex;align-items:center;gap:8px;width:100%;margin:18px 0 4px;
   padding:11px 14px;border-radius:var(--r);text-align:left;
   background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
@@ -505,6 +513,7 @@ html[data-theme="dark"] .glass::after{
   .fchips{order:3;flex-basis:100%;padding:0 0 11px;}
   .ttl{font-size:27px;}
   #page{padding:20px var(--gut) 0;}
+  .pghost{padding:20px var(--gut) 0;}
 
   /* 桌機沒有滑動手勢，把換月箭頭放回來 */
   .navm{display:inline-flex;}
@@ -596,7 +605,7 @@ html[data-theme="dark"] .glass::after{
   </div>
 
   <div class="pk" id="pk"></div>
-  <div id="page"></div>
+  <div class="pwrap" id="pwrap"><div id="page"></div></div>
 
   <div class="nav" id="nav">
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
@@ -626,7 +635,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23w';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23x';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2262,23 +2271,54 @@ function hardReload(){
 
 /* ══ 換頁動畫 ══════════════════════════════════════
    舊內容先滑出去，新內容再從另一側滑進來 */
-var SLIDE_MS=140;
-function slideEl(el,dir,fn){
-  if(!el||typeof el.classList==='undefined'){fn();return;}
-  var OUT=dir>0?'sl-out-l':'sl-out-r';
-  var IN =dir>0?'sl-in-r':'sl-in-l';
-  el.classList.remove('sl-in-l','sl-in-r','sl-out-l','sl-out-r');
-  el.classList.add(OUT);
+var SLIDE_MS=300;
+var SLIDE_EASE='transform .3s cubic-bezier(.28,.78,.32,1)';
+function raf(fn){
+  if(typeof requestAnimationFrame==='function')requestAnimationFrame(fn);
+  else setTimeout(fn,16);
+}
+/** 舊畫面與新畫面同時橫移，中間不會有空白 */
+function slidePage(dir,fn){
+  var el=$('page'),wrap=$('pwrap');
+  if(!el||!wrap||!wrap.appendChild||typeof document.createElement!=='function'||!el.style){
+    fn();return;
+  }
+  var g;
+  try{
+    g=document.createElement('div');
+    g.className='pghost';
+    g.innerHTML=el.innerHTML;
+    wrap.appendChild(g);
+  }catch(e){fn();return;}
+
+  fn();                                   // 立刻換成新內容
+
+  var into=(dir>0?'100%':'-100%');        // 新畫面從哪一側進來
+  var away=(dir>0?'-100%':'100%');        // 舊畫面往哪一側離開
+  el.style.transition='none';
+  el.style.transform='translateX('+into+')';
+  raf(function(){
+    el.style.transition=SLIDE_EASE;
+    el.style.transform='translateX(0)';
+    g.style.transition=SLIDE_EASE;
+    g.style.transform='translateX('+away+')';
+  });
   setTimeout(function(){
-    fn();
-    var e2=(el.id==='page')?$('page'):$('sheet');
-    if(!e2||typeof e2.classList==='undefined')return;
-    e2.classList.remove('sl-out-l','sl-out-r');
-    e2.classList.add(IN);
+    if(g&&g.parentNode)g.parentNode.removeChild(g);
+    el.style.transition='';el.style.transform='';
+  },SLIDE_MS+40);
+}
+/** 面板換日：內容直接換掉，再從對應方向滑進來 */
+function slideSheet(dir,fn){
+  fn();
+  var el=$('sheet');
+  if(!el||typeof el.classList==='undefined')return;
+  el.classList.remove('sl-in-l','sl-in-r');
+  el.classList.add(dir>0?'sl-in-r':'sl-in-l');
+  setTimeout(function(){
+    if(el.classList)el.classList.remove('sl-in-l','sl-in-r');
   },SLIDE_MS);
 }
-function slidePage(dir,fn){slideEl($('page'),dir,fn);}
-function slideSheet(dir,fn){slideEl($('sheet'),dir,fn);}
 
 /* ══ 手勢 ══════════════════════════════════════════
    月曆：長按格子看當日全部、左右滑換月
@@ -2438,26 +2478,31 @@ function openEv(d,proj){openDay(d,proj);}
 
 /** 一個案子的完整明細：各測項一段，最後是共用資訊 */
 function evDetail(g){
-  var c=pcolor(g.project),h='';
+  var c=pcolor(g.project),multi=g.tlist.length>1,h='';
   g.tlist.forEach(function(t){
-    var tg=g.tmap[t];
-    if(g.tlist.length>1)
-      h+='<div class="dsub" style="color:'+c+';font-weight:600">'+he(t)
-        +(qtyText(tg.qtys)?'　'+he(qtyText(tg.qtys)):'')+'</div>';
-    h+='<div class="dcard">'
-      +dr('點位',locList(tg.locs))
-      +(g.tlist.length>1?dr('數量',he(qtyText(tg.qtys))):'')
+    var tg=g.tmap[t],q=qtyText(tg.qtys);
+    var rows=dr('點位',locList(tg.locs))
       +dr('採樣時間',he(tg.samp||g.samp))
       +dr('儀器',pills(tg.eqs))
       +dr('申報人員',tg.reps.map(telLink).join('<br>'))
-      +dr('報告編號',he(tg.nums.join('<br>')))
-      +'</div>';
+      +dr('報告編號',he(tg.nums.join('<br>')));
+    if(multi){
+      // 多測項 → 各自一張小卡，卡頭標出測項與數量
+      h+='<div class="tcard">'
+        +'<div class="tch" style="color:'+c+'"><span>'+he(t)+'</span>'
+        +(q?'<span>'+he(q)+'</span>':'')+'</div>'
+        +'<div class="tcb">'+rows+'</div></div>';
+    }else{
+      h+='<div class="dcard">'+dr('數量',he(q))+rows+'</div>';
+    }
   });
   var shared=dr('工程師',g.engs.map(telLink).join('<br>'))
     +dr('公務車',he(g.cars.join('、')))
     +dr('監測人員',g.staff.map(telLink).join('<br>'))
     +dr('備註',he(g.notes.join('；')));
-  if(shared)h+='<div class="dcard">'+shared+'</div>';
+  if(shared)
+    h+='<div class="shbox"><p class="shh2">'+(multi?'以下為本案共用':'人員與車輛')+'</p>'
+      +'<div class="dcard">'+shared+'</div></div>';
   return h;
 }
 
