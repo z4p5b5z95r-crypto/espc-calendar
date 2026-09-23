@@ -335,6 +335,22 @@ html[data-theme="dark"] .glass::after{
 .dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
+/* 換月／換日的滑動動畫 */
+@keyframes slOutL{to{transform:translateX(-14%);opacity:0}}
+@keyframes slOutR{to{transform:translateX(14%);opacity:0}}
+@keyframes slInR{from{transform:translateX(18%);opacity:0}to{transform:none;opacity:1}}
+@keyframes slInL{from{transform:translateX(-18%);opacity:0}to{transform:none;opacity:1}}
+.sl-out-l{animation:slOutL .14s ease-in forwards;}
+.sl-out-r{animation:slOutR .14s ease-in forwards;}
+.sl-in-r{animation:slInR .2s cubic-bezier(.22,.7,.3,1);}
+.sl-in-l{animation:slInL .2s cubic-bezier(.22,.7,.3,1);}
+/* 載入中的空月曆 */
+.calwrap{position:relative;}
+.cell.skel{background:var(--card2);opacity:.4;pointer-events:none;}
+.calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+.calload .spin{width:34px;height:34px;border-width:2.5px;
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  box-shadow:var(--sh);}
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
 .pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
@@ -612,7 +628,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23t';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23u';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1847,7 +1863,7 @@ function loadMonth(force){
   var c=force?null:cGet(key);
   if(c&&c.rows)paintMonth(c.rows);
   else{
-    if(onTab)$('page').innerHTML=loader('載入 '+curY+' 年 '+(curM+1)+' 月行程…');
+    if(onTab)$('page').innerHTML=calSkeleton();
     c=null;
   }
   var o=scopeOpts({dateFrom:first,dateTo:last});
@@ -1874,11 +1890,14 @@ function paintMonth(list){
 
 function moveM(d){
   curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
-  allRows=[];rows=[];saveTab();render();loadMonth();
+  allRows=[];rows=[];saveTab();
+  slidePage(d,function(){render();loadMonth();});
 }
 function goToday(){
-  var n=twDate();curY=n.getFullYear();curM=n.getMonth();
-  allRows=[];rows=[];saveTab();render();loadMonth();
+  var n=twDate(),d=(n.getFullYear()*12+n.getMonth())>=(curY*12+curM)?1:-1;
+  curY=n.getFullYear();curM=n.getMonth();
+  allRows=[];rows=[];saveTab();
+  slidePage(d,function(){render();loadMonth();});
 }
 
 function loadStaff(cb,force){
@@ -2228,6 +2247,35 @@ function hardReload(){
   });
 }
 
+/* ══ 換頁動畫 ══════════════════════════════════════
+   舊內容先滑出去，新內容再從另一側滑進來 */
+var SLIDE_MS=140;
+function slideEl(el,dir,fn){
+  if(!el||typeof el.classList==='undefined'){fn();return;}
+  var OUT=dir>0?'sl-out-l':'sl-out-r';
+  var IN =dir>0?'sl-in-r':'sl-in-l';
+  el.classList.remove('sl-in-l','sl-in-r','sl-out-l','sl-out-r');
+  el.classList.add(OUT);
+  setTimeout(function(){
+    fn();
+    var e2=(el.id==='page')?$('page'):$('sheet');
+    if(!e2||typeof e2.classList==='undefined')return;
+    e2.classList.remove('sl-out-l','sl-out-r');
+    e2.classList.add(IN);
+  },SLIDE_MS);
+}
+function slidePage(dir,fn){slideEl($('page'),dir,fn);}
+function slideSheet(dir,fn){slideEl($('sheet'),dir,fn);}
+
+/** 載入中的空月曆：格子先排好，中間轉圈 */
+function calSkeleton(){
+  var h='<div class="calwrap"><div class="dow">'
+    +DW.map(function(d,i){return '<span'+(i===0?' class="sun"':'')+'>'+d+'</span>';}).join('')
+    +'</div><div class="cgrid">';
+  for(var i=0;i<42;i++)h+='<div class="cell skel"></div>';
+  return h+'</div><div class="calload"><div class="spin"></div></div></div>';
+}
+
 /* ══ 手勢 ══════════════════════════════════════════
    月曆：長按格子看當日全部、左右滑換月
    詳情面板：左右滑換日 */
@@ -2327,7 +2375,10 @@ function dayNav(d,sub2){
     +'<button class="ib" onclick="gotoDay(\''+d+'\',1)" title="後一天">›</button>'
     +'<button class="ib" onclick="closeSheet()" style="margin-left:4px">✕</button></div>';
 }
-function gotoDay(d,n){openDay(addDays(d,n));}
+function gotoDay(d,n){
+  var nd=addDays(d,n);
+  slideSheet(n,function(){openDay(nd);});
+}
 
 /* 當日面板：案子清單可各自展開，展開後的明細跟詳情頁一樣完整 */
 var EV_OPEN={};
@@ -2449,8 +2500,10 @@ function renderPk(){
   $('pk').innerHTML=h+'</div>';
 }
 function pickM(y,m){
+  var d=(y*12+m)>=(curY*12+curM)?1:-1;
   curY=y;curM=m;$('pk').classList.remove('open');
-  allRows=[];rows=[];saveTab();render();loadMonth();
+  allRows=[];rows=[];saveTab();
+  slidePage(d,function(){render();loadMonth();});
 }
 
 /* ══ 人員編輯 ══ */
