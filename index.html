@@ -202,7 +202,7 @@ html[data-theme="dark"] .glass::after{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .ttl.tap::after{content:" ▾";font-size:12px;color:var(--tx3);font-weight:400;}
 /* 手機用滑的換月，箭頭只在桌機出現 */
-.navm{display:none;}
+.ib.navm{display:none;}          /* 比 .ib 多一層，才蓋得過它的 display */
 .rb{display:flex;gap:5px;align-items:center;}
 .ib{background:var(--card2);width:36px;height:36px;border-radius:999px;font-size:15px;
   color:var(--tx2);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -516,7 +516,7 @@ html[data-theme="dark"] .glass::after{
   .pghost{padding:20px var(--gut) 0;}
 
   /* 桌機沒有滑動手勢，把換月箭頭放回來 */
-  .navm{display:inline-flex;}
+  .ib.navm{display:inline-flex;}
   /* 按鈕加上滑鼠效果 */
   .ib{transition:background .15s,transform .1s;}
   .ib:hover{background:var(--line);}
@@ -635,7 +635,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23x';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23z';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -850,7 +850,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
   '貯存系統污染監測人員','船員證'];
-var F={rg:'',en:'',ty:[],q:'',me:'',st:''};
+var F={rg:'',en:'',ty:[],q:'',st:''};
 var tab='today',sub='';
 
 /* ══ 職安效期 ══
@@ -1248,11 +1248,11 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
-  // 登入就先帶入自己的行程：PM 比對工程師欄，現場人員比對監測／申報人員欄。
+  // 登入就先帶入自己的行程：PM 篩工程師欄，現場人員篩監測人員欄（含申報人員）。
   // 想看別人的資料，把上方的篩選標籤點掉或自己重新篩選即可。
   if(eng){
     if(r==='pm')F.en=eng;
-    else if(r==='sampler')F.me=eng;
+    else if(r==='sampler')F.st=eng;
   }
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -1372,12 +1372,11 @@ function filterBtn(){
   return '<button class="ib'+(n?' act w':'')+'" onclick="openFilter()">'
     +ic('filter',17)+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
 }
-function nF(){return (F.rg?1:0)+(F.en?1:0)+(F.st?1:0)+F.ty.length+((F.q||'').trim()?1:0)+(F.me?1:0);}
+function nF(){return (F.rg?1:0)+(F.en?1:0)+(F.st?1:0)+F.ty.length+((F.q||'').trim()?1:0);}
 
 function renderChips(){
   if(sub||(tab!=='cal'&&tab!=='today')){$('fchips').innerHTML='';return;}
   var h='';
-  if(F.me)h+='<span class="fc">只看我的<button onclick="clrF(\'me\')">✕</button></span>';
   if(F.q)h+='<span class="fc">「'+he(F.q)+'」<button onclick="clrF(\'q\')">✕</button></span>';
   if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
   if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
@@ -1850,10 +1849,10 @@ function paintToday(t,all){
    有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
    再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
 var allScope='',todayScope='',calLoading=false;
-function scopeKey(){return (F.en?'e:'+F.en:'')+(F.me?'m:'+F.me:'');}
+function scopeKey(){return (F.en?'e:'+F.en:'')+(F.st?'s:'+F.st:'');}
 function scopeOpts(o){
   if(F.en)o.engineer=F.en;
-  if(F.me)o.person=F.me;
+  if(F.st)o.person=F.st;
   return o;
 }
 /** 背景把完整資料抓回來存快取，不動畫面 */
@@ -1985,10 +1984,9 @@ function hasPerson(r,n){
   return false;
 }
 function passF(r){
-  if(F.me&&!hasPerson(r,F.me))return false;
   if(F.rg&&(r.region||'')!==F.rg)return false;
   if(F.en&&r.engineer!==F.en)return false;
-  if(F.st&&!(r.staff&&r.staff.length&&r.staff.indexOf(F.st)>=0))return false;
+  if(F.st&&!hasPerson(r,F.st))return false;
   if(F.ty.length&&F.ty.indexOf(r.type)<0)return false;
   if(F.q){
     var q=F.q.toLowerCase();
@@ -1999,10 +1997,10 @@ function passF(r){
   }
   return true;
 }
-var FT={rg:'',en:'',ty:[],q:'',me:'',st:''};   // 面板上的暫存條件，按「篩選」才套用
+var FT={rg:'',en:'',ty:[],q:'',st:''};   // 面板上的暫存條件，按「篩選」才套用
 
 function openFilter(){
-  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',me:F.me||'',st:F.st||''};
+  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',st:F.st||''};
   paintFilter();
   $('ov').classList.add('open');
 }
@@ -2040,7 +2038,7 @@ function paintFilter(){
     +'</select>'
     +'<p class="lb">工程師</p>'
     +pickBtn('en',FT.en,'全部工程師')
-    +'<p class="lb">監測人員</p>'
+    +'<p class="lb">監測人員　<span style="color:var(--tx2)">含申報人員</span></p>'
     +pickBtn('st',FT.st,'全部監測人員')
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
     +'<div class="opts" style="margin-bottom:4px">'
@@ -2214,7 +2212,7 @@ function tyGroupsHTML(tys){
   return h;
 }
 
-function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0)+(FT.me?1:0);}
+function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0);}
 function tyPick(t){
   if(!t)FT.ty=[];
   else{var i=FT.ty.indexOf(t);if(i>=0)FT.ty.splice(i,1);else FT.ty.push(t);}
@@ -2222,12 +2220,12 @@ function tyPick(t){
 }
 function applyFilter(){
   var el=$('f-q');if(el)FT.q=el.value;
-  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),me:FT.me||'',st:FT.st||''};
+  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||''};
   closeSheet();refetch();
   toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
 }
 function clearFilter(){
-  FT={rg:'',en:'',ty:[],q:'',me:'',st:''};F={rg:'',en:'',ty:[],q:'',me:'',st:''};
+  FT={rg:'',en:'',ty:[],q:'',st:''};F={rg:'',en:'',ty:[],q:'',st:''};
   closeSheet();refetch();
   toast('已清除篩選','ok',2000);
 }
