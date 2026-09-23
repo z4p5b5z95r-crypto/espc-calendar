@@ -638,7 +638,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24k';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24m';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1252,12 +1252,6 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
-  // 登入就先帶入自己的行程：PM 篩工程師欄，現場人員篩監測人員欄（含申報人員）。
-  // 想看別人的資料，把上方的篩選標籤點掉或自己重新篩選即可。
-  if(eng){
-    if(r==='pm')F.en=eng;
-    else if(r==='sampler')F.st=eng;
-  }
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
   lsS('espc_sync',t);
@@ -1265,12 +1259,28 @@ function boot(u,r,eng){
 
   ntInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
+  // 等通訊錄載好才決定要篩哪一欄（需要組別資料），再開始抓行程
   loadStaff(function(){
+    autoFilterSelf();
     if(back)go(back.t,back.s);
     else loadToday(fresh);
     checkDueNotice();
   },fresh);
-  if(!back)loadToday(fresh);      // 沒有記錄就照原本流程先畫今日
+}
+
+/**
+ * 登入後先顯示自己的行程。
+ * PM 或組別是 PM 的人 → 篩 PM 欄；其他人 → 篩現場欄（含申報人員）。
+ * 通訊錄裡查無此人（例如 admin 這種系統帳號）就不篩，直接看全部。
+ */
+function autoFilterSelf(){
+  var n=String(ENGNAME||'').trim();
+  if(!n||F.en||F.st)return;
+  var known=false;
+  STAFF.forEach(function(s){if(s.name===n)known=true;});
+  if(!known)return;
+  if(ROLE==='pm'||isPMTeam(n))F.en=n;
+  else F.st=n;
 }
 
 /** 讀出上次所在的頁籤，順便擋掉沒權限或已失效的目的地 */
@@ -1993,7 +2003,21 @@ function hasPerson(r,n){
   if(r.staff&&r.staff.length&&r.staff.indexOf(n)>=0)return true;
   return false;
 }
+/** 把數量換成數字；「-1+1」這種寫法會相加。認不出來回 null（例如含文字或空白） */
+function qtyNum(v){
+  var s=String(v==null?'':v).trim();
+  if(!s)return null;
+  if(!/^[-+0-9.\s]+$/.test(s))return null;
+  var m=s.match(/[-+]?\d+(\.\d+)?/g);
+  if(!m)return null;
+  var sum=0;
+  m.forEach(function(x){sum+=parseFloat(x);});
+  return Math.round(sum*1000)/1000;
+}
+
 function passF(r){
+  // 現場人員：數量是 0 代表當天沒有要採的，不用列出來；PM 仍然看得到
+  if(ROLE==='sampler'&&qtyNum(r.qty)===0)return false;
   if(F.rg&&(r.region||'')!==F.rg)return false;
   if(F.en&&r.engineer!==F.en)return false;
   if(F.st&&!hasPerson(r,F.st))return false;
