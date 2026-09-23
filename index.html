@@ -342,8 +342,6 @@ html[data-theme="dark"] .glass::after{
 .dph{font-size:11.5px;color:var(--tx3);margin-left:4px;}
 .pil{display:inline-block;font-size:11px;padding:2px 8px;border-radius:7px;
   background:var(--card2);color:var(--tx2);margin:0 4px 4px 0;}
-.qb{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;
-  background:var(--tint);color:var(--accT);white-space:nowrap;flex-shrink:0;}
 .dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
@@ -638,7 +636,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24m';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24o';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1268,19 +1266,49 @@ function boot(u,r,eng){
   },fresh);
 }
 
+/* ══ 只看自己 ══════════════════════════════════════
+   預設只下載並顯示自己的行程（快很多）。
+   要查別人時在篩選面板打開「查看其他人的行程」。 */
+var SEEALL=(ls('espc_all')==='1');
+/** 這個帳號綁定的人（通訊錄查得到才算） */
+function selfName(){
+  var n=String(ENGNAME||'').trim();
+  if(!n)return '';
+  var ok=false;
+  STAFF.forEach(function(s){if(s.name===n)ok=true;});
+  return ok?n:'';
+}
+/** 自己應該被篩在哪一欄 */
+function selfField(){
+  var n=selfName();
+  return (ROLE==='pm'||isPMTeam(n))?'en':'st';
+}
+/** 只看自己時，強制把條件鎖回自己身上 */
+function lockSelf(){
+  var n=selfName();
+  if(SEEALL||!n)return;
+  F.en='';F.st='';
+  F[selfField()]=n;
+}
+function seeAllToggle(){
+  var el=$('f-q');if(el)FT.q=el.value;
+  SEEALL=!SEEALL;
+  lsS('espc_all',SEEALL?'1':'');
+  if(!SEEALL){FT.en='';FT.st='';FT[selfField()]=selfName();}
+  paintFilter();
+}
+
 /**
  * 登入後先顯示自己的行程。
  * PM 或組別是 PM 的人 → 篩 PM 欄；其他人 → 篩現場欄（含申報人員）。
  * 通訊錄裡查無此人（例如 admin 這種系統帳號）就不篩，直接看全部。
  */
 function autoFilterSelf(){
-  var n=String(ENGNAME||'').trim();
-  if(!n||F.en||F.st)return;
-  var known=false;
-  STAFF.forEach(function(s){if(s.name===n)known=true;});
-  if(!known)return;
-  if(ROLE==='pm'||isPMTeam(n))F.en=n;
-  else F.st=n;
+  var n=selfName();
+  if(!n)return;
+  if(!SEEALL){lockSelf();return;}     // 只看自己：一定鎖回自己
+  if(F.en||F.st)return;               // 可看全部：已有條件就不動
+  F[selfField()]=n;
 }
 
 /** 讀出上次所在的頁籤，順便擋掉沒權限或已失效的目的地 */
@@ -1396,8 +1424,11 @@ function renderChips(){
   var h='';
   if(F.q)h+='<span class="fc">「'+he(F.q)+'」<button onclick="clrF(\'q\')">✕</button></span>';
   if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
-  if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
-  if(F.st)h+='<span class="fc">'+he(F.st)+'<button onclick="clrF(\'st\')">✕</button></span>';
+  var lk=(!SEEALL&&selfName());
+  if(F.en)h+='<span class="fc">'+he(F.en)
+    +(lk?'':'<button onclick="clrF(\'en\')">✕</button>')+'</span>';
+  if(F.st)h+='<span class="fc">'+he(F.st)
+    +(lk?'':'<button onclick="clrF(\'st\')">✕</button>')+'</span>';
   F.ty.forEach(function(t){
     h+='<span class="fc">'+he(t)+'<button onclick="clrF(\'ty\',\''+he(t).replace(/'/g,"\\'")+'\')">✕</button></span>';});
   $('fchips').innerHTML=h;
@@ -1405,6 +1436,7 @@ function renderChips(){
 function clrF(k,v){
   if(k==='ty')F.ty=F.ty.filter(function(t){return t!==v;});
   else F[k]='';
+  lockSelf();            // 只看自己時，人員條件拿不掉
   refetch();
 }
 
@@ -2064,6 +2096,10 @@ function paintFilter(){
     +'<button class="btn btn-sm" onclick="clearFilter()">清除</button>'
     +'<button class="btn btn-p btn-sm" onclick="applyFilter()">篩選'
     +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
+    +(selfName()?'<div class="card" style="margin:0 0 16px"><div class="row">'
+      +'<div style="min-width:0"><div style="font-size:15px">查看其他人的行程</div>'
+      +'<div class="hint" style="margin-top:2px">關閉時只下載自己的行程，開啟速度較快</div></div>'
+      +'<button class="sw'+(SEEALL?' on':'')+'" onclick="seeAllToggle()"></button></div></div>':'')
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
@@ -2106,11 +2142,17 @@ function typeGroup(t){
 var PK={who:'',q:'',team:''};
 
 function pickBtn(who,val,empty){
+  var locked=(!SEEALL&&selfName());
   return '<button class="fld" style="margin-bottom:16px;display:flex;align-items:center;'
-    +'justify-content:space-between;text-align:left" onclick="openPick(\''+who+'\')">'
+    +'justify-content:space-between;text-align:left'+(locked?';opacity:.55':'')+'"'
+    +' onclick="'+(locked?'lockedHint()':'openPick(\''+who+'\')')+'">'
     +'<span'+(val?'':' style="color:var(--tx3)"')+'>'+he(val||empty)
     +(val&&TEAM[val]?' <span style="font-size:11px;color:var(--tx3)">'+he(TEAM[val])+'</span>':'')
-    +'</span><span style="color:var(--tx3);font-size:12px">選擇 ›</span></button>';
+    +'</span><span style="color:var(--tx3);font-size:12px">'
+    +(locked?'已鎖定':'選擇 ›')+'</span></button>';
+}
+function lockedHint(){
+  toast('先打開「查看其他人的行程」才能選別人','',3500);
 }
 function openPick(who){
   PK={who:who,q:'',team:''};
@@ -2266,11 +2308,14 @@ function tyPick(t){
 function applyFilter(){
   var el=$('f-q');if(el)FT.q=el.value;
   F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||''};
+  lockSelf();
   closeSheet();refetch();
   toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
 }
 function clearFilter(){
   FT={rg:'',en:'',ty:[],q:'',st:''};F={rg:'',en:'',ty:[],q:'',st:''};
+  lockSelf();
+  FT.en=F.en;FT.st=F.st;
   closeSheet();refetch();
   toast('已清除篩選','ok',2000);
 }
@@ -2500,7 +2545,7 @@ function openDay(d,focus){
     +'<span style="font-size:12px">左右滑動或按 ‹ › 看其他日期</span></div>';
 
   gs.forEach(function(g){
-    var c=pcolor(g.project),on=!!EV_OPEN[g.project],q=qtyText(g.qtys);
+    var c=pcolor(g.project),on=!!EV_OPEN[g.project];
     h+='<div class="pcard'+(on?' on':'')+'" id="pc-'+he(hashId(g.project))+'">'
       +'<button class="pchd" onclick="evToggle(\''+esc(g.project)+'\')">'
       +'<span class="pbar" style="background:'+c+'"></span>'
@@ -2508,7 +2553,6 @@ function openDay(d,focus){
       +'<span class="pnm">'+he(g.project+carTag(g))
       +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')+'</span>'
       +'<span class="pty" style="color:'+c+'">'+he(typeLabel(g))+'</span></span>'
-      +(q?'<span class="qb">'+he(q)+'</span>':'')
       +'<span class="pchev'+(on?' on':'')+'">'+ic('right',15)+'</span></button>'
       +(on?'<div class="pbody">'+evDetail(g)+'</div>':'')
       +'</div>';
