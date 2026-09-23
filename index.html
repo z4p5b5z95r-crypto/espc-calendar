@@ -339,7 +339,11 @@ html[data-theme="dark"] .glass::after{
   scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .etab::-webkit-scrollbar{display:none;}
 .et{font-size:12px;padding:6px 12px;border-radius:999px;background:var(--card2);
-  color:var(--tx2);white-space:nowrap;flex-shrink:0;}
+  color:var(--tx2);white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;}
+.et b{font-size:10px;font-weight:700;min-width:15px;height:15px;border-radius:999px;
+  background:var(--line);color:var(--tx2);display:inline-flex;align-items:center;
+  justify-content:center;padding:0 3px;}
+.et.on b{background:rgba(255,255,255,.28);color:var(--accTx);}
 .et.on{background:var(--acc);color:var(--accTx);font-weight:600;}
 .opts{display:flex;flex-wrap:wrap;gap:7px;}
 .ob svg{margin-right:-1px;}
@@ -575,7 +579,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23f';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23h';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2084,7 +2088,7 @@ function gotoDay(d,n){openDay(addDays(d,n));}
 function openDay(d){
   var gs=groupBy(dayRows(d));
   EV_D=d;
-  var h=dayNav(d,gs.length?'共 '+gs.length+' 項行程':'');
+  var h=dayNav(d,gs.length?'共 '+gs.length+' 個案子':'');
   if(!gs.length)h+='<div class="empty">當日沒有排程<br>'
     +'<span style="font-size:12px">左右滑動或按 ‹ › 看其他日期</span></div>';
   h+='<div class="plist">';
@@ -2107,16 +2111,17 @@ function openEv(d,proj){
   var c=pcolor(g.project);
   EV_D=d;
 
-  var h=dayNav(d,gs.length>1?'共 '+gs.length+' 項':'');
+  var h=dayNav(d,gs.length>1?'共 '+gs.length+' 個案子':'');
 
-  // 當天有多項 → 上方頁籤直接切換，不用捲到最底
+  // 當天有幾個案子就幾個頁籤，標籤用專案名稱
   if(gs.length>1){
     h+='<div class="etab">';
-    gs.forEach(function(x){
-      var lb=(x.tlist[0]||x.project);
-      if(lb.length>8)lb=lb.slice(0,8)+'…';
-      h+='<button class="et'+(x.project===proj?' on':'')+'"'
-        +' onclick="openEv(\''+d+'\',\''+he(esc(x.project))+'\')">'+he(lb)+'</button>';
+    gs.forEach(function(x,i){
+      var lb=x.project||'（未分類）';
+      if(lb.length>9)lb=lb.slice(0,9)+'…';
+      h+='<button class="et'+(x.project===proj?' on':'')+'" title="'+he(x.project)+'"'
+        +' onclick="openEv(\''+d+'\',\''+he(esc(x.project))+'\')">'
+        +'<b>'+(i+1)+'</b>'+he(lb)+'</button>';
     });
     h+='</div>';
   }
@@ -2124,10 +2129,11 @@ function openEv(d,proj){
   // 標題列：類別與編號在左，總數量在右
   var allQ=qtyText(g.qtys);
   h+='<div class="dhd"><div style="min-width:0">'
-    +'<div class="evt" style="color:'+c+'">'+he(typeLabel(g))
-    +(g.no?' <span class="dph">'+he(g.no)+'</span>':'')+'</div>'
-    +'<h3 style="margin-top:3px;font-size:19px;font-weight:600;line-height:1.3">'
-    +he(g.project+carTag(g))+'</h3></div>'
+    +'<h3 style="font-size:19px;font-weight:600;line-height:1.3">'
+    +he(g.project+carTag(g))
+    +(g.no?' <span class="dph">'+he(g.no)+'</span>':'')+'</h3>'
+    +'<div class="evt" style="color:'+c+';margin-top:4px">'+he(typeLabel(g))
+    +(g.tlist.length>1?' <span class="dph">共 '+g.tlist.length+' 個測項</span>':'')+'</div></div>'
     +(allQ?'<span class="qb">'+he(allQ)+'</span>':'')+'</div>';
 
   // 各類別的明細
@@ -2416,7 +2422,7 @@ function doUpload(force){
   if(!pRows.length){toast('沒有可上傳的資料','no');return;}
   if(!pRows[0].region){toast('請先選擇地區','no');return;}
   var fn=pName,snap=pRows,mt=pMtime;
-  gas('saveData',TOKEN,snap,fn,mt,!!force).then(function(r){
+  gas('saveData',TOKEN,snap,fn,mt,!!force,APP_VER).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'上傳失敗','no');paintParse(false);return;}
     if(r.saved===0&&r.canForce){
       $('parse').innerHTML='<div class="card" style="margin-top:12px">'
@@ -2485,7 +2491,13 @@ function paintHistory(){
       +'<span class="tag'+(isOld?'':' g')+'">'+(isOld?'已被取代':'最新')+'</span></div>'
       +'<div class="hint">'+he(rng)+(r.days?'　·　'+r.days+' 天':'')+'　·　'+he(r.uploaded_by)+'<br>'
       +'檔案更新：'+(r.source_mtime?he(stamp(r.source_mtime)):'未記錄')
-      +'　上傳：'+he(stamp(r.upload_time))+'</div></div>'
+      +'　上傳：'+he(stamp(r.upload_time))
+      +'<br>解析版本：'+(r.app_ver
+        ?(r.app_ver===APP_VER
+          ?'<span style="color:var(--ok)">'+he(r.app_ver)+'（最新）</span>'
+          :'<span style="color:var(--warn)">'+he(r.app_ver)+'　建議用目前版本 '+he(APP_VER)+' 重傳</span>')
+        :'<span style="color:var(--warn)">舊版　建議重新上傳</span>')
+      +'</div></div>'
       +(canWrite(ROLE)&&!isOld
         ?'<button class="ib" style="color:var(--err)" onclick="delUpload(\''+he(r.id)+'\',\''+esc(r.filename)+'\')">✕</button>':'')
       +'</div></div>';
