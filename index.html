@@ -637,7 +637,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2071,7 +2071,7 @@ function typeGroup(t){
 
 /* ══ 人員選擇器 ══════════════════════════════════
    先用組別頁籤縮小範圍，再從網格挑人；也可以直接搜尋 */
-var PK={who:'',q:'',team:'',all:false};
+var PK={who:'',q:'',team:''};
 
 function pickBtn(who,val,empty){
   return '<button class="fld" style="margin-bottom:16px;display:flex;align-items:center;'
@@ -2081,27 +2081,25 @@ function pickBtn(who,val,empty){
     +'</span><span style="color:var(--tx3);font-size:12px">選擇 ›</span></button>';
 }
 function openPick(who){
-  PK={who:who,q:'',team:'',all:false};
+  PK={who:who,q:'',team:''};
   paintPicker();
 }
 function closePick(){PK.who='';paintFilter();}
 
-/** 目前可選的人：預設只列當月行程出現過的，可切換成通訊錄全部 */
+/** 可選的人：通訊錄全部人員，再補上行程裡出現過但通訊錄沒建的人 */
 function pickNames(){
   var out=[],seen={};
-  if(PK.all){
-    STAFF.forEach(function(s){if(s.name&&!seen[s.name]){seen[s.name]=1;out.push(s.name);}});
-  }else{
-    allRows.concat(todayRows).forEach(function(r){
-      if(PK.who==='en'){
-        if(r.engineer&&!seen[r.engineer]){seen[r.engineer]=1;out.push(r.engineer);}
-      }else{
-        (r.staff||[]).forEach(function(n){if(n&&!seen[n]){seen[n]=1;out.push(n);}});
-      }
-    });
+  function add(n){
+    n=String(n||'').trim();
+    if(n&&!seen[n]){seen[n]=1;out.push(n);}
   }
+  STAFF.forEach(function(s){add(s.name);});
+  allRows.concat(todayRows).forEach(function(r){
+    if(PK.who==='en')add(r.engineer);
+    else{add(r.applicant);(r.staff||[]).forEach(add);}
+  });
   var cur=(PK.who==='en'?FT.en:FT.st);
-  if(cur&&!seen[cur])out.push(cur);
+  if(cur)add(cur);
   out.sort(function(a,b){
     var ta=TEAM[a]||'zzz',tb=TEAM[b]||'zzz';
     if(ta!==tb)return ta.localeCompare(tb,'zh-Hant');
@@ -2134,9 +2132,7 @@ function paintPicker(){
     +teams.map(function(t){
       return '<button class="et'+(PK.team===t?' on':'')+'" onclick="pickTeam(\''+esc(t)+'\')">'
         +he(t==='_n'?'未分組':t)+'</button>';}).join('')
-    +'</div><div id="pkgrid">'+pickGridHTML()+'</div>'
-    +'<button class="btn btn-sm btn-full" style="margin-top:12px" onclick="pickAll()">'
-    +(PK.all?'只看本月有班的人':'顯示通訊錄全部人員')+'</button>';
+    +'</div><div id="pkgrid">'+pickGridHTML()+'</div>';
   $('sheet').innerHTML=h;
   var q=$('pk-q');
   if(q)q.oninput=function(){PK.q=this.value;paintPickGrid();};
@@ -2162,7 +2158,6 @@ function paintPickGrid(){
   if(el)el.innerHTML=pickGridHTML();
 }
 function pickTeam(t){PK.team=t;paintPicker();}
-function pickAll(){PK.all=!PK.all;PK.team='';paintPicker();}
 function pickSet(n){
   if(PK.who==='en')FT.en=n;else FT.st=n;
   PK.who='';
