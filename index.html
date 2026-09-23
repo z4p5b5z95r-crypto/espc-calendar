@@ -311,7 +311,7 @@ html[data-theme="dark"] .glass::after{
   background:var(--gl);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border-top:1px solid var(--glLine);
   border-radius:22px 22px 0 0;padding:16px 16px calc(26px + env(safe-area-inset-bottom));
-  max-height:88vh;overflow-y:auto;animation:up .22s ease;}
+  height:82vh;overflow-y:auto;overscroll-behavior:contain;animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
 .shh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .shh h3{font-size:19px;font-weight:600;line-height:1.3;}
@@ -553,7 +553,7 @@ html[data-theme="dark"] .glass::after{
 
   /* 底部面板改成置中對話框 */
   .ov{align-items:center;}
-  .sheet{border-radius:22px;max-height:84vh;max-width:540px;
+  .sheet{border-radius:22px;height:auto;max-height:84vh;max-width:540px;
     padding:20px 20px 24px;border:1px solid var(--glLine);}
   #toast{bottom:28px;}
 }
@@ -637,7 +637,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24g';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2086,9 +2086,11 @@ function openPick(who){
 }
 function closePick(){PK.who='';paintFilter();}
 
-/** 這個人算不算 PM：組別含 PM，或曾經出現在行程的 PM 欄 */
+/** 組別看起來是 PM（EIA-T-PM、SP-PM…） */
+function isPMTeam(n){return /(^|[-_ ])PM$|PM[-_ ]/i.test(TEAM[n]||'');}
+/** 這個人算不算 PM：組別是 PM，或曾經出現在行程的 PM 欄 */
 function isPM(n){
-  if(/(^|[-_ ])PM$|PM[-_ ]/i.test(TEAM[n]||''))return true;
+  if(isPMTeam(n))return true;
   var rs=allRows.concat(todayRows);
   for(var i=0;i<rs.length;i++)if(rs[i].engineer===n)return true;
   return false;
@@ -2106,7 +2108,8 @@ function pickNames(){
     allRows.concat(todayRows).forEach(function(r){add(r.engineer);});
     if(!out.length)STAFF.forEach(function(s){add(s.name);});
   }else{
-    STAFF.forEach(function(s){add(s.name);});
+    // 現場欄排除組別是 PM 的人；但真的出現在現場／申報欄的照樣列出
+    STAFF.forEach(function(s){if(!isPMTeam(s.name))add(s.name);});
     allRows.concat(todayRows).forEach(function(r){
       add(r.applicant);(r.staff||[]).forEach(add);
     });
@@ -2163,7 +2166,7 @@ function pickGridHTML(){
   if(!list.length)return '<div class="empty">查無符合的人員</div>';
   return '<div class="pgrid">'+list.map(function(n){
     return '<button class="pcell'+(n===cur?' on':'')+'" onclick="pickSet(\''+esc(n)+'\')">'
-      +he(n)+(PK.team?'':'<small>'+he(TEAM[n]||'未分組')+'</small>')+'</button>';
+      +he(n)+'<small>'+he(TEAM[n]||'未分組')+'</small></button>';
   }).join('')+'</div>';
 }
 function paintPickGrid(){
