@@ -579,7 +579,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23h';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23j';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1332,12 +1332,7 @@ function pageHTML(){
 function todayPage(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
-  var h='';
-  if(ROLE==='sampler')
-    h+='<div class="note" style="margin-top:6px">現場人員檢視為 <b>BETA</b>：'
-      +'只會列出工程師、監測人員或申報人員欄位有你名字的行程。'
-      +'若發現該出現的班沒顯示，請用右上角篩選關掉「只看我的行程」核對，並回報排程人員。</div>';
-  h+='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
+  var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
   if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
   else h+='<div class="glist">'+groupBy(mine).map(function(g){return evCard(g,t,true);}).join('')+'</div>';
 
@@ -1455,12 +1450,14 @@ function regionUpdatesHTML(){
   if(!RUPD)return '<div class="rupd" id="rupd"><span class="ru">檔案更新時間載入中…</span></div>';
   var keys=['台北','台中','高雄'];
   Object.keys(RUPD).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});
-  var h='<div class="rupd" id="rupd">';
+  var h='<div class="rupd" id="rupd">'
+    +'<span class="ru" style="flex-basis:100%;color:var(--tx3)">各地區最後上傳時間</span>';
   keys.forEach(function(k){
     var v=RUPD[k];
-    h+='<span class="ru" title="'+(v?he(v.filename):'')+'">'
+    h+='<span class="ru" title="'+(v?he(v.filename+'　檔案更新 '+shortStamp(v.mtime)):'')+'">'
       +'<span class="rud" style="background:'+(RUPD_COLOR[k]||'var(--tx3)')+'"></span>'
-      +'<b>'+he(k)+'</b>'+(v?he(shortStamp(v.mtime)):'尚無資料')+'</span>';
+      +'<b>'+he(k)+'</b>'
+      +(v?he(shortStamp(v.uploadTime||v.mtime)):'尚無資料')+'</span>';
   });
   return h+'</div>';
 }
@@ -2364,7 +2361,8 @@ function onPick(e){var f=e.target.files[0];if(f)handleFile(f);e.target.value='';
 
 function handleFile(file){
   pName=file.name;
-  pMtime=file.lastModified?new Date(file.lastModified).toISOString():'';
+  // 送台灣時間字串，後端與顯示都用同一種寫法
+  pMtime=file.lastModified?stamp(new Date(file.lastModified)):'';
   $('parse').innerHTML=loader('解析中…');
   readXlsx(file).then(function(list){
     pRows=list;
