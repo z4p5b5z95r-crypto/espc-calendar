@@ -335,6 +335,9 @@ html[data-theme="dark"] .glass::after{
 .dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
+.tyg{display:flex;align-items:center;justify-content:space-between;width:100%;
+  margin:13px 0 7px;padding:0 6px;font-size:11.5px;color:var(--tx3);background:none;}
+.tyg:active{opacity:.6;}
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
 .pcell{background:var(--glStrong);border:1px solid var(--line);border-radius:11px;
   padding:10px 4px;font-size:12.5px;text-align:center;line-height:1.35;
@@ -586,7 +589,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24a';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24d';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1199,7 +1202,8 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
-  // PM 依工程師欄自動篩選；現場人員改用「只看我的」，工程師／監測人員／申報人員任一欄有名字就顯示
+  // 登入就先帶入自己的行程：PM 比對工程師欄，現場人員比對監測／申報人員欄。
+  // 想看別人的資料，把上方的篩選標籤點掉或自己重新篩選即可。
   if(eng){
     if(r==='pm')F.en=eng;
     else if(r==='sampler')F.me=eng;
@@ -1953,11 +1957,6 @@ function paintFilter(){
     +'<button class="btn btn-sm" onclick="clearFilter()">清除</button>'
     +'<button class="btn btn-p btn-sm" onclick="applyFilter()">篩選'
     +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
-    +(ENGNAME?'<div class="card" style="margin:0 0 16px"><div class="row">'
-      +'<div><div style="font-size:15px">只看我的行程</div>'
-      +'<div class="hint" style="margin-top:2px">監測人員或申報人員欄有「'
-      +he(ENGNAME)+'」就顯示（不看工程師欄）</div></div>'
-      +'<button class="sw'+(FT.me?' on':'')+'" onclick="ftMe()"></button></div></div>':'')
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
@@ -1968,13 +1967,11 @@ function paintFilter(){
     +pickBtn('en',FT.en,'全部工程師')
     +'<p class="lb">監測人員</p>'
     +pickBtn('st',FT.st,'全部監測人員')
-    +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p><div class="opts">'
-    +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button>'
-    +tys.map(function(t){
-      var on=FT.ty.indexOf(t)>=0;
-      return '<button class="ob'+(on?' on':'')+'" onclick="tyPick(\''+he(esc(t))+'\')">'
-        +(on?ic('check',15):'')+he(t)+'</button>';}).join('')
-    +'</div><div style="height:8px"></div>';
+    +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
+    +'<div class="opts" style="margin-bottom:4px">'
+    +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
+    +tyGroupsHTML(tys)
+    +'<div style="height:8px"></div>';
   $('sheet').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
 
@@ -1984,11 +1981,19 @@ function paintFilter(){
     q.onkeydown=function(e){if(e.key==='Enter'){FT.q=this.value;applyFilter();}};
   }
 }
-function ftMe(){
-  var el=$('f-q');if(el)FT.q=el.value;
-  FT.me=FT.me?'':String(ENGNAME||'').trim();
-  paintFilter();
+/* ══ 測項分類 ══════════════════════════════════
+   用關鍵字判斷，之後 Excel 出現新測項也會自動歸類 */
+var TY_GROUPS=['空氣','水質','噪音振動','交通','土壤廢棄物','其他'];
+function typeGroup(t){
+  t=String(t||'');
+  if(/交通|行駛速率|車流|路況/.test(t))return '交通';
+  if(/噪音|振動|低頻/.test(t))return '噪音振動';
+  if(/水質|地下水|地面水|海域|放流|納管|飲用水|水位|逕流/.test(t))return '水質';
+  if(/土壤|底泥|廢棄物|毒化物|事業廢/.test(t))return '土壤廢棄物';
+  if(/空品|PM|TSP|落塵|惡臭|戴奧辛|粉塵|VOC|揮發|臭氧|風速|氣象|排放|燃燒/i.test(t))return '空氣';
+  return '其他';
 }
+
 /* ══ 人員選擇器 ══════════════════════════════════
    先用組別頁籤縮小範圍，再從網格挑人；也可以直接搜尋 */
 var PK={who:'',q:'',team:'',all:false};
@@ -2087,6 +2092,51 @@ function pickSet(n){
   if(PK.who==='en')FT.en=n;else FT.st=n;
   PK.who='';
   paintFilter();
+}
+
+/** 目前資料裡出現過的所有測項 */
+function allTypes(){
+  var out=[],seen={};
+  allRows.concat(todayRows).forEach(function(r){
+    if(r.type&&!seen[r.type]){seen[r.type]=1;out.push(r.type);}
+  });
+  FT.ty.forEach(function(t){if(!seen[t]){seen[t]=1;out.push(t);}});
+  return out;
+}
+/** 點分類名稱＝整組全選／全不選 */
+function tyPickGroup(g){
+  var list=allTypes().filter(function(t){return typeGroup(t)===g;});
+  var allOn=list.length&&list.every(function(t){return FT.ty.indexOf(t)>=0;});
+  list.forEach(function(t){
+    var i=FT.ty.indexOf(t);
+    if(allOn){if(i>=0)FT.ty.splice(i,1);}
+    else if(i<0)FT.ty.push(t);
+  });
+  paintFilter();
+}
+
+/** 依分類把測項排成一段一段 */
+function tyGroupsHTML(tys){
+  var m={};
+  tys.forEach(function(t){var g=typeGroup(t);(m[g]=m[g]||[]).push(t);});
+  var h='';
+  TY_GROUPS.forEach(function(g){
+    var list=m[g];
+    if(!list||!list.length)return;
+    var n=list.filter(function(t){return FT.ty.indexOf(t)>=0;}).length;
+    h+='<button class="lb tyg" onclick="tyPickGroup(\''+esc(g)+'\')">'+g
+      +(n?'　<span style="color:var(--accT)">已選 '+n+' / '+list.length+'</span>'
+         :'　<span style="color:var(--tx3)">'+list.length+' 項</span>')
+      +'<span style="color:var(--tx3);font-size:11px">'+(n===list.length?'取消整組':'整組選取')+'</span>'
+      +'</button>'
+      +'<div class="opts">'
+      +list.map(function(t){
+        var on=FT.ty.indexOf(t)>=0;
+        return '<button class="ob'+(on?' on':'')+'" onclick="tyPick(\''+he(esc(t))+'\')">'
+          +(on?ic('check',15):'')+he(t)+'</button>';}).join('')
+      +'</div>';
+  });
+  return h;
 }
 
 function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0)+(FT.me?1:0);}
