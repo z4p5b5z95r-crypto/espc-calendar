@@ -637,7 +637,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1477,8 +1477,8 @@ function evCard(g,d,full){
     +'<div class="evt" style="color:'+c+';margin-top:3px">'+he(typeLabel(g))+'</div>';
   if(full){
     if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
-    if(g.engs.length)h+='<div class="evm">工程師：'+g.engs.map(telLink).join('、')+'</div>';
-    if(g.staff.length)h+='<div class="evm">監測人員：'+g.staff.map(telLink).join('、')+'</div>';
+    if(g.engs.length)h+='<div class="evm">PM：'+g.engs.map(telLink).join('、')+'</div>';
+    if(g.staff.length)h+='<div class="evm">現場：'+g.staff.map(telLink).join('、')+'</div>';
     if(g.cars.length)h+='<div class="evm">公務車：'+he(g.cars.join('、'))+'</div>';
   }
   return h+'</div></div>';
@@ -1795,7 +1795,7 @@ function morePage(){
     +'<div class="link" style="cursor:default">深色模式'
     +'<button class="sw'+((ls('espc_theme')||'dark')==='dark'?' on':'')+'" onclick="toggleTheme()"></button></div>'
     +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
-    +(ENGNAME?'<br>對應工程師：'+he(ENGNAME):'')
+    +(ENGNAME?'<br>對應人員：'+he(ENGNAME):'')
     +'<br>版本：'+he(APP_VER)
     +'　<a href="#" onclick="hardReload();return false" style="color:var(--accT)">強制更新</a></div>';
   return h;
@@ -2038,10 +2038,10 @@ function paintFilter(){
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'"'+(FT.rg===o?' selected':'')+'>'+(o||'全部地區')+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">工程師</p>'
-    +pickBtn('en',FT.en,'全部工程師')
-    +'<p class="lb">監測人員　<span style="color:var(--tx2)">含申報人員</span></p>'
-    +pickBtn('st',FT.st,'全部監測人員')
+    +'<p class="lb">PM</p>'
+    +pickBtn('en',FT.en,'全部 PM')
+    +'<p class="lb">現場　<span style="color:var(--tx2)">含申報人員</span></p>'
+    +pickBtn('st',FT.st,'全部現場人員')
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
     +'<div class="opts" style="margin-bottom:4px">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
@@ -2086,6 +2086,13 @@ function openPick(who){
 }
 function closePick(){PK.who='';paintFilter();}
 
+/** 這個人算不算 PM：組別含 PM，或曾經出現在行程的 PM 欄 */
+function isPM(n){
+  if(/(^|[-_ ])PM$|PM[-_ ]/i.test(TEAM[n]||''))return true;
+  var rs=allRows.concat(todayRows);
+  for(var i=0;i<rs.length;i++)if(rs[i].engineer===n)return true;
+  return false;
+}
 /** 可選的人：通訊錄全部人員，再補上行程裡出現過但通訊錄沒建的人 */
 function pickNames(){
   var out=[],seen={};
@@ -2093,11 +2100,17 @@ function pickNames(){
     n=String(n||'').trim();
     if(n&&!seen[n]){seen[n]=1;out.push(n);}
   }
-  STAFF.forEach(function(s){add(s.name);});
-  allRows.concat(todayRows).forEach(function(r){
-    if(PK.who==='en')add(r.engineer);
-    else{add(r.applicant);(r.staff||[]).forEach(add);}
-  });
+  if(PK.who==='en'){
+    // PM 欄只列 PM，列不出來時才退回全部，免得變成空清單
+    STAFF.forEach(function(s){if(isPM(s.name))add(s.name);});
+    allRows.concat(todayRows).forEach(function(r){add(r.engineer);});
+    if(!out.length)STAFF.forEach(function(s){add(s.name);});
+  }else{
+    STAFF.forEach(function(s){add(s.name);});
+    allRows.concat(todayRows).forEach(function(r){
+      add(r.applicant);(r.staff||[]).forEach(add);
+    });
+  }
   var cur=(PK.who==='en'?FT.en:FT.st);
   if(cur)add(cur);
   out.sort(function(a,b){
@@ -2121,7 +2134,7 @@ function pickTeams(names){
 function paintPicker(){
   var names=pickNames(),teams=pickTeams(names);
   var cur=(PK.who==='en'?FT.en:FT.st);
-  var ttl=(PK.who==='en'?'選擇工程師':'選擇監測人員');
+  var ttl=(PK.who==='en'?'選擇 PM':'選擇現場人員');
   var h='<div class="shh" style="align-items:center">'
     +'<button class="ib" onclick="closePick()">‹</button>'
     +'<h3 style="flex:1;font-size:17px">'+ttl+'</h3>'
@@ -2502,9 +2515,9 @@ function evDetail(g){
       h+='<div class="dcard">'+dr('數量',he(q))+rows+'</div>';
     }
   });
-  var shared=dr('工程師',g.engs.map(telLink).join('<br>'))
+  var shared=dr('PM',g.engs.map(telLink).join('<br>'))
     +dr('公務車',he(g.cars.join('、')))
-    +dr('監測人員',g.staff.map(telLink).join('<br>'))
+    +dr('現場',g.staff.map(telLink).join('<br>'))
     +dr('備註',he(g.notes.join('；')));
   if(shared)
     h+='<div class="shbox"><p class="shh2">'+(multi?'以下為本案共用':'人員與車輛')+'</p>'
@@ -2755,9 +2768,9 @@ function paintParse(uploading){
       +(det?'已依檔名判斷為「'+he(det)+'」，可修改。':'<span style="color:var(--err)">檔名看不出地區，請手動選擇。</span>')+'</p>';
   }
   h+='</div><div class="scroll" style="margin-bottom:10px"><table class="tbl"><thead><tr>'
-    +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>點位</th>'
+    +'<th>日期</th><th>PM</th><th>專案編號</th><th>專案</th><th>類別</th><th>點位</th>'
     +'<th>數量</th><th>採樣時間</th><th>儀器</th><th>報告編號</th>'
-    +'<th>公務車</th><th>監測人員</th><th>地區</th></tr></thead><tbody>';
+    +'<th>公務車</th><th>現場</th><th>地區</th></tr></thead><tbody>';
   pRows.slice(0,60).forEach(function(r){
     h+='<tr><td>'+he(r.date)+'</td><td>'+(r.engineer?he(r.engineer):'—')+'</td>'
       +'<td>'+he(okNo(r.projectNo))+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
@@ -3110,7 +3123,7 @@ function editUser(name){
     +ROLE_ORDER.map(function(k){
       return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">對應工程師　<span style="color:var(--tx3);font-weight:400">留空表示不自動篩選</span></p>'
+    +'<p class="lb">對應人員　<span style="color:var(--tx3);font-weight:400">留空表示不自動篩選</span></p>'
     +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="與排程表上的姓名一致" style="margin-bottom:13px">'
     +'<p class="lb">地區</p><select class="fld" id="e-g" style="margin-bottom:13px">'
     +['','台北','台中','高雄'].map(function(o){
@@ -3159,7 +3172,7 @@ function newUser(){
     +'<p class="lb">角色</p><select class="fld" id="n-r" style="margin-bottom:13px">'
     +ROLE_ORDER.slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">對應工程師（選填）</p><input class="fld" id="n-e" style="margin-bottom:13px">'
+    +'<p class="lb">對應人員（選填）</p><input class="fld" id="n-e" style="margin-bottom:13px">'
     +'<p class="lb">地區</p><select class="fld" id="n-g" style="margin-bottom:13px">'
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'">'+(o||'未指定')+'</option>';}).join('')+'</select>'
@@ -3185,7 +3198,7 @@ function setRole(u,role){
   }).catch(function(){toast('操作失敗','no');loadUsers();});
 }
 function setEng(u,cur){
-  var v=prompt('設定「'+u+'」對應的工程師姓名：',cur);
+  var v=prompt('設定「'+u+'」對應的人員姓名：',cur);
   if(v===null)return;
   gas('updateEngineerName',TOKEN,u,v.trim()).then(function(r){
     if(r&&r.ok){toast('已更新','ok');loadUsers();}else toast((r&&r.error)||'更新失敗','no');
