@@ -575,7 +575,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23e';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23f';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2390,16 +2390,18 @@ function paintParse(uploading){
   }
   h+='</div><div class="scroll" style="margin-bottom:10px"><table class="tbl"><thead><tr>'
     +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>點位</th>'
-    +'<th>數量</th><th>採樣時間</th><th>儀器</th><th>報告編號</th><th>監測人員</th><th>地區</th></tr></thead><tbody>';
+    +'<th>數量</th><th>採樣時間</th><th>儀器</th><th>報告編號</th>'
+    +'<th>公務車</th><th>監測人員</th><th>地區</th></tr></thead><tbody>';
   pRows.slice(0,60).forEach(function(r){
     h+='<tr><td>'+he(r.date)+'</td><td>'+(r.engineer?he(r.engineer):'—')+'</td>'
       +'<td>'+he(okNo(r.projectNo))+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
       +'<td>'+he(r.location)+'</td><td>'+he(r.qty)+'</td><td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
       +'<td>'+he(r.reportNum)+'</td>'
+      +'<td>'+he(r.car||'')+'</td>'
       +'<td>'+he((r.staff||[]).join('、'))+'</td>'
       +'<td class="rgc">'+(r.region||'—')+'</td></tr>';
   });
-  if(pRows.length>60)h+='<tr><td colspan="12" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
+  if(pRows.length>60)h+='<tr><td colspan="13" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
   h+='</tbody></table></div>';
   if(!uploading)h+='<div style="display:flex;gap:8px"><button class="btn btn-p" onclick="doUpload()">確認上傳</button>'
     +'<button class="btn" onclick="document.getElementById(\'parse\').innerHTML=\'\'">取消</button></div>';
@@ -2569,21 +2571,22 @@ function parseSheet(raw,sheet,fname){
   var region=detectRegion(fname||'',sheet);
   var out=[];
   if(sheet==='採樣行程'){
-    var kd='',kst=[];                 // 人員欄空白＝沿用上一筆，換日期才重來
+    var kd='',kst=[],kcar='';         // 人員與公務車欄空白＝沿用上一筆，換日期才重來
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
       var ds=parseDate(row[2]);
       if(!ds||parseInt(ds.slice(0,4),10)<2020)continue;
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
-      if(ds!==kd){kd=ds;kst=[];}
+      if(ds!==kd){kd=ds;kst=[];kcar='';}
       var kstaff=[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean);
       if(kstaff.length)kst=kstaff;else kstaff=kst;
+      var kc=sv(row[15]);if(kc)kcar=kc;else kc=kcar;
       out.push({date:ds,engineer:eng,project:proj,projectNo:svNo(row[4]),type:type,
         location:sv(row[8]),qty:sv(row[9]),
         sampTime:sv(row[10]),equipment:sv(row[11]),applicant:sv(row[12]),
         reportNum:sv(row[7]),notes:[sv(row[13]),sv(row[14])].filter(Boolean).join('；'),
-        car:sv(row[15]),
+        car:kc,
         staff:kstaff.slice(),
         region:region});
     }
@@ -2597,11 +2600,13 @@ function parseSheet(raw,sheet,fname){
       if(!last||parseInt(last.slice(0,4),10)<2020)continue;
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
-      if(proj&&proj!==lp){lp=proj;lr='';lsm='';lc='';ln='';}
+      // 報告編號／採樣時間／專案編號屬於專案，換專案就重來；
+      // 公務車和人員跟著「這一組人」走，換專案仍沿用
+      if(proj&&proj!==lp){lp=proj;lr='';lsm='';ln='';}
       var no=svNo(row[4]);if(no)ln=no;else no=ln;
       var rpt=sv(row[12]);if(rpt)lr=rpt;else rpt=lr;
       var samp=sv(row[9]);if(samp)lsm=samp;else samp=lsm;
-      var car=sv(row[14]);if(car)lc=car;else car=lc;
+      var car=sv(row[14]);if(car)lc=car;else car=lc;   // 空白＝沿用同一台車
       // 人員欄空白＝跟上一筆同一組；專案換了也繼續沿用，只有換日期才重來
       var st=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
       if(st.length)lst=st;else st=lst;
