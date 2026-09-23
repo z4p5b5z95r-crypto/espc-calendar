@@ -335,6 +335,14 @@ html[data-theme="dark"] .glass::after{
 .dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
+.fold{display:flex;align-items:center;gap:8px;width:100%;margin:18px 0 4px;
+  padding:11px 14px;border-radius:var(--r);text-align:left;
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);font-size:14px;font-weight:500;color:var(--tx);}
+.fold:active{opacity:.75;}
+.foldn{margin-left:auto;font-size:12px;color:var(--tx3);font-weight:400;}
+.foldc{display:inline-flex;color:var(--tx3);transition:transform .18s;}
+.foldc.on{transform:rotate(90deg);color:var(--accT);}
 .tyg{display:flex;align-items:center;justify-content:space-between;width:100%;
   margin:13px 0 7px;padding:0 6px;font-size:11.5px;color:var(--tx3);background:none;}
 .tyg:active{opacity:.6;}
@@ -589,7 +597,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24d';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1354,6 +1362,9 @@ function pageHTML(){
 }
 
 /* ── 今日 ── */
+var futOpen=false;            // 未來七天預設收起來，要看再點開
+function futToggle(){futOpen=!futOpen;render();}
+
 function todayPage(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
@@ -1370,7 +1381,15 @@ function todayPage(){
     fut[r.date].push(r);
   });
   order.sort();
-  h+='<div class="sec">接下來 7 天</div>';
+  var futN=0;
+  order.forEach(function(d){futN+=groupBy(fut[d]).length;});
+
+  h+='<button class="fold" onclick="futToggle()">'
+    +'<span>接下來 7 天</span>'
+    +'<span class="foldn">'+(futN?futN+' 項':'無排程')+'</span>'
+    +'<span class="foldc'+(futOpen?' on':'')+'">'+ic('right',15)+'</span></button>';
+  if(!futOpen)return h;
+
   if(!order.length)h+='<div class="card"><div class="empty" style="padding:20px">未來 7 天沒有排程</div></div>';
   else{
     h+='<div class="glist">';
@@ -1380,9 +1399,10 @@ function todayPage(){
         h+='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')" style="padding:10px 13px">'
           +'<div class="dbox"><b>'+parseInt(dd[2])+'</b><span>'+DW[dowOf(d)]+'</span></div>'
           +'<div class="evb" style="background:'+c+'"></div>'
-          +'<div style="min-width:0;flex:1"><div class="evn" style="font-size:14px">'+he(g.project+carTag(g))+'</div>'
-          +'<div class="evm">'+he(typeLabel(g))
-          +(g.locs.length?'　·　'+he(locBrief(g)):'')+'</div></div></div>';
+          +'<div style="min-width:0;flex:1">'
+          +'<div class="evn" style="font-size:14px;margin-top:0">'+he(g.project+carTag(g))+'</div>'
+          +'<div class="evm" style="color:'+c+'">'+he(typeLabel(g))+'</div>'
+          +'</div></div>';
       });
     });
     h+='</div>';
@@ -1402,11 +1422,10 @@ function evCard(g,d,full){
   var c=pcolor(g.project);
   var h='<div class="ev" onclick="openEv(\''+d+'\',\''+he(esc(g.project))+'\')">'
     +'<div class="evb" style="background:'+c+'"></div><div style="min-width:0;flex:1">'
-    +'<div class="evt" style="color:'+c+'">'+he(typeLabel(g))+'</div>'
-    +'<div class="evn">'+he(g.project)
+    +'<div class="evn" style="margin-top:0">'+he(g.project)
     +(carTag(g)?'<span style="color:'+c+'">'+he(carTag(g))+'</span>':'')
-    +(g.no?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(g.no)+'</span>':'')+'</div>';
-  if(g.locs.length)h+='<div class="evm">點位：'+he(locBrief(g))+'</div>';
+    +(g.no?' <span style="font-size:12px;font-weight:400;color:var(--tx3)">'+he(g.no)+'</span>':'')+'</div>'
+    +'<div class="evt" style="color:'+c+';margin-top:3px">'+he(typeLabel(g))+'</div>';
   if(full){
     if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
     if(g.engs.length)h+='<div class="evm">工程師：'+g.engs.map(telLink).join('、')+'</div>';
