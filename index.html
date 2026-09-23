@@ -579,7 +579,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23l';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23o';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -781,7 +781,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
   '貯存系統污染監測人員','船員證'];
-var F={rg:'',en:'',ty:[],q:'',me:''};
+var F={rg:'',en:'',ty:[],q:'',me:'',st:''};
 var tab='today',sub='';
 
 /* ══ 職安效期 ══
@@ -1292,7 +1292,7 @@ function filterBtn(){
   return '<button class="ib'+(n?' act w':'')+'" onclick="openFilter()">'
     +ic('filter',17)+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
 }
-function nF(){return (F.rg?1:0)+(F.en?1:0)+F.ty.length+((F.q||'').trim()?1:0)+(F.me?1:0);}
+function nF(){return (F.rg?1:0)+(F.en?1:0)+(F.st?1:0)+F.ty.length+((F.q||'').trim()?1:0)+(F.me?1:0);}
 
 function renderChips(){
   if(sub||(tab!=='cal'&&tab!=='today')){$('fchips').innerHTML='';return;}
@@ -1301,6 +1301,7 @@ function renderChips(){
   if(F.q)h+='<span class="fc">「'+he(F.q)+'」<button onclick="clrF(\'q\')">✕</button></span>';
   if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
   if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
+  if(F.st)h+='<span class="fc">'+he(F.st)+'<button onclick="clrF(\'st\')">✕</button></span>';
   F.ty.forEach(function(t){
     h+='<span class="fc">'+he(t)+'<button onclick="clrF(\'ty\',\''+he(t).replace(/'/g,"\\'")+'\')">✕</button></span>';});
   $('fchips').innerHTML=h;
@@ -1842,10 +1843,10 @@ function applyStaff(l){
 }
 
 /* ══ 篩選 ══ */
-/** 這筆行程有沒有這個人（工程師／監測人員／申報人員都算） */
+/** 這筆行程有沒有這個人出勤：只看監測人員與申報人員，工程師欄不算 */
 function hasPerson(r,n){
   if(!n)return true;
-  if(r.engineer===n||r.applicant===n)return true;
+  if(r.applicant===n)return true;
   if(r.staff&&r.staff.length&&r.staff.indexOf(n)>=0)return true;
   return false;
 }
@@ -1853,6 +1854,7 @@ function passF(r){
   if(F.me&&!hasPerson(r,F.me))return false;
   if(F.rg&&(r.region||'')!==F.rg)return false;
   if(F.en&&r.engineer!==F.en)return false;
+  if(F.st&&!(r.staff&&r.staff.length&&r.staff.indexOf(F.st)>=0))return false;
   if(F.ty.length&&F.ty.indexOf(r.type)<0)return false;
   if(F.q){
     var q=F.q.toLowerCase();
@@ -1870,23 +1872,28 @@ function applyF(){
   render();
 }
 
-var FT={rg:'',en:'',ty:[],q:'',me:''};   // 面板上的暫存條件，按「篩選」才套用
+var FT={rg:'',en:'',ty:[],q:'',me:'',st:''};   // 面板上的暫存條件，按「篩選」才套用
 
 function openFilter(){
-  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',me:F.me||''};
+  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',me:F.me||'',st:F.st||''};
   paintFilter();
   $('ov').classList.add('open');
 }
 
 function paintFilter(){
-  var engs=[],tys=[],s1={},s2={};
+  var engs=[],tys=[],sts=[],s1={},s2={},s3={};
   allRows.concat(todayRows).forEach(function(r){
     if(r.engineer&&!s1[r.engineer]){s1[r.engineer]=1;engs.push(r.engineer);}
     if(r.type&&!s2[r.type]){s2[r.type]=1;tys.push(r.type);}
+    (r.staff||[]).forEach(function(n){
+      if(n&&!s3[n]){s3[n]=1;sts.push(n);}
+    });
   });
   if(FT.en&&engs.indexOf(FT.en)<0)engs.push(FT.en);
+  if(FT.st&&sts.indexOf(FT.st)<0)sts.push(FT.st);
   FT.ty.forEach(function(t){if(tys.indexOf(t)<0)tys.push(t);});
   engs.sort();
+  sts.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
   tys.sort();
   // 空品車最常用，固定排第一
   var ai=tys.indexOf('空品車');
@@ -1900,8 +1907,8 @@ function paintFilter(){
     +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
     +(ENGNAME?'<div class="card" style="margin:0 0 16px"><div class="row">'
       +'<div><div style="font-size:15px">只看我的行程</div>'
-      +'<div class="hint" style="margin-top:2px">工程師、監測人員、申報人員任一欄有「'
-      +he(ENGNAME)+'」就顯示</div></div>'
+      +'<div class="hint" style="margin-top:2px">監測人員或申報人員欄有「'
+      +he(ENGNAME)+'」就顯示（不看工程師欄）</div></div>'
       +'<button class="sw'+(FT.me?' on':'')+'" onclick="ftMe()"></button></div></div>':'')
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
@@ -1914,6 +1921,11 @@ function paintFilter(){
     +engs.map(function(o){
       return '<option value="'+he(o)+'"'+(FT.en===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
     +'</select>'
+    +'<p class="lb">監測人員</p><select class="fld" id="f-st" style="margin-bottom:16px">'
+    +'<option value="">全部監測人員</option>'
+    +sts.map(function(o){
+      return '<option value="'+he(o)+'"'+(FT.st===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
+    +'</select>'
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p><div class="opts">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button>'
     +tys.map(function(t){
@@ -1924,6 +1936,7 @@ function paintFilter(){
   $('sheet').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
   $('f-en').onchange=function(){FT.en=this.value;paintFilter();};
+  $('f-st').onchange=function(){FT.st=this.value;paintFilter();};
   var q=$('f-q');
   if(q){
     q.oninput=function(){FT.q=this.value;};                 // 打字時不重畫，避免失焦
@@ -1935,7 +1948,7 @@ function ftMe(){
   FT.me=FT.me?'':String(ENGNAME||'').trim();
   paintFilter();
 }
-function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+FT.ty.length+((FT.q||'').trim()?1:0)+(FT.me?1:0);}
+function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0)+(FT.me?1:0);}
 function tyPick(t){
   if(!t)FT.ty=[];
   else{var i=FT.ty.indexOf(t);if(i>=0)FT.ty.splice(i,1);else FT.ty.push(t);}
@@ -1943,12 +1956,12 @@ function tyPick(t){
 }
 function applyFilter(){
   var el=$('f-q');if(el)FT.q=el.value;
-  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),me:FT.me||''};
+  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),me:FT.me||'',st:FT.st||''};
   closeSheet();refetch();
   toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
 }
 function clearFilter(){
-  FT={rg:'',en:'',ty:[],q:'',me:''};F={rg:'',en:'',ty:[],q:'',me:''};
+  FT={rg:'',en:'',ty:[],q:'',me:'',st:''};F={rg:'',en:'',ty:[],q:'',me:'',st:''};
   closeSheet();refetch();
   toast('已清除篩選','ok',2000);
 }
@@ -2472,11 +2485,34 @@ function loadHistory(){
       +'<br><button class="btn btn-sm" style="margin-top:10px" onclick="loadHistory()">重試</button></div>';
   });
 }
+/* 上傳記錄顯示規則：
+   · 只列出三個月內上傳的
+   · 被取代的記錄，取代後滿三天就收起來
+   其餘都放進「更早的記錄」裡，需要時才展開 */
+var HIST_MONTHS=3, HIST_SUPERSEDE_DAYS=3, histMore=false;
+function histAge(v){
+  var d=daysBetween(String(v||'').slice(0,10),twStr());
+  return (d==null||isNaN(d))?0:d;          // 認不出日期就當成很新，不隱藏
+}
+function histHidden(r){
+  if(histAge(r.upload_time)>HIST_MONTHS*31)return true;
+  if(r.status==='superseded'){
+    var t=r.superseded_at||r.upload_time;
+    if(histAge(t)>HIST_SUPERSEDE_DAYS)return true;
+  }
+  return false;
+}
+function histToggle(){histMore=!histMore;paintHistory();}
+
 function paintHistory(){
   var el=$('hist');if(!el)return;
   if(!HIST.length){el.innerHTML='<div class="empty">尚無上傳記錄</div>';return;}
+  var open=[],hid=[];
+  HIST.forEach(function(r){(histHidden(r)?hid:open).push(r);});
+  var list=histMore?open.concat(hid):open;
   var h='',old=0;
-  HIST.forEach(function(r){
+  if(!list.length)h+='<div class="empty">三個月內沒有上傳記錄</div>';
+  list.forEach(function(r){
     var isOld=r.status==='superseded';if(isOld)old++;
     var rng=r.date_from===r.date_to?r.date_from:(r.date_from+' ~ '+r.date_to);
     h+='<div class="card" style="'+(isOld?'opacity:.55;':'')+'"><div class="row">'
@@ -2500,8 +2536,11 @@ function paintHistory(){
         ?'<button class="ib" style="color:var(--err)" onclick="delUpload(\''+he(r.id)+'\',\''+esc(r.filename)+'\')">✕</button>':'')
       +'</div></div>';
   });
+  if(hid.length)
+    h+='<button class="btn btn-sm btn-full" style="margin-top:4px" onclick="histToggle()">'
+      +(histMore?'收起較早的記錄':'顯示更早的記錄（'+hid.length+' 筆）')+'</button>';
   if(canWrite(ROLE)&&old>1)
-    h+='<button class="btn btn-sm btn-full" onclick="purgeOld('+old+')">清除 '+old+' 筆已被取代的記錄</button>';
+    h+='<button class="btn btn-sm btn-full" style="margin-top:8px" onclick="purgeOld('+old+')">清除 '+old+' 筆已被取代的記錄</button>';
   el.innerHTML=h;
 }
 function delUpload(id,fn){
