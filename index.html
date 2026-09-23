@@ -261,10 +261,14 @@ html[data-theme="dark"] .glass::after{
 .evc{display:block;font-size:9.5px;line-height:1.5;padding:0 4px;margin-top:2px;
   border-radius:999px;color:#fff;overflow:hidden;white-space:nowrap;}
 @media(min-width:420px){.cell{height:84px;}.evc{font-size:10.5px;}}
-.lgwrap{min-height:76px;}      /* 圖例／載入中／空狀態共用，避免換月時高度跳動 */
-.legend{display:flex;flex-wrap:wrap;gap:9px;padding:14px 4px 4px;}
-.lg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);}
-.lgd{width:8px;height:8px;border-radius:999px;flex-shrink:0;}
+/* 載入中：轉圈浮在月曆中央，格子壓淡 */
+.calwrap{position:relative;}
+.calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;}
+.calload .spin{width:38px;height:38px;border-width:3px;
+  background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  box-shadow:var(--sh);}
+.calwrap.busy .cgrid{opacity:.32;}
 
 /* ── 年月選擇 ── */
 .pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
@@ -636,7 +640,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24c';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1525,15 +1529,12 @@ function calPage(){
   }
   h+='</div>';
 
-  var ps=Object.keys(pmap);
-  h+='<div class="lgwrap">';
-  if(calLoading)h+='<div class="load" style="padding:22px 0"><div class="spin"></div> 載入行程…</div>';
-  else if(ps.length){
-    h+='<div class="legend">';
-    ps.forEach(function(p){h+='<div class="lg"><span class="lgd" style="background:'+pmap[p]+'"></span>'+he(p)+'</div>';});
-    h+='</div>';
-  }else h+='<div class="empty" style="padding:22px 20px">本月沒有符合條件的排程</div>';
-  h+='</div>';
+  // 載入中：轉圈蓋在月曆正中間，資料到齊（或確定沒行程）才消失
+  h='<div class="calwrap'+(calLoading?' busy':'')+'">'+h
+    +(calLoading?'<div class="calload"><div class="spin"></div></div>':'')
+    +'</div>';
+  if(!calLoading&&!Object.keys(pmap).length)
+    h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
   h+=regionUpdatesHTML();
   return h;
 }
@@ -1915,13 +1916,13 @@ function paintMonth(list){
 
 function moveM(d){
   curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
-  allRows=[];rows=[];saveTab();
+  allRows=[];rows=[];calLoading=true;saveTab();   // 先進載入狀態，不會閃「沒有排程」
   slidePage(d,function(){render();loadMonth();});
 }
 function goToday(){
   var n=twDate(),d=(n.getFullYear()*12+n.getMonth())>=(curY*12+curM)?1:-1;
   curY=n.getFullYear();curM=n.getMonth();
-  allRows=[];rows=[];saveTab();
+  allRows=[];rows=[];calLoading=true;saveTab();   // 先進載入狀態，不會閃「沒有排程」
   slidePage(d,function(){render();loadMonth();});
 }
 
@@ -2239,6 +2240,7 @@ function refetch(){
   // 人員條件變了 → 手上的資料範圍不對，要重新載入
   if(sk!==allScope||sk!==todayScope){
     allRows=[];rows=[];todayFor='';
+    if(tab==='cal'&&!sub)calLoading=true;
     render();
     if(tab==='cal'&&!sub)loadMonth();
     loadToday(false);
@@ -2563,7 +2565,7 @@ function renderPk(){
 function pickM(y,m){
   var d=(y*12+m)>=(curY*12+curM)?1:-1;
   curY=y;curM=m;$('pk').classList.remove('open');
-  allRows=[];rows=[];saveTab();
+  allRows=[];rows=[];calLoading=true;saveTab();   // 先進載入狀態，不會閃「沒有排程」
   slidePage(d,function(){render();loadMonth();});
 }
 
