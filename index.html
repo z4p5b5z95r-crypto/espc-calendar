@@ -372,7 +372,7 @@ html[data-theme="dark"] .glass::after{
 .pavtank:active{transform:scale(.9);}
 /* 漁船：圓圈正下方 */
 .pavship{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
-  width:56px;height:36px;z-index:5;pointer-events:none;
+  width:56px;height:34px;z-index:5;pointer-events:none;
   filter:drop-shadow(0 1.5px 2.5px rgba(0,0,0,.28));}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
@@ -539,10 +539,10 @@ html[data-theme="dark"] .glass::after{
 <linearGradient id="gmv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf6ff"/><stop offset=".6" stop-color="#bcd8e9"/><stop offset="1" stop-color="#95b8ce"/></linearGradient>
 <linearGradient id="gmf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9922F"/><stop offset="1" stop-color="#C04C06"/></linearGradient>
 <linearGradient id="gkb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ee5449"/><stop offset=".55" stop-color="#d33a2f"/><stop offset="1" stop-color="#ad2b22"/></linearGradient>
-<linearGradient id="gwd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98a4b"/><stop offset=".48" stop-color="#a5672f"/><stop offset="1" stop-color="#7a481f"/></linearGradient>
-<linearGradient id="gwr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8b87e"/><stop offset="1" stop-color="#c18748"/></linearGradient>
-<linearGradient id="gwi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8c5626"/><stop offset="1" stop-color="#b57c3f"/></linearGradient>
-<linearGradient id="gwv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2fbff"/><stop offset=".45" stop-color="#bfe3f6"/><stop offset="1" stop-color="#6fb4dd"/></linearGradient>
+<linearGradient id="gwd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c08549"/><stop offset=".55" stop-color="#a06730"/><stop offset="1" stop-color="#804e22"/></linearGradient>
+<linearGradient id="gwi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6a068"/><stop offset="1" stop-color="#b17c42"/></linearGradient>
+<linearGradient id="gwr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3783c"/><stop offset="1" stop-color="#8a5526"/></linearGradient>
+<linearGradient id="gmc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7d868f"/><stop offset=".45" stop-color="#454e56"/><stop offset="1" stop-color="#262d33"/></linearGradient>
 </defs></svg>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
@@ -553,7 +553,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-22b';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23c';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -755,7 +755,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
   '貯存系統污染監測人員','船員證'];
-var F={rg:'',en:'',ty:[],q:''};
+var F={rg:'',en:'',ty:[],q:'',me:''};
 var tab='today',sub='';
 
 /* ══ 職安效期 ══
@@ -853,32 +853,27 @@ var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24">'
  +'<rect x="10.6" y="9.1" width="2.8" height="7.8" rx="1.3" fill="#fff"/>'
  +'<rect x="8.1" y="11.6" width="7.8" height="2.8" rx="1.3" fill="#fff"/></svg>';
 
-var SHIP_SVG='<svg class="pavship" viewBox="0 0 56 36">'
- // 後方水花
- +'<path d="M3 25.4c2.6-2.6 5.4-1.6 7 .4 1.4-2.6 4.2-2.6 5.6-.2 1.3-2.4 3.9-2.4 5.2 0 1.4-2.6 4.2-2.6 5.6 0 1.3-2.4 4-2.4 5.2 0 1.5-2.6 4.3-2.4 5.7.2 1.6-2 4.4-3 7.2-.4V33H3Z" fill="url(#gwv)" opacity=".92"/>'
- // 舷外機：托架、傳動軸、引擎蓋
- +'<path d="M8.6 11.4h4.2v5.2H8.6Z" fill="#3b444c" stroke="#232a30" stroke-width=".8" stroke-linejoin="round"/>'
- +'<rect x="9.1" y="15.6" width="3.2" height="5.4" rx="1.2" fill="url(#gmb)" stroke="#232a30" stroke-width=".8"/>'
- +'<path d="M11.8 19.4h3.4l-.6 2.6h-2.8Z" fill="#2f363d"/>'
- +'<rect x="4.6" y="3.4" width="9.4" height="9" rx="3" fill="url(#gmb)" stroke="#232a30" stroke-width="1"/>'
- +'<rect x="6.2" y="5" width="6" height="2.2" rx="1.1" fill="#ffffff" opacity=".3"/>'
- +'<path d="M5.8 10.4h7" stroke="#232a30" stroke-width=".8" opacity=".6" stroke-linecap="round"/>'
- // 船身
- +'<path d="M9.6 13.2 50.4 9.8c2 .1 2.9 1.3 2.3 3.2-1.9 6.4-7.4 11.3-18.6 12.8-12 1.6-21.4-2.4-24.8-9.4-.6-1.4-.5-2.7.3-3.2Z" fill="url(#gwd)" stroke="#59340f" stroke-width="1.1" stroke-linejoin="round"/>'
- // 船艙內側
- +'<path d="M12.4 14.6 49.9 11.5c1 .1 1.3.7 1 1.8-1 3.4-3.6 5.9-8.4 7L17 22.2c-2.2-1.6-3.8-3.6-4.8-6-.3-.8-.2-1.4.2-1.6Z" fill="url(#gwi)"/>'
- // 舷邊亮帶
- +'<path d="M9.6 13.2 50.4 9.8c2 .1 2.9 1.3 2.3 3.2l-.3.9L11 17.3c-.6-.8-1-1.5-1.3-2.2-.5-1.2-.5-2.2-.1-1.9Z" fill="url(#gwr)" stroke="#59340f" stroke-width=".9" stroke-linejoin="round"/>'
- // 木紋
- +'<path d="M14.6 20.6c9.4 2.6 21 3 31.4.6" fill="none" stroke="#6b3f18" stroke-width=".85" opacity=".5" stroke-linecap="round"/>'
- +'<path d="M46.6 11.3 45 22.4" fill="none" stroke="#6b3f18" stroke-width=".85" opacity=".45" stroke-linecap="round"/>'
- +'<path d="M50.1 10.9c1.6.2 2.2 1.2 1.8 2.9" fill="none" stroke="#6b3f18" stroke-width=".85" opacity=".45" stroke-linecap="round"/>'
- // 船首浪花
- +'<path d="M46.4 23.6c3 .2 5.4 1.9 6.6 4.6-3 .9-5.7 0-7.8-2.4Z" fill="url(#gwv)"/>'
- +'<path d="M9.4 25c-2.2.6-3.8 2-4.6 4 2.7.6 4.9-.4 6.2-2.4Z" fill="url(#gwv)"/>'
- +'<circle cx="51.4" cy="20.6" r="1.6" fill="#eaf7ff"/>'
- +'<circle cx="54" cy="24.4" r="1.1" fill="#eaf7ff"/>'
- +'<circle cx="3.4" cy="22.4" r="1.2" fill="#eaf7ff"/>'
+var SHIP_SVG='<svg class="pavship" viewBox="0 0 56 34">'
+ // ── 舷外機（先畫，下半部會被船身擋住）──
+ +'<rect x="8.6" y="10.6" width="5" height="6.4" rx="1.4" fill="#39424a" stroke="#1e2429" stroke-width="1"/>'
+ +'<rect x="9.4" y="13.4" width="3.4" height="7" rx="1.4" fill="url(#gmc)" stroke="#1e2429" stroke-width="1"/>'
+ +'<rect x="3.8" y="1.6" width="10.4" height="10" rx="3.4" fill="url(#gmc)" stroke="#1e2429" stroke-width="1.1"/>'
+ +'<path d="M5.9 3.6c.9-1 2.2-1.4 3.6-1.3L6.2 6.6C5.2 5.8 5.1 4.5 5.9 3.6Z" fill="#ffffff" opacity=".3"/>'
+ +'<path d="M5 9.3h8" stroke="#1e2429" stroke-width=".9" opacity=".65" stroke-linecap="round"/>'
+ // ── 船身外板 ──
+ +'<path d="M10.2 12.4 49.8 9.2c2.9-.2 4.1 1.3 3.3 3.7-2 6.4-7.8 11-18.8 12.5-11.9 1.7-21.2-2-24.5-8.7-.8-1.7-.5-3.4.4-4.3Z" fill="url(#gwd)" stroke="#56300f" stroke-width="1.3" stroke-linejoin="round"/>'
+ // ── 船艙內側 ──
+ +'<path d="M13.3 15 49.9 12c1.3-.1 1.8.5 1.5 1.7-1.1 3.9-4.5 6.6-10.4 7.7l-21.6 1.9c-2.6-1.6-4.5-3.7-5.6-6.3-.5-1.2-.4-1.9.5-2Z" fill="url(#gwi)" stroke="#56300f" stroke-width="1"/>'
+ // ── 舷邊（木條）──
+ +'<path d="M10.2 12.4 49.8 9.2c2.9-.2 4.1 1.3 3.3 3.7l-.2.6-2.9.2c.2-1.1-.3-1.7-1.6-1.6L13.3 15c-.9.1-1 .8-.5 2l-2.6-1c-.9-1.6-1-2.7 0-3.6Z" fill="url(#gwr)" stroke="#56300f" stroke-width=".95" stroke-linejoin="round"/>'
+ // ── 木紋與船板接縫 ──
+ +'<path d="M11.6 18.4c9 3.3 22.2 3.9 33.4 1" fill="none" stroke="#6b4018" stroke-width="1" opacity=".5" stroke-linecap="round"/>'
+ +'<path d="M14.6 22.4c8.2 2.3 18.2 2.6 26.6.6" fill="none" stroke="#6b4018" stroke-width=".9" opacity=".38" stroke-linecap="round"/>'
+ +'<path d="M46.8 10.6c1.5 4 1.4 8-.4 12" fill="none" stroke="#6b4018" stroke-width="1" opacity=".45" stroke-linecap="round"/>'
+ +'<path d="M22.6 22.8 21.4 26" fill="none" stroke="#6b4018" stroke-width=".9" opacity=".35" stroke-linecap="round"/>'
+ +'<path d="M33 22.6 32.4 25.9" fill="none" stroke="#6b4018" stroke-width=".9" opacity=".35" stroke-linecap="round"/>'
+ // ── 船舷高光 ──
+ +'<path d="M12.4 19.6c8.2 2.8 19.6 3.4 29.6 1.2l-.8 1.8c-9.8 2-20.4 1.4-28-1.2Z" fill="#ffffff" opacity=".12"/>'
  +'</svg>';
 
 /** 依證照種類判斷要掛哪些標記
@@ -1154,10 +1149,15 @@ function boot(u,r,eng){
   $('login').style.display='none';
   $('app').style.display='flex';
   $('u-av').textContent=((eng&&eng!==u?eng:u)||'?').slice(0,1);
-  $('u-nm').textContent=(eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）';
+  $('u-nm').innerHTML=he((eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）')
+    +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
-  if(r==='pm'&&eng)F.en=eng;
+  // PM 依工程師欄自動篩選；現場人員改用「只看我的」，工程師／監測人員／申報人員任一欄有名字就顯示
+  if(eng){
+    if(r==='pm')F.en=eng;
+    else if(r==='sampler')F.me=eng;
+  }
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
   lsS('espc_sync',t);
@@ -1266,11 +1266,12 @@ function filterBtn(){
   return '<button class="ib'+(n?' act w':'')+'" onclick="openFilter()">'
     +ic('filter',17)+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
 }
-function nF(){return (F.rg?1:0)+(F.en?1:0)+F.ty.length+((F.q||'').trim()?1:0);}
+function nF(){return (F.rg?1:0)+(F.en?1:0)+F.ty.length+((F.q||'').trim()?1:0)+(F.me?1:0);}
 
 function renderChips(){
   if(sub||(tab!=='cal'&&tab!=='today')){$('fchips').innerHTML='';return;}
   var h='';
+  if(F.me)h+='<span class="fc">只看我的<button onclick="clrF(\'me\')">✕</button></span>';
   if(F.q)h+='<span class="fc">「'+he(F.q)+'」<button onclick="clrF(\'q\')">✕</button></span>';
   if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
   if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
@@ -1305,7 +1306,12 @@ function pageHTML(){
 function todayPage(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
-  var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
+  var h='';
+  if(ROLE==='sampler')
+    h+='<div class="note" style="margin-top:6px">現場人員檢視為 <b>BETA</b>：'
+      +'只會列出工程師、監測人員或申報人員欄位有你名字的行程。'
+      +'若發現該出現的班沒顯示，請用右上角篩選關掉「只看我的行程」核對，並回報排程人員。</div>';
+  h+='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
   if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
   else h+='<div class="glist">'+groupBy(mine).map(function(g){return evCard(g,t,true);}).join('')+'</div>';
 
@@ -1813,7 +1819,15 @@ function applyStaff(l){
 }
 
 /* ══ 篩選 ══ */
+/** 這筆行程有沒有這個人（工程師／監測人員／申報人員都算） */
+function hasPerson(r,n){
+  if(!n)return true;
+  if(r.engineer===n||r.applicant===n)return true;
+  if(r.staff&&r.staff.length&&r.staff.indexOf(n)>=0)return true;
+  return false;
+}
 function passF(r){
+  if(F.me&&!hasPerson(r,F.me))return false;
   if(F.rg&&(r.region||'')!==F.rg)return false;
   if(F.en&&r.engineer!==F.en)return false;
   if(F.ty.length&&F.ty.indexOf(r.type)<0)return false;
@@ -1833,10 +1847,10 @@ function applyF(){
   render();
 }
 
-var FT={rg:'',en:'',ty:[],q:''};   // 面板上的暫存條件，按「篩選」才套用
+var FT={rg:'',en:'',ty:[],q:'',me:''};   // 面板上的暫存條件，按「篩選」才套用
 
 function openFilter(){
-  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||''};
+  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',me:F.me||''};
   paintFilter();
   $('ov').classList.add('open');
 }
@@ -1861,6 +1875,11 @@ function paintFilter(){
     +'<button class="btn btn-sm" onclick="clearFilter()">清除</button>'
     +'<button class="btn btn-p btn-sm" onclick="applyFilter()">篩選'
     +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
+    +(ENGNAME?'<div class="card" style="margin:0 0 16px"><div class="row">'
+      +'<div><div style="font-size:15px">只看我的行程</div>'
+      +'<div class="hint" style="margin-top:2px">工程師、監測人員、申報人員任一欄有「'
+      +he(ENGNAME)+'」就顯示</div></div>'
+      +'<button class="sw'+(FT.me?' on':'')+'" onclick="ftMe()"></button></div></div>':'')
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
@@ -1888,7 +1907,12 @@ function paintFilter(){
     q.onkeydown=function(e){if(e.key==='Enter'){FT.q=this.value;applyFilter();}};
   }
 }
-function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+FT.ty.length+((FT.q||'').trim()?1:0);}
+function ftMe(){
+  var el=$('f-q');if(el)FT.q=el.value;
+  FT.me=FT.me?'':String(ENGNAME||'').trim();
+  paintFilter();
+}
+function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+FT.ty.length+((FT.q||'').trim()?1:0)+(FT.me?1:0);}
 function tyPick(t){
   if(!t)FT.ty=[];
   else{var i=FT.ty.indexOf(t);if(i>=0)FT.ty.splice(i,1);else FT.ty.push(t);}
@@ -1896,12 +1920,12 @@ function tyPick(t){
 }
 function applyFilter(){
   var el=$('f-q');if(el)FT.q=el.value;
-  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim()};
+  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),me:FT.me||''};
   closeSheet();refetch();
   toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
 }
 function clearFilter(){
-  FT={rg:'',en:'',ty:[],q:''};F={rg:'',en:'',ty:[],q:''};
+  FT={rg:'',en:'',ty:[],q:'',me:''};F={rg:'',en:'',ty:[],q:'',me:''};
   closeSheet();refetch();
   toast('已清除篩選','ok',2000);
 }
