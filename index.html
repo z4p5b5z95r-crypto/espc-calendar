@@ -311,11 +311,11 @@ html[data-theme="dark"] .glass::after{
   background:var(--gl);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border-top:1px solid var(--glLine);
   border-radius:22px 22px 0 0;padding:16px 16px calc(26px + env(safe-area-inset-bottom));
-  height:82vh;overflow-y:auto;overscroll-behavior:contain;animation:up .22s ease;}
+  height:82vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
 .strack{position:relative;}
-.spane{will-change:transform;}
-.spane.ghost{position:absolute;left:0;right:0;top:0;pointer-events:none;}
+.spane{will-change:transform,opacity;}
 .shh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .shh h3{font-size:19px;font-weight:600;line-height:1.3;}
 .kv{font-size:13.5px;color:var(--tx2);}
@@ -638,7 +638,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24i';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24j';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2327,38 +2327,26 @@ function slidePage(dir,fn){
   },SLIDE_MS+40);
 }
 /** 面板換日：內容直接換掉，再從對應方向滑進來 */
-/** 換日：舊內容與新內容同時橫移，不會有閃爍 */
+/** 換日：面板不關閉，內容直接換掉後滑入。
+ *  只留一層，避免兩層毛玻璃疊在一起產生殘影。 */
 function slideSheet(dir,fn){
-  var sh=$('sheet'),track=$('strack'),pane=$('sheetin');
-  if(!sh||!track||!pane||!pane.innerHTML||typeof document.createElement!=='function'
-     ||!track.appendChild||!pane.style){
-    fn();return;
-  }
-  var oldHTML=pane.innerHTML;
+  var sh=$('sheet'),pane=$('sheetin');
   fn();                                   // 內層換成新的一天
+  pane=$('sheetin');
+  if(!pane||!pane.style)return;
+  if(sh)sh.scrollTop=0;
 
-  var g;
-  try{
-    g=document.createElement('div');
-    g.className='spane ghost';
-    g.innerHTML=oldHTML;
-    track.appendChild(g);
-  }catch(e){return;}
-  sh.scrollTop=0;
-
-  var into=(dir>0?'100%':'-100%');
-  var away=(dir>0?'-100%':'100%');
   pane.style.transition='none';
-  pane.style.transform='translateX('+into+')';
+  pane.style.transform='translateX('+(dir>0?'24%':'-24%')+')';
+  pane.style.opacity='0';
   raf(function(){
-    pane.style.transition=SLIDE_EASE;
+    pane.style.transition='transform .26s cubic-bezier(.28,.78,.32,1),opacity .16s ease-out';
     pane.style.transform='translateX(0)';
-    if(g.style){g.style.transition=SLIDE_EASE;g.style.transform='translateX('+away+')';}
+    pane.style.opacity='1';
   });
   setTimeout(function(){
-    if(g&&g.parentNode)g.parentNode.removeChild(g);
-    pane.style.transition='';pane.style.transform='';
-  },SLIDE_MS+40);
+    pane.style.transition='';pane.style.transform='';pane.style.opacity='';
+  },300);
 }
 
 /* ══ 手勢 ══════════════════════════════════════════
