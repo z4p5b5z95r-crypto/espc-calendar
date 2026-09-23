@@ -579,7 +579,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23p';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23r';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -761,14 +761,27 @@ function cSet(k,o){try{localStorage.setItem(CK+k,JSON.stringify(o));}catch(e){cP
 function cPrune(hard){
   try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
     if(k&&k.indexOf(CK+'m_')===0)ks.push(k);}
-    ks.sort();while(ks.length>(hard?2:8))localStorage.removeItem(ks.shift());}catch(e){}
+    ks.sort();while(ks.length>(hard?2:8))localStorage.removeItem(ks.shift());
+    if(hard){for(var j=localStorage.length-1;j>=0;j--){var k2=localStorage.key(j);
+      if(k2&&k2.indexOf(CK+'today')===0)localStorage.removeItem(k2);}}
+  }catch(e){}
 }
+/** 不帶參數＝讀出目前版本；帶參數＝寫入，版本變了就把行程快取全部清掉 */
 function cVer(v){
-  if(!v)return;
+  if(!v)return ls(CK+'ver');
   var cur=ls(CK+'ver');
-  if(cur&&cur!==v){try{var del=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
-    if(k&&k.indexOf(CK+'m_')===0)del.push(k);}del.forEach(function(k){localStorage.removeItem(k);});}catch(e){}}
+  if(cur&&cur!==v){
+    try{
+      var del=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k&&(k.indexOf(CK+'m_')===0||k.indexOf(CK+'today')===0))del.push(k);
+      }
+      del.forEach(function(k){localStorage.removeItem(k);});
+    }catch(e){}
+  }
   lsS(CK+'ver',v);
+  return v;
 }
 
 /* ── 資料 ── */
@@ -1309,7 +1322,7 @@ function renderChips(){
 function clrF(k,v){
   if(k==='ty')F.ty=F.ty.filter(function(t){return t!==v;});
   else F[k]='';
-  applyF();
+  refetch();
 }
 
 /* ══ 頁面內容 ══ */
@@ -1719,15 +1732,18 @@ function todayRange(t){
 
 function loadToday(force){
   var t=twStr();
-  if(!force&&todayFor===t){render();return;}
+  var sk=scopeKey();
+  if(!force&&todayFor===t&&todayScope===sk){render();return;}
   var onTab=(tab==='today'&&!sub);      // 在別的頁籤時只默默更新，不動版面
-  var c=force?null:cGet('today');
+  var ck='today'+(sk?'_'+sk:'');
+  todayScope=sk;
+  var c=force?null:cGet(ck);
   if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
   else{
     if(onTab)$('page').innerHTML=loader('載入今日行程…');
     c=null;
   }
-  var o={dateFrom:t,dateTo:todayRange(t)};
+  var o=scopeOpts({dateFrom:t,dateTo:todayRange(t)});
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
@@ -1735,8 +1751,9 @@ function loadToday(force){
       return;
     }
     cVer(r.version);
+    if(sk)prefetch('today',{dateFrom:t,dateTo:todayRange(t),date:t});   // 背景補齊全部
     if(r.unchanged)return;
-    cSet('today',{date:t,version:r.version||'',rows:r.rows||[]});
+    cSet(ck,{date:t,version:r.version||'',rows:r.rows||[]});
     paintToday(t,r.rows||[]);
   }).catch(function(){
     if(!c&&tab==='today'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
@@ -1750,22 +1767,50 @@ function paintToday(t,all){
   if(tab==='today'&&!sub)render();
 }
 
+/* ══ 下載範圍 ══════════════════════════════════════
+   有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
+   再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
+var allScope='',todayScope='';
+function scopeKey(){return (F.en?'e:'+F.en:'')+(F.me?'m:'+F.me:'');}
+function scopeOpts(o){
+  if(F.en)o.engineer=F.en;
+  if(F.me)o.person=F.me;
+  return o;
+}
+/** 背景把完整資料抓回來存快取，不動畫面 */
+function prefetch(key,o){
+  var c=cGet(key);
+  if(c&&c.version&&c.version===cVer())return;     // 快取已是最新
+  var q={dateFrom:o.dateFrom,dateTo:o.dateTo};
+  if(c&&c.version)q.version=c.version;
+  gas('getData',TOKEN,q).then(function(r){
+    if(!r||!r.ok||r.unchanged)return;
+    var v={version:r.version||'',rows:r.rows||[]};
+    if(o.date)v.date=o.date;
+    cSet(key,v);
+  }).catch(function(){});
+}
+
 function loadMonth(force){
-  var key='m_'+curY+'-'+p2(curM+1);
-  var first=curY+'-'+p2(curM+1)+'-01';
-  var last=curY+'-'+p2(curM+1)+'-'+p2(new Date(curY,curM+1,0).getDate());
+  var ym=curY+'-'+p2(curM+1);
+  var sk=scopeKey();
+  var key='m_'+ym+(sk?'_'+sk:'');
+  var first=ym+'-01';
+  var last=ym+'-'+p2(new Date(curY,curM+1,0).getDate());
   var onTab=(tab==='cal'&&!sub);        // 在別的頁籤時只默默更新，不動版面
+  allScope=sk;
   var c=force?null:cGet(key);
   if(c&&c.rows)paintMonth(c.rows);
   else{
     if(onTab)$('page').innerHTML=loader('載入 '+curY+' 年 '+(curM+1)+' 月行程…');
     c=null;
   }
-  var o={dateFrom:first,dateTo:last};
+  var o=scopeOpts({dateFrom:first,dateTo:last});
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){if(!c)toast((r&&r.error)||'載入失敗','no');return;}
     cVer(r.version);
+    if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月
     if(r.unchanged)return;
     cSet(key,{version:r.version||'',rows:r.rows||[]});
     paintMonth(r.rows||[]);
@@ -1777,7 +1822,8 @@ function paintMonth(list){
   allRows=normRows(list||[]);
   rows=allRows.filter(passF);
   var t=twStr(),c=jGet(NTC,null);
-  if(c&&c.date===t)todayRows=normRows(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
+  var _tc=cGet('today'+(scopeKey()?'_'+scopeKey():''))||cGet('today');
+  if(c&&c.date===t)todayRows=normRows((_tc&&_tc.rows)||c.rows).filter(passF);
   if(tab==='cal'&&!sub)render();      // 只有停在行事曆時才重畫
 }
 
@@ -1866,13 +1912,6 @@ function passF(r){
   }
   return true;
 }
-function applyF(){
-  rows=allRows.filter(passF);
-  var t=twStr(),c=jGet(NTC,null);
-  if(c&&c.date===t)todayRows=normRows(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
-  render();
-}
-
 var FT={rg:'',en:'',ty:[],q:'',me:'',st:''};   // 面板上的暫存條件，按「篩選」才套用
 
 function openFilter(){
@@ -1968,7 +2007,16 @@ function clearFilter(){
 }
 
 function refetch(){
-  var cc=cGet('today'),t=twStr();
+  var sk=scopeKey();
+  // 人員條件變了 → 手上的資料範圍不對，要重新載入
+  if(sk!==allScope||sk!==todayScope){
+    allRows=[];rows=[];todayFor='';
+    render();
+    if(tab==='cal'&&!sub)loadMonth();
+    loadToday(false);
+    return;
+  }
+  var cc=cGet('today'+(sk?'_'+sk:''))||cGet('today'),t=twStr();
   if(cc&&cc.date===t)todayRows=normRows(cc.rows||[]).filter(passF);
   rows=normRows(allRows).filter(passF);
   render();
