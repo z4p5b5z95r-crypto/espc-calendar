@@ -335,6 +335,13 @@ html[data-theme="dark"] .glass::after{
 .dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.pcell{background:var(--glStrong);border:1px solid var(--line);border-radius:11px;
+  padding:10px 4px;font-size:12.5px;text-align:center;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pcell.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);
+  color:var(--accT);font-weight:600;}
+.pcell small{display:block;font-size:10px;color:var(--tx3);font-weight:400;margin-top:1px;}
 .etab{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px;
   scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .etab::-webkit-scrollbar{display:none;}
@@ -579,7 +586,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23r';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24a';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -786,7 +793,7 @@ function cVer(v){
 
 /* ── 資料 ── */
 var NTC='espc_ntc';
-var PHONE={},SAFETY={},STAFF=[],STAFF_VER='';
+var PHONE={},SAFETY={},STAFF=[],STAFF_VER='',TEAM={};
 var allRows=[],rows=[],curY,curM,pkY;
 var todayRows=[],todayFor='';
 var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
@@ -1867,10 +1874,11 @@ function normRows(list){
 }
 
 function applyStaff(l){
-  STAFF=l||[];PHONE={};SAFETY={};ALIAS={};STAFF_READY=true;
+  STAFF=l||[];PHONE={};SAFETY={};ALIAS={};TEAM={};STAFF_READY=true;
   STAFF.forEach(function(s){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
+    TEAM[s.name]=(s.team||'').trim();
     var cs=(s.certs||[]).map(function(o){
       return {type:String(o.t||'').trim(),cert:String(o.c||'').trim(),
               train:String(o.d||'').trim(),years:o.y,remind:(o.n!==false)};
@@ -1956,16 +1964,10 @@ function paintFilter(){
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'"'+(FT.rg===o?' selected':'')+'>'+(o||'全部地區')+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">工程師</p><select class="fld" id="f-en" style="margin-bottom:16px">'
-    +'<option value="">全部工程師</option>'
-    +engs.map(function(o){
-      return '<option value="'+he(o)+'"'+(FT.en===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
-    +'</select>'
-    +'<p class="lb">監測人員</p><select class="fld" id="f-st" style="margin-bottom:16px">'
-    +'<option value="">全部監測人員</option>'
-    +sts.map(function(o){
-      return '<option value="'+he(o)+'"'+(FT.st===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
-    +'</select>'
+    +'<p class="lb">工程師</p>'
+    +pickBtn('en',FT.en,'全部工程師')
+    +'<p class="lb">監測人員</p>'
+    +pickBtn('st',FT.st,'全部監測人員')
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p><div class="opts">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button>'
     +tys.map(function(t){
@@ -1975,8 +1977,7 @@ function paintFilter(){
     +'</div><div style="height:8px"></div>';
   $('sheet').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
-  $('f-en').onchange=function(){FT.en=this.value;paintFilter();};
-  $('f-st').onchange=function(){FT.st=this.value;paintFilter();};
+
   var q=$('f-q');
   if(q){
     q.oninput=function(){FT.q=this.value;};                 // 打字時不重畫，避免失焦
@@ -1988,6 +1989,106 @@ function ftMe(){
   FT.me=FT.me?'':String(ENGNAME||'').trim();
   paintFilter();
 }
+/* ══ 人員選擇器 ══════════════════════════════════
+   先用組別頁籤縮小範圍，再從網格挑人；也可以直接搜尋 */
+var PK={who:'',q:'',team:'',all:false};
+
+function pickBtn(who,val,empty){
+  return '<button class="fld" style="margin-bottom:16px;display:flex;align-items:center;'
+    +'justify-content:space-between;text-align:left" onclick="openPick(\''+who+'\')">'
+    +'<span'+(val?'':' style="color:var(--tx3)"')+'>'+he(val||empty)
+    +(val&&TEAM[val]?' <span style="font-size:11px;color:var(--tx3)">'+he(TEAM[val])+'</span>':'')
+    +'</span><span style="color:var(--tx3);font-size:12px">選擇 ›</span></button>';
+}
+function openPick(who){
+  PK={who:who,q:'',team:'',all:false};
+  paintPicker();
+}
+function closePick(){PK.who='';paintFilter();}
+
+/** 目前可選的人：預設只列當月行程出現過的，可切換成通訊錄全部 */
+function pickNames(){
+  var out=[],seen={};
+  if(PK.all){
+    STAFF.forEach(function(s){if(s.name&&!seen[s.name]){seen[s.name]=1;out.push(s.name);}});
+  }else{
+    allRows.concat(todayRows).forEach(function(r){
+      if(PK.who==='en'){
+        if(r.engineer&&!seen[r.engineer]){seen[r.engineer]=1;out.push(r.engineer);}
+      }else{
+        (r.staff||[]).forEach(function(n){if(n&&!seen[n]){seen[n]=1;out.push(n);}});
+      }
+    });
+  }
+  var cur=(PK.who==='en'?FT.en:FT.st);
+  if(cur&&!seen[cur])out.push(cur);
+  out.sort(function(a,b){
+    var ta=TEAM[a]||'zzz',tb=TEAM[b]||'zzz';
+    if(ta!==tb)return ta.localeCompare(tb,'zh-Hant');
+    return a.localeCompare(b,'zh-Hant');
+  });
+  return out;
+}
+function pickTeams(names){
+  var out=[],seen={},blank=false;
+  names.forEach(function(n){
+    var t=TEAM[n]||'';
+    if(!t){blank=true;return;}
+    if(!seen[t]){seen[t]=1;out.push(t);}
+  });
+  out.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
+  if(blank)out.push('_n');
+  return out;
+}
+function paintPicker(){
+  var names=pickNames(),teams=pickTeams(names);
+  var cur=(PK.who==='en'?FT.en:FT.st);
+  var ttl=(PK.who==='en'?'選擇工程師':'選擇監測人員');
+  var h='<div class="shh" style="align-items:center">'
+    +'<button class="ib" onclick="closePick()">‹</button>'
+    +'<h3 style="flex:1;font-size:17px">'+ttl+'</h3>'
+    +'<button class="btn btn-sm" onclick="pickSet(\'\')">全部</button></div>'
+    +'<input class="fld" id="pk-q" value="'+he(PK.q)+'" placeholder="搜尋姓名或組別" style="margin-bottom:10px">'
+    +'<div class="etab">'
+    +'<button class="et'+(PK.team?'':' on')+'" onclick="pickTeam(\'\')">全部</button>'
+    +teams.map(function(t){
+      return '<button class="et'+(PK.team===t?' on':'')+'" onclick="pickTeam(\''+esc(t)+'\')">'
+        +he(t==='_n'?'未分組':t)+'</button>';}).join('')
+    +'</div><div id="pkgrid">'+pickGridHTML()+'</div>'
+    +'<button class="btn btn-sm btn-full" style="margin-top:12px" onclick="pickAll()">'
+    +(PK.all?'只看本月有班的人':'顯示通訊錄全部人員')+'</button>';
+  $('sheet').innerHTML=h;
+  var q=$('pk-q');
+  if(q)q.oninput=function(){PK.q=this.value;paintPickGrid();};
+}
+function pickGridHTML(){
+  var q=PK.q.trim().toLowerCase();
+  var cur=(PK.who==='en'?FT.en:FT.st);
+  var list=pickNames().filter(function(n){
+    var t=TEAM[n]||'';
+    if(PK.team==='_n'){if(t)return false;}
+    else if(PK.team&&t!==PK.team)return false;
+    if(!q)return true;
+    return (n+' '+t).toLowerCase().indexOf(q)>=0;
+  });
+  if(!list.length)return '<div class="empty">查無符合的人員</div>';
+  return '<div class="pgrid">'+list.map(function(n){
+    return '<button class="pcell'+(n===cur?' on':'')+'" onclick="pickSet(\''+esc(n)+'\')">'
+      +he(n)+(PK.team?'':'<small>'+he(TEAM[n]||'未分組')+'</small>')+'</button>';
+  }).join('')+'</div>';
+}
+function paintPickGrid(){
+  var el=$('pkgrid');
+  if(el)el.innerHTML=pickGridHTML();
+}
+function pickTeam(t){PK.team=t;paintPicker();}
+function pickAll(){PK.all=!PK.all;PK.team='';paintPicker();}
+function pickSet(n){
+  if(PK.who==='en')FT.en=n;else FT.st=n;
+  PK.who='';
+  paintFilter();
+}
+
 function nFT(){return (FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0)+(FT.me?1:0);}
 function tyPick(t){
   if(!t)FT.ty=[];
