@@ -579,7 +579,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23o';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23p';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1491,20 +1491,21 @@ function groupBy(list){
       notes:[],reps:[],eqs:[],nums:[],qtys:[],no:'',samp:'',tmap:{},tlist:[]};order.push(k);}
     var g=m[k];g.rows.push(r);
 
-    add(g.types,r.type);add(g.locs,r.location);add(g.engs,r.engineer);
-    add(g.notes,r.notes);add(g.reps,r.applicant);add(g.eqs,r.equipment);add(g.nums,r.reportNum);
+    add(g.types,r.type);add(g.locs,r.location);add(g.engs,normName(r.engineer));
+    add(g.notes,r.notes);add(g.reps,normName(r.applicant));add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
     g.qtys.push(String(r.qty==null?'':r.qty).trim());
     if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
     var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
-    ss.forEach(function(x){add(g.staff,x.trim());});
+    ss.forEach(function(x){add(g.staff,normName(x.trim()));});
 
     // 依類別再分一層，數量／點位／儀器／報告編號各自歸屬
     var t=r.type||'（未分類）';
     if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};g.tlist.push(t);}
     var tg=g.tmap[t];
-    add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);add(tg.reps,r.applicant);
+    add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);
+    add(tg.reps,normName(r.applicant));
     if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
     tg.qtys.push(String(r.qty==null?'':r.qty).trim());
   });
@@ -1776,7 +1777,7 @@ function paintMonth(list){
   allRows=normRows(list||[]);
   rows=allRows.filter(passF);
   var t=twStr(),c=jGet(NTC,null);
-  if(c&&c.date===t)todayRows=(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
+  if(c&&c.date===t)todayRows=normRows(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
   if(tab==='cal'&&!sub)render();      // 只有停在行事曆時才重畫
 }
 
@@ -1868,7 +1869,7 @@ function passF(r){
 function applyF(){
   rows=allRows.filter(passF);
   var t=twStr(),c=jGet(NTC,null);
-  if(c&&c.date===t)todayRows=(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
+  if(c&&c.date===t)todayRows=normRows(cGet('today')&&cGet('today').rows||c.rows).filter(passF);
   render();
 }
 
@@ -1968,8 +1969,8 @@ function clearFilter(){
 
 function refetch(){
   var cc=cGet('today'),t=twStr();
-  if(cc&&cc.date===t)todayRows=(cc.rows||[]).filter(passF);
-  rows=allRows.filter(passF);
+  if(cc&&cc.date===t)todayRows=normRows(cc.rows||[]).filter(passF);
+  rows=normRows(allRows).filter(passF);
   render();
 }
 
