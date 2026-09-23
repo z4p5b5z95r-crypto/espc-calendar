@@ -319,6 +319,28 @@ html[data-theme="dark"] .glass::after{
   padding-bottom:7px;border-bottom:1px solid var(--line);}
 .tq{background:var(--card2);color:var(--tx2);font-size:11px;font-weight:500;
   border-radius:999px;padding:1px 8px;}
+/* ── 行程詳情（窄標籤明細表）── */
+.dcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);padding:4px 13px;margin-bottom:8px;}
+.dr{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+.dr:last-child{border-bottom:none;}
+.dk{width:58px;flex-shrink:0;font-size:11.5px;color:var(--tx3);padding-top:2px;line-height:1.5;}
+.dv{flex:1;min-width:0;font-size:13.5px;color:var(--tx);line-height:1.65;word-break:break-word;}
+.dv a{color:var(--accT);}
+.dph{font-size:11.5px;color:var(--tx3);margin-left:4px;}
+.pil{display:inline-block;font-size:11px;padding:2px 8px;border-radius:7px;
+  background:var(--card2);color:var(--tx2);margin:0 4px 4px 0;}
+.qb{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;
+  background:var(--tint);color:var(--accT);white-space:nowrap;flex-shrink:0;}
+.dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
+/* 當天行程頁籤 */
+.etab{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.etab::-webkit-scrollbar{display:none;}
+.et{font-size:12px;padding:6px 12px;border-radius:999px;background:var(--card2);
+  color:var(--tx2);white-space:nowrap;flex-shrink:0;}
+.et.on{background:var(--acc);color:var(--accTx);font-weight:600;}
 .opts{display:flex;flex-wrap:wrap;gap:7px;}
 .ob svg{margin-right:-1px;}
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
@@ -553,7 +575,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23c';      // 改版號可用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23e';      // 改版號可用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2084,52 +2106,80 @@ function openEv(d,proj){
   if(!g){openDay(d);return;}
   var c=pcolor(g.project);
   EV_D=d;
-  var h=dayNav(d,g.no?he(g.no):'')
-    +'<div style="margin-bottom:14px">'
-    +'<div class="evt" style="color:'+c+'">'+he(typeLabel(g))+'</div>'
-    +'<h3 style="margin-top:3px;font-size:19px;font-weight:600;line-height:1.3">'
-    +he(g.project+carTag(g))+'</h3></div>';
 
-  if(g.tlist.length<=1){
-    // 只有一個類別 → 直接平舖
-    var t0=g.tmap[g.tlist[0]]||{locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};
-    h+='<div class="kv">'
-      +kr('pin','點位',he(t0.locs.join(' / ')))
-      +kr('hash','數量',he(qtyText(t0.qtys)))
-      +kr('clock','採樣時間',he(t0.samp||g.samp))
-      +kr('flask','採樣儀器',he(t0.eqs.join('　')))
-      +kr('user','申報人員',t0.reps.map(telLink).join('、'))
-      +kr('clip','報告編號',he(t0.nums.join(' / ')))
-      +'</div>';
-  }else{
-    // 多個類別 → 每個類別各自一段，數量歸屬一目了然
-    g.tlist.forEach(function(t){
-      var tg=g.tmap[t];
-      h+='<div class="tsec"><div class="tsh" style="color:'+c+'">'+he(t)
-        +(qtyText(tg.qtys)?'<span class="tq">'+he(qtyText(tg.qtys))+'</span>':'')+'</div><div class="kv">'
-        +kr('pin','點位',he(tg.locs.join(' / ')))
-        +kr('clock','採樣時間',he(tg.samp))
-        +kr('flask','採樣儀器',he(tg.eqs.join('　')))
-        +kr('user','申報人員',tg.reps.map(telLink).join('、'))
-        +kr('clip','報告編號',he(tg.nums.join(' / ')))
-        +'</div></div>';
-    });
-  }
+  var h=dayNav(d,gs.length>1?'共 '+gs.length+' 項':'');
 
-  var shared=kr('helmet','工程師',g.engs.map(telLink).join('<br>'))
-    +kr('car','公務車',he(g.cars.join('、')))
-    +kr('users','監測人員',g.staff.map(telLink).join('<br>'))
-    +kr('note','備註',he(g.notes.join('；')));
-  if(shared)h+='<div class="kv" style="margin-top:6px">'+shared+'</div>';
+  // 當天有多項 → 上方頁籤直接切換，不用捲到最底
   if(gs.length>1){
-    h+='<div class="sec">當天其他 '+(gs.length-1)+' 項</div><div class="plist">';
-    gs.forEach(function(x){if(x.project!==proj)h+=evCard(x,d,false);});
+    h+='<div class="etab">';
+    gs.forEach(function(x){
+      var lb=(x.tlist[0]||x.project);
+      if(lb.length>8)lb=lb.slice(0,8)+'…';
+      h+='<button class="et'+(x.project===proj?' on':'')+'"'
+        +' onclick="openEv(\''+d+'\',\''+he(esc(x.project))+'\')">'+he(lb)+'</button>';
+    });
     h+='</div>';
   }
+
+  // 標題列：類別與編號在左，總數量在右
+  var allQ=qtyText(g.qtys);
+  h+='<div class="dhd"><div style="min-width:0">'
+    +'<div class="evt" style="color:'+c+'">'+he(typeLabel(g))
+    +(g.no?' <span class="dph">'+he(g.no)+'</span>':'')+'</div>'
+    +'<h3 style="margin-top:3px;font-size:19px;font-weight:600;line-height:1.3">'
+    +he(g.project+carTag(g))+'</h3></div>'
+    +(allQ?'<span class="qb">'+he(allQ)+'</span>':'')+'</div>';
+
+  // 各類別的明細
+  g.tlist.forEach(function(t){
+    var tg=g.tmap[t];
+    if(g.tlist.length>1)
+      h+='<div class="dsub" style="color:'+c+';font-weight:600">'+he(t)
+        +(qtyText(tg.qtys)?'　'+he(qtyText(tg.qtys)):'')+'</div>';
+    h+='<div class="dcard">'
+      +dr('點位',locList(tg.locs))
+      +(g.tlist.length>1?dr('數量',he(qtyText(tg.qtys))):'')
+      +dr('採樣時間',he(tg.samp||g.samp))
+      +dr('儀器',pills(tg.eqs))
+      +dr('申報人員',tg.reps.map(telLink).join('<br>'))
+      +dr('報告編號',he(tg.nums.join('<br>')))
+      +'</div>';
+  });
+
+  // 共用資訊
+  var shared=dr('工程師',g.engs.map(telLink).join('<br>'))
+    +dr('公務車',he(g.cars.join('、')))
+    +dr('監測人員',g.staff.map(telLink).join('<br>'))
+    +dr('備註',he(g.notes.join('；')));
+  if(shared)h+='<div class="dcard">'+shared+'</div>';
+
   openSheet(h);
 }
 
-/* ══ 年月選擇 ══ */
+/** 窄標籤的一列；沒有值就整列不出現 */
+function dr(k,v){
+  if(!v)return '';
+  return '<div class="dr"><span class="dk">'+k+'</span><span class="dv">'+v+'</span></div>';
+}
+/** 點位編號分行 */
+function locList(arr){
+  if(!arr||!arr.length)return '';
+  if(arr.length===1)return he(arr[0]);
+  return arr.map(function(x,i){return (i+1)+'. '+he(x);}).join('<br>');
+}
+/** 儀器排成標籤 */
+function pills(arr){
+  if(!arr||!arr.length)return '';
+  var out=[];
+  arr.forEach(function(v){
+    String(v).split(/[\s、,，]+/).forEach(function(x){
+      x=x.trim();if(x&&out.indexOf(x)<0)out.push(x);
+    });
+  });
+  if(!out.length)return '';
+  return out.map(function(x){return '<span class="pil">'+he(x)+'</span>';}).join('');
+}
+
 function renderPk(){
   var n=twDate(),ty=n.getFullYear(),tm=n.getMonth();
   var h='<div class="pkh"><button class="ib" onclick="pkY--;renderPk()">‹</button>'
@@ -2340,14 +2390,16 @@ function paintParse(uploading){
   }
   h+='</div><div class="scroll" style="margin-bottom:10px"><table class="tbl"><thead><tr>'
     +'<th>日期</th><th>工程師</th><th>專案編號</th><th>專案</th><th>類別</th><th>點位</th>'
-    +'<th>數量</th><th>採樣時間</th><th>儀器</th><th>報告編號</th><th>地區</th></tr></thead><tbody>';
+    +'<th>數量</th><th>採樣時間</th><th>儀器</th><th>報告編號</th><th>監測人員</th><th>地區</th></tr></thead><tbody>';
   pRows.slice(0,60).forEach(function(r){
     h+='<tr><td>'+he(r.date)+'</td><td>'+(r.engineer?he(r.engineer):'—')+'</td>'
       +'<td>'+he(okNo(r.projectNo))+'</td><td>'+he(r.project)+'</td><td>'+he(r.type)+'</td>'
       +'<td>'+he(r.location)+'</td><td>'+he(r.qty)+'</td><td>'+he(r.sampTime)+'</td><td>'+he(r.equipment)+'</td>'
-      +'<td>'+he(r.reportNum)+'</td><td class="rgc">'+(r.region||'—')+'</td></tr>';
+      +'<td>'+he(r.reportNum)+'</td>'
+      +'<td>'+he((r.staff||[]).join('、'))+'</td>'
+      +'<td class="rgc">'+(r.region||'—')+'</td></tr>';
   });
-  if(pRows.length>60)h+='<tr><td colspan="11" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
+  if(pRows.length>60)h+='<tr><td colspan="12" style="text-align:center;color:var(--tx3)">…僅顯示前 60 筆</td></tr>';
   h+='</tbody></table></div>';
   if(!uploading)h+='<div style="display:flex;gap:8px"><button class="btn btn-p" onclick="doUpload()">確認上傳</button>'
     +'<button class="btn" onclick="document.getElementById(\'parse\').innerHTML=\'\'">取消</button></div>';
@@ -2517,26 +2569,31 @@ function parseSheet(raw,sheet,fname){
   var region=detectRegion(fname||'',sheet);
   var out=[];
   if(sheet==='採樣行程'){
+    var kd='',kst=[];                 // 人員欄空白＝沿用上一筆，換日期才重來
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
       var ds=parseDate(row[2]);
       if(!ds||parseInt(ds.slice(0,4),10)<2020)continue;
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
+      if(ds!==kd){kd=ds;kst=[];}
+      var kstaff=[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean);
+      if(kstaff.length)kst=kstaff;else kstaff=kst;
       out.push({date:ds,engineer:eng,project:proj,projectNo:svNo(row[4]),type:type,
         location:sv(row[8]),qty:sv(row[9]),
         sampTime:sv(row[10]),equipment:sv(row[11]),applicant:sv(row[12]),
         reportNum:sv(row[7]),notes:[sv(row[13]),sv(row[14])].filter(Boolean).join('；'),
         car:sv(row[15]),
-        staff:[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean),
+        staff:kstaff.slice(),
         region:region});
     }
   }else{
     // 日期是合併儲存格，需往下延續；工程師空白＝休假／註記列，整列略過
-    var last=null,lp='',lr='',lsm='',lc='',ln='';
+    var last=null,lp='',lr='',lsm='',lc='',ln='',lst=[];
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
-      if(row[2]!=null){var d2=parseDate(row[2]);if(d2){last=d2;lp='';lr='';lsm='';lc='';ln='';}}
+      // 換日期時所有延續值歸零，人員不會跨日沿用
+      if(row[2]!=null){var d2=parseDate(row[2]);if(d2&&d2!==last){last=d2;lp='';lr='';lsm='';lc='';ln='';lst=[];}}
       if(!last||parseInt(last.slice(0,4),10)<2020)continue;
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
@@ -2545,11 +2602,14 @@ function parseSheet(raw,sheet,fname){
       var rpt=sv(row[12]);if(rpt)lr=rpt;else rpt=lr;
       var samp=sv(row[9]);if(samp)lsm=samp;else samp=lsm;
       var car=sv(row[14]);if(car)lc=car;else car=lc;
+      // 人員欄空白＝跟上一筆同一組；專案換了也繼續沿用，只有換日期才重來
+      var st=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
+      if(st.length)lst=st;else st=lst;
       out.push({date:last,engineer:eng,project:proj,projectNo:no,type:type,
         location:sv(row[7]),qty:sv(row[8]),
         sampTime:samp,equipment:sv(row[10]),applicant:sv(row[11]),
         reportNum:rpt,notes:sv(row[13]),car:car,
-        staff:[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean),
+        staff:st.slice(),
         region:region});
     }
   }
