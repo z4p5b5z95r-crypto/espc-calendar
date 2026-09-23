@@ -335,6 +335,21 @@ html[data-theme="dark"] .glass::after{
 .dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
 /* 當天行程頁籤 */
+.pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
+.pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
+.pchd{display:flex;gap:11px;align-items:center;width:100%;padding:12px 13px;text-align:left;background:none;}
+.pchd:active{opacity:.75;}
+.pbar{width:3.5px;border-radius:999px;align-self:stretch;flex-shrink:0;min-height:30px;}
+.pnm{display:block;font-size:15px;font-weight:600;line-height:1.3;}
+.pno{font-size:12px;font-weight:400;color:var(--tx3);margin-left:6px;}
+.pty{display:block;font-size:12.5px;font-weight:500;margin-top:3px;}
+.pchev{display:inline-flex;color:var(--tx3);flex-shrink:0;transition:transform .18s;}
+.pchev.on{transform:rotate(90deg);color:var(--accT);}
+.pbody{border-top:1px solid var(--line);padding:6px 13px 10px;}
+.pbody .dcard{background:none;border:none;border-radius:0;padding:0;margin-bottom:0;
+  backdrop-filter:none;-webkit-backdrop-filter:none;}
+.pbody .dcard+.dcard{border-top:1px solid var(--line);margin-top:6px;padding-top:6px;}
 .fold{display:flex;align-items:center;gap:8px;width:100%;margin:18px 0 4px;
   padding:11px 14px;border-radius:var(--r);text-align:left;
   background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
@@ -597,7 +612,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-23s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-23t';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2314,58 +2329,61 @@ function dayNav(d,sub2){
 }
 function gotoDay(d,n){openDay(addDays(d,n));}
 
-function openDay(d){
+/* 當日面板：案子清單可各自展開，展開後的明細跟詳情頁一樣完整 */
+var EV_OPEN={};
+function openDay(d,focus){
   var gs=groupBy(dayRows(d));
+  var same=$('ov').classList.contains('open')&&EV_D===d;   // 同一天就地重畫，保留捲動位置
+  if(EV_D!==d)EV_OPEN={};
   EV_D=d;
+  if(focus)EV_OPEN[focus]=true;
+
   var h=dayNav(d,gs.length?'共 '+gs.length+' 個案子':'');
   if(!gs.length)h+='<div class="empty">當日沒有排程<br>'
     +'<span style="font-size:12px">左右滑動或按 ‹ › 看其他日期</span></div>';
-  h+='<div class="plist">';
-  gs.forEach(function(g){h+=evCard(g,d,false);});
-  openSheet(h+'</div>');
+
+  gs.forEach(function(g){
+    var c=pcolor(g.project),on=!!EV_OPEN[g.project],q=qtyText(g.qtys);
+    h+='<div class="pcard'+(on?' on':'')+'" id="pc-'+he(hashId(g.project))+'">'
+      +'<button class="pchd" onclick="evToggle(\''+esc(g.project)+'\')">'
+      +'<span class="pbar" style="background:'+c+'"></span>'
+      +'<span style="min-width:0;flex:1">'
+      +'<span class="pnm">'+he(g.project+carTag(g))
+      +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')+'</span>'
+      +'<span class="pty" style="color:'+c+'">'+he(typeLabel(g))+'</span></span>'
+      +(q?'<span class="qb">'+he(q)+'</span>':'')
+      +'<span class="pchev'+(on?' on':'')+'">'+ic('right',15)+'</span></button>'
+      +(on?'<div class="pbody">'+evDetail(g)+'</div>':'')
+      +'</div>';
+  });
+
+  if(same){
+    var sh=$('sheet'),top=sh.scrollTop;
+    sh.innerHTML=h;
+    sh.scrollTop=top;
+  }else openSheet(h);
+
+  if(focus)setTimeout(function(){
+    var el=$('pc-'+hashId(focus)),sh2=$('sheet');
+    if(el&&sh2)sh2.scrollTop=Math.max(0,el.offsetTop-sh2.offsetTop-6);
+  },40);
 }
-
-/** 詳情面板的一列：圖示 + 標籤 + 內容，沒值就不顯示 */
-function kr(icon,label,val){
-  if(!val)return '';
-  return '<div class="kr">'+ic(icon,16)+'<span class="kk">'+label+'</span>'
-    +'<span class="kvv">'+val+'</span></div>';
+/** 專案名稱轉成可當 id 的短碼 */
+function hashId(s){
+  var n=0,t=String(s||'');
+  for(var i=0;i<t.length;i++){n=((n<<5)-n+t.charCodeAt(i))|0;}
+  return 'p'+Math.abs(n).toString(36);
 }
+function evToggle(p){
+  EV_OPEN[p]=!EV_OPEN[p];
+  openDay(EV_D);
+}
+/** 點月曆上的事件標籤：開當日面板並展開那個案子 */
+function openEv(d,proj){openDay(d,proj);}
 
-function openEv(d,proj){
-  var gs=groupBy(dayRows(d));
-  var g=null;
-  gs.forEach(function(x){if(x.project===proj)g=x;});
-  if(!g){openDay(d);return;}
-  var c=pcolor(g.project);
-  EV_D=d;
-
-  var h=dayNav(d,gs.length>1?'共 '+gs.length+' 個案子':'');
-
-  // 當天有幾個案子就幾個頁籤，標籤用專案名稱
-  if(gs.length>1){
-    h+='<div class="etab">';
-    gs.forEach(function(x,i){
-      var lb=x.project||'（未分類）';
-      if(lb.length>9)lb=lb.slice(0,9)+'…';
-      h+='<button class="et'+(x.project===proj?' on':'')+'" title="'+he(x.project)+'"'
-        +' onclick="openEv(\''+d+'\',\''+he(esc(x.project))+'\')">'
-        +'<b>'+(i+1)+'</b>'+he(lb)+'</button>';
-    });
-    h+='</div>';
-  }
-
-  // 標題列：類別與編號在左，總數量在右
-  var allQ=qtyText(g.qtys);
-  h+='<div class="dhd"><div style="min-width:0">'
-    +'<h3 style="font-size:19px;font-weight:600;line-height:1.3">'
-    +he(g.project+carTag(g))
-    +(g.no?' <span class="dph">'+he(g.no)+'</span>':'')+'</h3>'
-    +'<div class="evt" style="color:'+c+';margin-top:4px">'+he(typeLabel(g))
-    +(g.tlist.length>1?' <span class="dph">共 '+g.tlist.length+' 個測項</span>':'')+'</div></div>'
-    +(allQ?'<span class="qb">'+he(allQ)+'</span>':'')+'</div>';
-
-  // 各類別的明細
+/** 一個案子的完整明細：各測項一段，最後是共用資訊 */
+function evDetail(g){
+  var c=pcolor(g.project),h='';
   g.tlist.forEach(function(t){
     var tg=g.tmap[t];
     if(g.tlist.length>1)
@@ -2380,15 +2398,19 @@ function openEv(d,proj){
       +dr('報告編號',he(tg.nums.join('<br>')))
       +'</div>';
   });
-
-  // 共用資訊
   var shared=dr('工程師',g.engs.map(telLink).join('<br>'))
     +dr('公務車',he(g.cars.join('、')))
     +dr('監測人員',g.staff.map(telLink).join('<br>'))
     +dr('備註',he(g.notes.join('；')));
   if(shared)h+='<div class="dcard">'+shared+'</div>';
+  return h;
+}
 
-  openSheet(h);
+/** 詳情面板的一列：圖示 + 標籤 + 內容，沒值就不顯示 */
+function kr(icon,label,val){
+  if(!val)return '';
+  return '<div class="kr">'+ic(icon,16)+'<span class="kk">'+label+'</span>'
+    +'<span class="kvv">'+val+'</span></div>';
 }
 
 /** 窄標籤的一列；沒有值就整列不出現 */
