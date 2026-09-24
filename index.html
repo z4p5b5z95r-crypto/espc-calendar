@@ -535,6 +535,12 @@ html[data-theme="dark"] .glass::after{
   padding:2px 8px;border-radius:999px;border:1px solid var(--line);}
 .ocdup{font-size:10px;color:var(--tx3);}
 
+.ocpair{display:flex;align-items:flex-start;justify-content:center;gap:0;}
+.ocpm{display:flex;flex-direction:column;align-items:center;}
+.ocjoin{align-self:flex-start;margin-top:26px;width:22px;height:1.5px;
+  background:var(--line);position:relative;flex:0 0 auto;}
+.ocjoin::after{content:'共管';position:absolute;left:50%;top:-16px;transform:translateX(-50%);
+  font-size:10px;color:var(--tx3);white-space:nowrap;}
 .occ.drag{opacity:.35;}
 .occ.drop{border-color:var(--acc);box-shadow:0 0 0 3px var(--tint);}
 .ocghost{position:fixed;z-index:999;pointer-events:none;opacity:.92;
@@ -750,7 +756,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25j';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -4062,7 +4068,7 @@ function mgrsOf(u){
   return String((u&&u.manager)||'').split(/[,、，;；\/\s]+/)
     .map(function(x){return x.trim();}).filter(Boolean);
 }
-function ocCard(u,dup){
+function ocCard(u){
   var me=u.username===UNAME;
   var nm=u.engineerName||u.username;
   var can=canTouchUser(u);
@@ -4073,7 +4079,6 @@ function ocCard(u,dup){
     +'<div class="oci">'+he(u.username)+(u.team?'　'+he(u.team):'')+'</div>'
     +(u.active?'':'<div class="oci" style="color:var(--err)">已停用</div>')
     +'<span class="ocr'+(normRole(u.role)==='sampler'?' plain':'')+'">'+roleLabel(u.role)+'</span>'
-    +(dup?'<div class="ocdup">共管</div>':'')
     +'</div>';
 }
 function userListHTML(){
@@ -4082,160 +4087,116 @@ function userListHTML(){
     +'<span style="font-weight:400;color:var(--tx3)">　依直屬主管排列，點卡片可編輯</span></div>';
   if(!list.length)return h+'<div class="empty">查無符合的帳號</div></div>';
 
-  var has={},byMgr={},roots=[];
-  list.forEach(function(u){has[u.username]=1;});
-  list.forEach(function(u){
+  var has={},byKey={},userMap={};
+  list.forEach(function(u){has[u.username]=1;userMap[u.username]=u;});
+  function keyOf(u){
     var ms=mgrsOf(u).filter(function(m){return has[m];});
-    if(!ms.length){roots.push(u);return;}
-    ms.forEach(function(m){(byMgr[m]=byMgr[m]||[]).push(u);});
-  });
+    ms.sort();
+    return ms.join(',');
+  }
+  list.forEach(function(u){(byKey[keyOf(u)]=byKey[keyOf(u)]||[]).push(u);});
   function sortU(a,b){
     var ra=rankOf(a.role),rb=rankOf(b.role);
     if(ra!==rb)return ra-rb;
     return (a.engineerName||a.username).localeCompare(b.engineerName||b.username,'zh-Hant');
   }
-  roots.sort(sortU);
-  Object.keys(byMgr).forEach(function(k){byMgr[k].sort(sortU);});
-  function count(name,seen){
-    var kids=byMgr[name]||[],n=0;
-    kids.forEach(function(k){
+  Object.keys(byKey).forEach(function(k){byKey[k].sort(sortU);});
+
+  /* 共管：兩人以上共同帶的那一組，只要他們自己的主管相同，
+     就把他們並排畫在一起，共管的人掛在底下（只出現一次）。 */
+  var pairs={},inPair={};
+  Object.keys(byKey).forEach(function(k){
+    if(k.indexOf(',')<0)return;
+    var ms=k.split(',');
+    if(ms.some(function(m){return !userMap[m];}))return;
+    var pk=keyOf(userMap[ms[0]]);
+    if(ms.some(function(m){return keyOf(userMap[m])!==pk;}))return;  // 上層不同就不併
+    if(ms.some(function(m){return inPair[m];}))return;               // 一個人只併一次
+    ms.forEach(function(m){inPair[m]=k;});
+    (pairs[pk]=pairs[pk]||[]).push(k);
+  });
+
+  function total(name,seen){
+    var n=0;
+    (byKey[name]||[]).forEach(function(k){
       if(seen[k.username])return;
-      seen[k.username]=1;n+=1+count(k.username,seen);
+      seen[k.username]=1;n+=1+total(k.username,seen);
+    });
+    Object.keys(byKey).forEach(function(kk){
+      if(kk.indexOf(',')<0||kk.split(',').indexOf(name)<0)return;
+      byKey[kk].forEach(function(k){
+        if(seen[k.username])return;
+        seen[k.username]=1;n+=1+total(k.username,seen);
+      });
     });
     return n;
   }
+  function kidsHTML(key,depth,seen){
+    var out='';
+    (byKey[key]||[]).forEach(function(c){
+      if(inPair[c.username]&&key!==inPair[c.username])return;   // 併在共管組裡畫
+      out+=node(c,depth+1,seen);
+    });
+    (pairs[key]||[]).forEach(function(pk){
+      out+=pairNode(pk,depth+1,seen);
+    });
+    return out;
+  }
   function node(u,depth,seen){
-    if(depth>12)return '';
-    var dup=!!seen[u.username];
-    var kids=byMgr[u.username]||[];
+    if(depth>12||seen[u.username])return '';
+    seen[u.username]=1;
     var k='u:'+u.username;
-    var total=count(u.username,{});
-    var out='<li>'+ocCard(u,dup&&mgrsOf(u).length>1);
-    if(kids.length&&!dup){
+    var n=total(u.username,{});
+    var out='<li>'+ocCard(u);
+    if(n){
       out+='<button class="ocb" onclick="event.stopPropagation();utToggle(\''+esc(k)+'\')">'
-        +(utOpen(k)?'▾ ':'▸ ')+total+' 人</button>';
+        +(utOpen(k)?'▾ ':'▸ ')+n+' 人</button>';
       if(utOpen(k)){
-        var mark={};
-        Object.keys(seen).forEach(function(x){mark[x]=1;});
-        mark[u.username]=1;
-        out+='<ul>'+kids.map(function(c){return node(c,depth+1,mark);}).join('')+'</ul>';
+        var kids=kidsHTML(u.username,depth,seen);
+        if(kids)out+='<ul>'+kids+'</ul>';
       }
     }
     return out+'</li>';
   }
-  h+='<div class="ocroot" id="ocroot">放到這裡＝拿掉主管，變成最上層</div>'
-    +'<div class="ocw"><ul class="oct">'
-    +roots.map(function(u){return node(u,0,{});}).join('')
-    +'</ul></div>'
-    +'<p class="hint" style="margin:8px 6px 0">按住卡片拖到另一張卡片上，就能改他的直屬主管。</p>';
-  return h+'</div>';
-}
-function editUser(name){
-  if(DRAG_JUST){DRAG_JUST=false;return;}     // 剛拖完的那一下不算點擊
-  var u=null;
-  USERS.forEach(function(x){if(x.username===name)u=x;});
-  if(!u)return;
-  var me=u.username===UNAME;
-  if(!canTouchUser(u)){
-    toast('只有管理員能調整管理員帳號','',3500);
-    return;
+  function pairNode(pk,depth,seen){
+    var ms=pk.split('').join('').split(',');
+    var people=ms.map(function(m){return userMap[m];}).filter(Boolean);
+    if(!people.length)return '';
+    var k='p:'+pk;
+    var n=0,cnt={};
+    (byKey[pk]||[]).forEach(function(c){
+      if(cnt[c.username])return;cnt[c.username]=1;n+=1+total(c.username,cnt);});
+    var cards=people.map(function(m){
+      seen[m.username]=1;
+      var solo=utOpen('u:'+m.username)?kidsHTML(m.username,depth,seen):'';
+      var mn=total(m.username,{});
+      return '<div class="ocpm">'+ocCard(m)
+        +(mn?'<button class="ocb" onclick="event.stopPropagation();utToggle(\'u:'+esc(m.username)+'\')">'
+            +(utOpen('u:'+m.username)?'▾ ':'▸ ')+mn+' 人</button>':'')
+        +(solo?'<ul>'+solo+'</ul>':'')
+        +'</div>';
+    }).join('<span class="ocjoin"></span>');
+    var out='<li><div class="ocpair">'+cards+'</div>';
+    if(n){
+      out+='<button class="ocb" onclick="event.stopPropagation();utToggle(\''+esc(k)+'\')">'
+        +(utOpen(k)?'▾ ':'▸ ')+n+' 人共管</button>';
+      if(utOpen(k)){
+        var kids='';
+        (byKey[pk]||[]).forEach(function(c){kids+=node(c,depth+1,seen);});
+        if(kids)out+='<ul>'+kids+'</ul>';
+      }
+    }
+    return out+'</li>';
   }
-  mgrInit(u.username,mgrsOf(u));
-  var h='<div class="shh"><div>'
-    +'<div class="evt" style="color:var(--accT)">帳號設定</div>'
-    +'<h3 style="margin-top:3px">'+he(u.engineerName||u.username)+'</h3>'
-    +'<p class="hint" style="margin-top:3px">'+he(u.username)
-    +(me?'　·　目前帳號':'')+'</p></div>'
-    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
-    +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致，留空表示不自動篩選</span></p>'
-    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="例：王小明" style="margin-bottom:13px">'
-    +'<p class="lb">工號　<span style="color:var(--tx3);font-weight:400">同時也是登入帳號</span></p>'
-    +'<input class="fld" id="e-u" value="'+he(u.username)+'" autocapitalize="characters"'
-    +' autocorrect="off" style="margin-bottom:13px">'
-    +'<p class="lb">角色</p>'
-    +'<select class="fld" id="e-r" style="margin-bottom:13px"'+(me?' disabled':'')+'>'
-    +roleChoices().map(function(k){
-      return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
-    +'</select>'
-    +'<p class="lb">地區</p><select class="fld" id="e-g" style="margin-bottom:13px">'
-    +['','台北','台中','高雄'].map(function(o){
-      return '<option value="'+o+'"'+((u.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
-    +'</select>'
-    +'<p class="lb">組別</p>'
-    +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
-    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可以選兩位以上，共同管理</span></p>'
-    +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
-    +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +extField(staffOf(u.engineerName))
-    +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄'
-    +(u.createdAt||u.createdBy
-      ? '<br>建立於 '+he(shortStamp(u.createdAt)||'—')
-        +(u.createdBy?'　由 '+he(u.createdByName||u.createdBy)+' 新增':'')
-      :'')
-    +'</p>'
-    +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
-    +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
-    +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
-       +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>'
-       +'<button class="btn btn-d btn-full" style="margin-top:9px"'
-       +' onclick="delUser(\''+esc(u.username)+'\')">刪除此帳號</button>'
-       +'<p class="hint" style="margin:9px 6px 0">停用會保留帳號但無法登入；刪除會把帳號與'
-       +'通訊錄裡對應的人員資料一起移除，且無法復原（上傳記錄與行程不受影響）。</p>');
-  openSheet(h);
-}
-/** 通訊錄裡的那一筆（查不到回 null） */
-function staffOf(name){
-  var n=String(name||'').trim(),out=null;
-  if(!n)return null;
-  STAFF.forEach(function(x){if(x.name===n)out=x;});
-  return out;
-}
-/** 從帳號管理改分機：寫回通訊錄，其他欄位原值帶回去不動 */
-function saveExtFor(name,ext){
-  return new Promise(function(done){
-    var n=String(name||'').trim();
-    if(!n){done();return;}
-    var run=function(){
-      var s=staffOf(n);
-      gas('saveStaff',TOKEN,n,(s&&s.phone)||'',(s&&s.region)||'',(s&&s.team)||'',
-          JSON.stringify((s&&s.certs)||[]),(s&&s.note)||'',(s&&s.alias)||'',ext)
-        .then(function(){loadStaff(null,true);done();})
-        .catch(function(){done();});
-    };
-    if(STAFF_READY)run();               // 通訊錄沒載好就先載，免得把既有資料洗掉
-    else loadStaff(run,true);
-  });
-}
 
-/* 正在編輯的帳號目前選了哪些主管 */
-var MG=[],MG_FOR='';
-function mgrInit(username,list){MG_FOR=username;MG=(list||[]).slice();}
-function mgrBox(username){
-  var h='';
-  MG.forEach(function(m,i){
-    var x=null;
-    USERS.forEach(function(u){if(u.username===m)x=u;});
-    h+='<div class="row" style="padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:6px">'
-      +'<div style="flex:1;min-width:0;font-size:14px">'+he((x&&(x.engineerName||x.username))||m)
-      +'<span style="color:var(--tx3);font-size:12px">　'+he(m)+(x?'　'+roleLabel(x.role):'')+'</span></div>'
-      +'<button class="ib" style="width:28px;height:28px;font-size:13px" onclick="mgrDel('+i+')">✕</button></div>';
-  });
-  if(!MG.length)h+='<p class="hint" style="margin:0 0 6px">目前沒有主管，這個帳號會在最上層</p>';
-  var opts=mgrOptions(username,'');
-  h+='<select class="fld" onchange="mgrAdd(this.value);this.value=\'\'">'
-    +'<option value="">＋ 新增主管</option>'
-    +opts.replace(/<option value="">[^<]*<\/option>/,'')+'</select>';
-  return h;
-}
-function mgrAdd(v){
-  v=String(v||'').trim();
-  if(!v||MG.indexOf(v)>=0)return;
-  MG.push(v);paintMgr();
-}
-function mgrDel(i){MG.splice(i,1);paintMgr();}
-function paintMgr(){
-  var el=$('mgbox');
-  if(el)el.innerHTML=mgrBox(MG_FOR);
+  var seen={};
+  var rootHTML=kidsHTML('',0,seen);
+  // 上層不一致而沒能併起來的共管，照樣掛在每位主管底下（第二處標共管）
+  h+='<div class="ocroot" id="ocroot">放到這裡＝拿掉主管，變成最上層</div>'
+    +'<div class="ocw"><ul class="oct">'+rootHTML+'</ul></div>'
+    +'<p class="hint" style="margin:8px 6px 0">按住卡片拖到另一張卡片上，'
+    +'可以選擇搬過去或加成共同主管。</p>';
+  return h+'</div>';
 }
 
 /* ── 拖拉改上下關係 ── */
@@ -4316,17 +4277,46 @@ function ocUp(){
   if(rz)rz.classList.remove('show');
   if(!d.over)return;
   var mgr=(d.over===rz)?'':d.over.getAttribute('data-u');
-  applyDrop(d.u,mgr);
+  askDrop(d.u,mgr);
 }
-function applyDrop(u,mgr){
+/** 放開後：已經有主管就問「搬過去」還是「加成共管」，否則直接確認 */
+function askDrop(u,mgr){
   if(!canDropOn(u,mgr))return;
   var me=userOf(u),to=mgr?userOf(mgr):null;
   var nm=(me&&(me.engineerName||me.username))||u;
   var tn=to?(to.engineerName||to.username):'最上層';
-  if(!confirm('把「'+nm+'」的直屬主管改成「'+tn+'」？'))return;
-  gas('updateUser',TOKEN,u,{manager:mgr}).then(function(r){
+  var cur=mgrsOf(me);
+  if(!mgr||!cur.length){                       // 沒有原主管就沒有共管的問題
+    if(confirm('把「'+nm+'」改成「'+tn+'」底下？'))applyDrop(u,mgr,'move');
+    return;
+  }
+  var curTxt=cur.map(function(m){
+    var x=userOf(m);return x?(x.engineerName||x.username):m;}).join('、');
+  openSheet('<div class="shh"><div>'
+    +'<div class="evt" style="color:var(--accT)">調整上下關係</div>'
+    +'<h3 style="margin-top:3px">'+he(nm)+' → '+he(tn)+'</h3>'
+    +'<p class="hint" style="margin-top:3px">目前的主管：'+he(curTxt)+'</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<button class="btn btn-p btn-full" onclick="closeSheet();applyDrop(\''+esc(u)+'\',\''+esc(mgr)+'\',\'move\')">'
+    +'搬到「'+he(tn)+'」底下</button>'
+    +'<p class="hint" style="margin:6px 6px 14px">原本的主管會被取代</p>'
+    +'<button class="btn btn-full" onclick="closeSheet();applyDrop(\''+esc(u)+'\',\''+esc(mgr)+'\',\'add\')">'
+    +'加「'+he(tn)+'」為共同主管</button>'
+    +'<p class="hint" style="margin:6px 6px 0">兩位主管都能管理這個帳號，組織圖會掛在兩邊</p>');
+}
+function applyDrop(u,mgr,mode){
+  if(!canDropOn(u,mgr)&&mode!=='add')return;
+  var me=userOf(u),to=mgr?userOf(mgr):null;
+  var nm=(me&&(me.engineerName||me.username))||u;
+  var tn=to?(to.engineerName||to.username):'最上層';
+  var list;
+  if(mode==='add'){
+    list=mgrsOf(me).slice();
+    if(list.indexOf(mgr)<0)list.push(mgr);
+  }else list=mgr?[mgr]:[];
+  gas('updateUser',TOKEN,u,{manager:list.join(',')}).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'變更失敗','no',4000);return;}
-    toast('已改為「'+tn+'」底下','ok');
+    toast(mode==='add'?('已加「'+tn+'」為共同主管'):('已改為「'+tn+'」底下'),'ok');
     loadUsers();
   }).catch(function(){toast('操作失敗','no');});
 }
@@ -4345,6 +4335,115 @@ function mgrOptions(username,cur){
     +list.map(function(x){
       return '<option value="'+he(x.username)+'"'+(cur===x.username?' selected':'')+'>'
         +he(x.engineerName||x.username)+'（'+roleLabel(x.role)+'）</option>';}).join('');
+}
+
+/** 通訊錄裡的那一筆（查不到回 null） */
+function staffOf(name){
+  var n=String(name||'').trim(),out=null;
+  if(!n)return null;
+  STAFF.forEach(function(x){if(x.name===n)out=x;});
+  return out;
+}
+/** 從帳號管理改分機：寫回通訊錄，其他欄位原值帶回去不動 */
+function saveExtFor(name,ext){
+  return new Promise(function(done){
+    var n=String(name||'').trim();
+    if(!n){done();return;}
+    var run=function(){
+      var st=staffOf(n);
+      gas('saveStaff',TOKEN,n,(st&&st.phone)||'',(st&&st.region)||'',(st&&st.team)||'',
+          JSON.stringify((st&&st.certs)||[]),(st&&st.note)||'',(st&&st.alias)||'',ext)
+        .then(function(){loadStaff(null,true);done();})
+        .catch(function(){done();});
+    };
+    if(STAFF_READY)run();               // 通訊錄沒載好就先載，免得把既有資料洗掉
+    else loadStaff(run,true);
+  });
+}
+
+/* 正在編輯的帳號目前選了哪些主管 */
+var MG=[],MG_FOR='';
+function mgrInit(username,list){MG_FOR=username;MG=(list||[]).slice();}
+function mgrBox(username){
+  var h='';
+  MG.forEach(function(m,i){
+    var x=null;
+    USERS.forEach(function(u){if(u.username===m)x=u;});
+    h+='<div class="row" style="padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:6px">'
+      +'<div style="flex:1;min-width:0;font-size:14px">'+he((x&&(x.engineerName||x.username))||m)
+      +'<span style="color:var(--tx3);font-size:12px">　'+he(m)+(x?'　'+roleLabel(x.role):'')+'</span></div>'
+      +'<button class="ib" style="width:28px;height:28px;font-size:13px" onclick="mgrDel('+i+')">✕</button></div>';
+  });
+  if(!MG.length)h+='<p class="hint" style="margin:0 0 6px">目前沒有主管，這個帳號會在最上層</p>';
+  var opts=mgrOptions(username,'');
+  h+='<select class="fld" onchange="mgrAdd(this.value);this.value=\'\'">'
+    +'<option value="">＋ 新增主管</option>'
+    +opts.replace(/<option value="">[^<]*<\/option>/,'')+'</select>';
+  return h;
+}
+function mgrAdd(v){
+  v=String(v||'').trim();
+  if(!v||MG.indexOf(v)>=0)return;
+  MG.push(v);paintMgr();
+}
+function mgrDel(i){MG.splice(i,1);paintMgr();}
+function paintMgr(){
+  var el=$('mgbox');
+  if(el)el.innerHTML=mgrBox(MG_FOR);
+}
+
+function editUser(name){
+  if(DRAG_JUST){DRAG_JUST=false;return;}     // 剛拖完的那一下不算點擊
+  var u=null;
+  USERS.forEach(function(x){if(x.username===name)u=x;});
+  if(!u)return;
+  var me=u.username===UNAME;
+  if(!canTouchUser(u)){
+    toast('這個帳號不在你的管轄範圍','',3500);
+    return;
+  }
+  mgrInit(u.username,mgrsOf(u));
+  var h='<div class="shh"><div>'
+    +'<div class="evt" style="color:var(--accT)">帳號設定</div>'
+    +'<h3 style="margin-top:3px">'+he(u.engineerName||u.username)+'</h3>'
+    +'<p class="hint" style="margin-top:3px">'+he(u.username)
+    +(me?'　·　目前帳號':'')+'</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致，留空表示不自動篩選</span></p>'
+    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="例：王小明" style="margin-bottom:13px">'
+    +'<p class="lb">工號　<span style="color:var(--tx3);font-weight:400">同時也是登入帳號</span></p>'
+    +'<input class="fld" id="e-u" value="'+he(u.username)+'" autocapitalize="characters"'
+    +' autocorrect="off" style="margin-bottom:13px">'
+    +'<p class="lb">角色</p>'
+    +'<select class="fld" id="e-r" style="margin-bottom:13px"'+(me?' disabled':'')+'>'
+    +roleChoices().map(function(k){
+      return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">地區</p><select class="fld" id="e-g" style="margin-bottom:13px">'
+    +['','台北','台中','高雄'].map(function(o){
+      return '<option value="'+o+'"'+((u.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">組別</p>'
+    +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
+    +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可以選兩位以上，共同管理</span></p>'
+    +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
+    +extField(staffOf(u.engineerName))
+    +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄'
+    +(u.createdAt||u.createdBy
+      ? '<br>建立於 '+he(shortStamp(u.createdAt)||'—')
+        +(u.createdBy?'　由 '+he(u.createdByName||u.createdBy)+' 新增':'')
+      :'')
+    +'</p>'
+    +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
+    +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
+    +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
+       +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>'
+       +'<button class="btn btn-d btn-full" style="margin-top:9px"'
+       +' onclick="delUser(\''+esc(u.username)+'\')">刪除此帳號</button>'
+       +'<p class="hint" style="margin:9px 6px 0">停用會保留帳號但無法登入；刪除會把帳號與'
+       +'通訊錄裡對應的人員資料一起移除，且無法復原（上傳記錄與行程不受影響）。</p>');
+  openSheet(h);
 }
 
 /** 目前所有帳號用過的組別 */
