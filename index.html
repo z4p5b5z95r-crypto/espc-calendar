@@ -503,6 +503,13 @@ html[data-theme="dark"] .glass::after{
 .ts.no{background:var(--err);color:#fff;}
 
 
+/* ── 帳號管理樹狀 ── */
+.utg{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;margin:6px 0 2px;
+  font-size:13px;font-weight:600;color:var(--tx2);background:transparent;}
+.utl{display:inline-block;width:10px;height:10px;border-left:1.5px solid var(--line);
+  border-bottom:1.5px solid var(--line);border-radius:0 0 0 3px;margin-right:2px;}
+.utc{cursor:pointer;}
+
 /* ── 字體大小（小／中／大）──
    用 zoom 整體放大，版面比例不會跑掉 */
 html[data-fs="m"] body{zoom:1.12;}
@@ -700,7 +707,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24bd';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -895,7 +902,22 @@ function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
 /** 可進帳號管理：管理員、主管、排程 */
 function canManage(r){return canWrite(r);}
 /** 非管理員不能動管理員帳號，也不能指派管理員 */
-function canTouchUser(u){return ROLE==='admin'||normRole(u&&u.role)!=='admin';}
+/* 角色層級：數字越小權力越大；只能編層級比自己低、且同地區的帳號 */
+var ROLE_RANK={admin:0,supervisor:1,scheduler:2,pm:3,sampler:4};
+function rankOf(r){var k=normRole(r);return ROLE_RANK[k]===undefined?9:ROLE_RANK[k];}
+function myRegion(){
+  var me=null;
+  USERS.forEach(function(x){if(x.username===UNAME)me=x;});
+  return me?String(me.region||'').trim():'';
+}
+function canTouchUser(u){
+  if(!u)return false;
+  if(u.canEdit!==undefined)return !!u.canEdit;    // 後端已經判斷過
+  if(ROLE==='admin')return true;
+  if(rankOf(u.role)<=rankOf(ROLE))return false;
+  var mr=myRegion(),tr=String(u.region||'').trim();
+  return !(mr&&tr&&tr!==mr);
+}
 function roleChoices(){
   return ROLE==='admin'?ROLE_ORDER:ROLE_ORDER.filter(function(k){return k!=='admin';});
 }
@@ -3929,9 +3951,13 @@ function usersHTML(){
     +userListHTML();
   return h;
 }
-function userListHTML(){
+var UTREE={};                       // 樹狀各段的收合狀態
+function utToggle(k){UTREE[k]=!UTREE[k];paintUsers();}
+function utOpen(k){return UTREE[k]!==true;}     // 預設展開
+var RG_ORDER=['台北','台中','高雄'];
+function userFiltered(){
   var q=userQ.toLowerCase();
-  var list=USERS.filter(function(u){
+  return USERS.filter(function(u){
     var rg=(u.region||'').trim(),tm=(u.team||'').trim();
     if(userRg==='_n'){if(rg)return false;}else if(userRg&&rg!==userRg)return false;
     if(userTm==='_n'){if(tm)return false;}else if(userTm&&tm!==userTm)return false;
@@ -3939,35 +3965,75 @@ function userListHTML(){
     if(!q)return true;
     return [u.username,u.engineerName,tm,rg,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;
   });
-  var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號</div>'
-    +'<div class="glist">';
-  if(!list.length)h+='<div class="empty">查無符合的帳號</div>';
-  list.forEach(function(u){
-    var me=u.username===UNAME;
-    var nm=u.engineerName||u.username;
-    h+='<div class="lrow"'+(u.active?'':' style="opacity:.55"')+' onclick="editUser(\''+esc(u.username)+'\')">'
-      +'<div class="pav"'+(me?' style="background:var(--brand);color:var(--accTx)"':'')+'>'
-      +he(nm.slice(0,1))+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
-      +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
-      +(u.team?'　·　'+he(u.team):'')+(u.region?'　·　'+he(u.region):'')
-      +(me?'　·　目前帳號':'')
-      +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div></div>'
-      +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
-      +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
-      +(canTouchUser(u)?'›':'🔒')+'</span>'
-      +'</div>';
-  });
-  return h+'</div></div>';
 }
-/** 只重畫清單，搜尋時輸入框不會失焦 */
-function paintUsers(){
-  var el=$('ulist');
-  if(el)el.outerHTML=userListHTML();
+function userCard(u,lv){
+  var me=u.username===UNAME;
+  var nm=u.engineerName||u.username;
+  var can=canTouchUser(u);
+  return '<div class="lrow utc"'
+    +' style="margin-left:'+(lv*14)+'px'+(u.active?'':';opacity:.55')+(can?'':';opacity:.5')+'"'
+    +(can?' onclick="editUser(\''+esc(u.username)+'\')"':'')
+    +'>'
+    +'<div class="pav"'+(me?' style="background:var(--brand);color:var(--accTx)"':'')+'>'
+    +he(nm.slice(0,1))+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
+    +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
+    +(u.team?'　·　'+he(u.team):'')
+    +(me?'　·　目前帳號':'')
+    +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div></div>'
+    +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
+    +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
+    +(can?'›':'🔒')+'</span>'
+    +'</div>';
 }
+function userListHTML(){
+  var list=userFiltered();
+  var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號'
+    +'<span style="font-weight:400;color:var(--tx3)">　依地區與層級排列</span></div>';
+  if(!list.length)return h+'<div class="empty">查無符合的帳號</div></div>';
 
-/** 點一列開編輯面板：角色、對應工程師、重設密碼、停用都在這裡 */
+  var regions=[],seen={};
+  RG_ORDER.forEach(function(r){seen[r]=1;});
+  RG_ORDER.forEach(function(r){
+    if(list.some(function(u){return (u.region||'').trim()===r;}))regions.push(r);});
+  list.forEach(function(u){
+    var r=(u.region||'').trim();
+    if(r&&!seen[r]){seen[r]=1;regions.push(r);}
+  });
+  if(list.some(function(u){return !(u.region||'').trim();}))regions.push('');
+
+  regions.forEach(function(rg){
+    var mine=list.filter(function(u){return (u.region||'').trim()===rg;});
+    if(!mine.length)return;
+    var rk='rg:'+rg;
+    h+='<button class="lb tyg" onclick="utToggle(\''+esc(rk)+'\')" style="width:100%">'
+      +(rg||'未指定地區')+'　<span style="color:var(--tx3)">'+mine.length+' 人</span>'
+      +'<span style="color:var(--tx3);font-size:11px">'+(utOpen(rk)?'收合':'展開')+'</span></button>';
+    if(!utOpen(rk))return;
+    h+='<div class="glist" style="margin-bottom:10px">';
+    ROLE_ORDER.forEach(function(role,lv){
+      var grp=mine.filter(function(u){return normRole(u.role)===role;});
+      if(!grp.length)return;
+      grp.sort(function(a,b){
+        var ta=(a.team||'').trim()||'zzz',tb=(b.team||'').trim()||'zzz';
+        if(ta!==tb)return ta.localeCompare(tb,'zh-Hant');
+        return (a.engineerName||a.username).localeCompare(b.engineerName||b.username,'zh-Hant');
+      });
+      var lk='rl:'+rg+':'+role;
+      h+='<button class="utg" onclick="utToggle(\''+esc(lk)+'\')"'
+        +' style="margin-left:'+(lv*14)+'px">'
+        +'<span class="utl"></span>'+ROLE_LABEL[role]
+        +'　<span style="color:var(--tx3);font-weight:400">'+grp.length+' 人</span>'
+        +'<span style="flex:1"></span>'
+        +'<span style="color:var(--tx3);font-size:15px">'+(utOpen(lk)?'▾':'▸')+'</span></button>';
+      if(!utOpen(lk))return;
+      grp.forEach(function(u){h+=userCard(u,lv);});
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
 function editUser(name){
   var u=null;
   USERS.forEach(function(x){if(x.username===name)u=x;});
