@@ -632,6 +632,7 @@ html[data-theme="dark"] .glass::after{
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
     <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳</em></button>
+    <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
@@ -657,7 +658,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24v';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1301,6 +1302,7 @@ function boot(u,r,eng){
   $('u-nm').innerHTML=he((eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）')
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
+  $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -1350,9 +1352,10 @@ function restoreTab(){
   var v;
   try{v=JSON.parse(ls(TAB_KEY)||'null');}catch(e){v=null;}
   if(!v||!v.t)return null;
-  var okTab=['today','cal','book','upload','more'];
+  var okTab=['today','cal','book','upload','admin','more'];
   if(okTab.indexOf(v.t)<0)return null;
   if(v.t==='upload'&&!canWrite(ROLE))return null;
+  if(v.t==='admin'&&!canManage(ROLE))return null;
   if(v.s==='upload'&&!canWrite(ROLE))v.s='';
   if(v.s==='admin'&&!canManage(ROLE))v.s='';
   if(v.t==='today')return null;                 // 今日是預設頁，照原流程走
@@ -1382,7 +1385,7 @@ function go(t,s){
   if(needMonth)calLoading=true;
   render();                                  // 先畫出容器，再載資料
   if(tab==='upload'||sub==='upload')loadHistory();
-  else if(sub==='admin')loadUsers();
+  else if(t==='admin'||sub==='admin')loadUsers();
   else if(t==='cal'){if(needMonth)loadMonth();loadRegionUpdates();}
   else if(t==='today'&&!todayFor)loadToday();
   else if(t==='book')loadStaff(null);
@@ -1413,7 +1416,7 @@ function render(){
 
 function titleText(){
   if(tab==='upload'||sub==='upload')return '上傳排程';
-  if(sub==='admin')return '帳號管理';
+  if(tab==='admin'||sub==='admin')return '帳號管理';
   if(sub==='notify')return '提醒設定';   // BETA 標示在頁面內
   if(sub==='pw')return '修改密碼';
   if(tab==='today')return '今天';
@@ -1444,6 +1447,8 @@ function rightButtons(){
     return '<button class="ib" onclick="loadStaff(render,true)" title="重新整理">↻</button>';
   if(tab==='upload')
     return '<button class="ib" onclick="loadHistory(true)" title="重新整理">↻</button>';
+  if(tab==='admin')
+    return '<button class="ib" onclick="loadUsers()" title="重新整理">↻</button>';
   return '';
 }
 function filterBtn(){
@@ -1478,7 +1483,7 @@ function loader(txt){
 
 function pageHTML(){
   if(tab==='upload'||sub==='upload')return uploadPage();
-  if(sub==='admin')return '<div id="users">'+loader('載入帳號…')+'</div>';
+  if(tab==='admin'||sub==='admin')return '<div id="users">'+loader('載入帳號…')+'</div>';
   if(sub==='notify')return notifyPage();
   if(sub==='pw')return pwPage();
   if(tab==='today')return todayPage();
@@ -1810,7 +1815,7 @@ function bookList(){
     if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
     if(!passSf(s.name,bookSf))return false;
     if(!q)return true;
-    var bits=[s.name,s.phone,s.note,rg,tm];
+    var bits=[s.name,s.phone,s.ext,s.note,rg,tm];
     safetyList(s.name).forEach(function(o){bits.push(o.type,o.cert);});
     return bits.join(' ').toLowerCase().indexOf(q)>=0;
   });
@@ -1826,7 +1831,7 @@ function bookList(){
     +'<div class="glist">';
   if(!list.length)h+='<div class="empty">查無符合的人員</div>';
   list.forEach(function(s){
-    var ph=(s.phone||'').trim();
+    var ph=(s.phone||'').trim(),ex=(s.ext||'').trim();
     h+='<div class="lrow'+(pinned&&s.name===me?' mine':'')+'">'+avatarHat(s.name)
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
       +he(s.name)
@@ -1834,6 +1839,7 @@ function bookList(){
       +'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
       +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
+      +(ex?'　分機 '+he(ex):'')
       +'</div></div>'
       +(bookSf?sfNote(s.name):'')
       +(s.team?'<span class="tag g">'+he(s.team)+'</span>':'')
@@ -1866,8 +1872,6 @@ function paintBook(){
 function morePage(){
   var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
-  if(canManage(ROLE))
-    h+='<button class="link" onclick="go(\'more\',\'admin\')">帳號管理'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒'
     +'<span class="beta">BETA</span><span style="flex:1"></span>'+ic('bell',19)+'</button>'
@@ -1889,12 +1893,15 @@ function todayRange(t){
   return me>m15?me:m15;
 }
 
-function loadToday(force){
+var TODAY_SEQ=0;
+function loadToday(force,retry){
   var t=twStr();
   var sk=scopeKey();
   if(!force&&todayFor===t&&todayScope===sk){render();return;}
   var onTab=(tab==='today'&&!sub);      // 在別的頁籤時只默默更新，不動版面
   var ck='today'+(sk?'_'+sk:'');
+  var seq=++TODAY_SEQ;
+  function mine(){return seq===TODAY_SEQ&&sk===scopeKey();}
   todayScope=sk;
   var c=force?null:cGet(ck);
   if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
@@ -1906,16 +1913,27 @@ function loadToday(force){
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
-      if(!c&&tab==='today'&&!sub)$('page').innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';
+      if(mine()&&!c&&tab==='today'&&!sub)
+        $('page').innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';
       return;
     }
     cVer(r.version);
+    var list;
+    if(r.unchanged){
+      if(!c||!c.rows){
+        if(!retry){loadToday(true,true);return;}   // 沒有快取卻說沒變 → 重抓
+        list=[];
+      }else list=c.rows;
+    }else{
+      list=r.rows||[];
+      cSet(ck,{date:t,version:r.version||'',rows:list});
+    }
+    if(!mine())return;
+    paintToday(t,list);
     if(sk)prefetch('today',{dateFrom:t,dateTo:todayRange(t),date:t});   // 背景補齊全部
-    if(r.unchanged)return;
-    cSet(ck,{date:t,version:r.version||'',rows:r.rows||[]});
-    paintToday(t,r.rows||[]);
   }).catch(function(){
-    if(!c&&tab==='today'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
+    if(mine()&&!c&&tab==='today'&&!sub)
+      $('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
   });
 }
 function paintToday(t,all){
@@ -1967,16 +1985,23 @@ function prefetchNeighbors(){
   setTimeout(function(){prefetchMonth(y,m-1);},1400);
 }
 
-function loadMonth(force){
-  var ym=curY+'-'+p2(curM+1);
+/* 每次月份請求都編號。連續換月或改篩選時，晚回來的舊請求只寫快取、
+   不准畫面，否則會出現「轉圈停了卻說沒排程，過幾秒才跳出來」 */
+var MONTH_SEQ=0;
+function loadMonth(force,retry){
+  var y=curY,m=curM;
+  var ym=y+'-'+p2(m+1);
   var sk=scopeKey();
   var key='m_'+ym+(sk?'_'+sk:'');
   var first=ym+'-01';
-  var last=ym+'-'+p2(new Date(curY,curM+1,0).getDate());
+  var last=ym+'-'+p2(new Date(y,m+1,0).getDate());
   var onTab=(tab==='cal'&&!sub);        // 在別的頁籤時只默默更新，不動版面
+  var seq=++MONTH_SEQ;
+  /** 這次的結果還算不算「現在要看的」 */
+  function mine(){return seq===MONTH_SEQ&&y===curY&&m===curM&&sk===scopeKey();}
   allScope=sk;
   var c=force?null:cGet(key);
-  if(c&&c.rows){calLoading=false;paintMonth(c.rows);prefetchNeighbors();}
+  if(c&&c.rows){calLoading=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
   else{
     calLoading=true;
     if(onTab)render();          // 先把日期格子畫出來，行程位置放轉圈
@@ -1985,26 +2010,48 @@ function loadMonth(force){
   var o=scopeOpts({dateFrom:first,dateTo:last});
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
-    calLoading=false;
-    if(!r||!r.ok){if(!c)toast((r&&r.error)||'載入失敗','no');paintMonth(allRows);return;}
+    if(!r||!r.ok){
+      if(!mine())return;
+      calLoading=false;
+      if(!c){toast((r&&r.error)||'載入失敗','no');paintMonth([],y,m,sk);}
+      else paintMonth(c.rows,y,m,sk);
+      return;
+    }
     cVer(r.version);
+    var list;
+    if(r.unchanged){
+      // 資料沒變 → 用「這個月」的快取，不能拿畫面上現有的 allRows 充當
+      if(!c||!c.rows){
+        if(!retry){loadMonth(true,true);return;}   // 沒有快取卻說沒變 → 重抓完整資料
+        list=[];
+      }else list=c.rows;
+    }else{
+      list=r.rows||[];
+      cSet(key,{version:r.version||'',rows:list});
+    }
+    if(!mine())return;            // 已經換月或改篩選了，只留快取不動畫面
+    calLoading=false;
+    paintMonth(list,y,m,sk);
     if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
     prefetchNeighbors();                                    // 背景備好前後一個月
-    if(r.unchanged){paintMonth(allRows);return;}
-    cSet(key,{version:r.version||'',rows:r.rows||[]});
-    paintMonth(r.rows||[]);
   }).catch(function(){
+    if(!mine())return;
     calLoading=false;
     if(!c&&tab==='cal'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
-    else paintMonth(allRows);
+    else if(c)paintMonth(c.rows,y,m,sk);
   });
 }
-function paintMonth(list){
-  MONTH_DONE[curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'')]=1;
+/** y/m/sk 是這批資料真正屬於的月份與篩選範圍 */
+function paintMonth(list,y,m,sk){
+  if(typeof y!=='number')y=curY;
+  if(typeof m!=='number')m=curM;
+  if(typeof sk!=='string')sk=scopeKey();
+  MONTH_DONE[y+'-'+p2(m+1)+(sk?'_'+sk:'')]=1;
+  if(y!==curY||m!==curM||sk!==scopeKey())return;   // 不是現在要看的就不進畫面
   allRows=normRows(list||[]);
   rows=allRows.filter(passF);
   var t=twStr(),c=jGet(NTC,null);
-  var _tc=cGet('today'+(scopeKey()?'_'+scopeKey():''))||cGet('today');
+  var _tc=cGet('today'+(sk?'_'+sk:''))||cGet('today');
   if(c&&c.date===t)todayRows=normRows((_tc&&_tc.rows)||c.rows).filter(passF);
   if(tab==='cal'&&!sub)render();      // 只有停在行事曆時才重畫
 }
@@ -2708,14 +2755,11 @@ function agreeToggle(){
 }
 function openOnboarding(){
   var name=String(ENGNAME||'').trim();
-  var s={name:name,phone:'',region:'',team:'',alias:'',note:''};
+  var s={name:name,phone:'',ext:'',region:'',team:'',alias:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
   EDIT_S=s;AGREED=false;
   EC=safetyList(name).map(function(o){
     return {type:o.type,cert:o.cert,train:o.train,years:o.years,remind:o.remind};});
-
-  var teams=TEAMS.slice();
-  STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
 
   var h='<div class="onbw">'
     +'<div class="onbh">確認你的聯絡資料</div>'
@@ -2725,20 +2769,16 @@ function openOnboarding(){
     +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
     +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'
     +he(s.phone||'')+'" placeholder="0912345678" style="margin-bottom:13px">'
-    +'<p class="lb">地區</p><select class="fld" id="s-r" style="margin-bottom:13px">'
-    +['','台北','台中','高雄'].map(function(o){
-      return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
-    +'</select>'
-    +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team||'')
-    +'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
-    +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<p class="lb">分機</p>'
+    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(s.ext||'')
+    +'" placeholder="選填，例：215" style="margin-bottom:13px">'
     +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">職安證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
     +'<div class="onbn"><b>資料公開說明</b><br>'
-    +'上述姓名、電話、地區、組別與職安證照（種類、證書字號、訓練日期、有效期限）'
+    +'你的姓名、電話、分機、地區、組別與職安證照（種類、證書字號、訓練日期、有效期限）'
     +'會顯示在本系統的「通訊錄」，提供公司內其他使用者查詢聯絡方式與職安證照效期，'
-    +'並用於證照到期提醒。<br>'
+    +'並用於證照到期提醒。地區與組別由管理者維護，此處不提供修改。<br>'
     +'資料僅供公司內部作業使用，不對外公開。你可以隨時到通訊錄修改自己的內容，'
     +'或聯繫管理員調整。</div>'
     +'<button class="agree" id="ag" onclick="agreeToggle()">'
@@ -2789,8 +2829,11 @@ function saveProfile(){
     return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
     .filter(function(o){return o.t||o.c||o.d;});
 
-  gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
-      JSON.stringify(certs),(EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'')
+  // 地區與組別不給使用者改，沿用原本的值送回去
+  gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),
+      (EDIT_S&&EDIT_S.region)||'',(EDIT_S&&EDIT_S.team)||'',
+      JSON.stringify(certs),(EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'',
+      extVal())
     .then(function(r){
       if(!r||!r.ok)throw new Error((r&&r.error)||'儲存失敗');
       return getIP();
@@ -2820,7 +2863,7 @@ function saveProfile(){
 /* ══ 人員編輯 ══ */
 var EDIT_S=null;
 function editStaff(name){
-  var s={name:'',phone:'',region:'',team:'',alias:'',note:''};
+  var s={name:'',phone:'',ext:'',region:'',team:'',alias:'',note:''};
   STAFF.forEach(function(x){if(x.name===name)s=x;});
   EDIT_S=s;                 // 別名與備註改在試算表維護，儲存時原值帶回去
   EC=safetyList(name).map(function(o){
@@ -2832,6 +2875,9 @@ function editStaff(name){
     +'<p class="lb">姓名</p><input class="fld" id="s-n" value="'+he(s.name)+'" style="margin-bottom:13px"'+(name?' readonly':'')+'>'
     +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
     +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'+he(s.phone)+'" placeholder="0912345678" style="margin-bottom:13px">'
+    +'<p class="lb">分機</p>'
+    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(s.ext||'')
+    +'" placeholder="選填，例：215" style="margin-bottom:13px">'
     +'<p class="lb">地區</p><select class="fld" id="s-r" style="margin-bottom:13px">'
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')+'</select>'
@@ -2924,6 +2970,12 @@ function ecAdd(){
 function ecDel(i){
   ecSync();EC.splice(i,1);paintCerts();
 }
+/** 分機：只留數字，最多 6 碼 */
+function extVal(){
+  var el=$('s-x');
+  if(!el)return (EDIT_S&&EDIT_S.ext)||'';
+  return String(el.value||'').replace(/[^0-9]/g,'').slice(0,6);
+}
 function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
@@ -2933,7 +2985,7 @@ function saveStaff(){
               .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
       JSON.stringify(certs),
-      (EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'')
+      (EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'',extVal())
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
