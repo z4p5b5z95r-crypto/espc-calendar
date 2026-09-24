@@ -700,7 +700,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24at';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24au';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1478,11 +1478,33 @@ function toggleSelfAuto(inFilter){
   }
   toast(on?'下次開啟會先顯示自己的行程':'下次開啟顯示全部行程','ok');
 }
+/* 姓名在排程資料裡對不對得到人（工程師／申報人員／現場任一欄）。
+   對不到就不自動篩選，直接顯示全部行程。結果記在本機，只問一次。 */
+function hasRowsKey(n){return 'espc_hasrows_'+n;}
+function hasRowsCached(n){
+  var v=ls(hasRowsKey(n));
+  return (v==='1')?true:(v==='0')?false:null;
+}
+/** 背景確認；對不到人就把自動加上的條件清掉並重抓 */
+function verifySelfName(n){
+  if(!n||hasRowsCached(n)!==null)return;
+  gas('nameHasRows',TOKEN,n).then(function(r){
+    if(!r||!r.ok)return;                       // 問不到就維持現狀
+    lsS(hasRowsKey(n),r.has?'1':'0');
+    if(r.has)return;
+    var changed=false;
+    if(F.en===n){F.en='';changed=true;}
+    if(F.st===n){F.st='';changed=true;}
+    if(changed)refetch();                      // 對不到人 → 顯示全部行程
+  }).catch(function(){});
+}
 function autoFilterSelf(){
   if(!selfAuto())return;              // 使用者選擇每次都看全部
   var n=selfName();
   if(!n||F.en||F.st)return;           // 已有條件就不動
+  if(hasRowsCached(n)===false)return; // 排程表裡沒有這個人 → 看全部
   F[selfField()]=n;
+  verifySelfName(n);
 }
 
 /** 讀出上次所在的頁籤，順便擋掉沒權限或已失效的目的地 */
