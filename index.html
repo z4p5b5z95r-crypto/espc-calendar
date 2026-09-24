@@ -503,12 +503,46 @@ html[data-theme="dark"] .glass::after{
 .ts.no{background:var(--err);color:#fff;}
 
 
+/* ── 帳號管理：上下式組織圖 ── */
+.ocw{overflow-x:auto;overflow-y:hidden;padding:6px 0 14px;-webkit-overflow-scrolling:touch;}
+.oct,.oct ul{display:flex;justify-content:center;padding:0;margin:0;list-style:none;position:relative;}
+.oct ul{padding-top:18px;}
+.oct li{position:relative;padding:18px 7px 0;list-style:none;display:flex;
+  flex-direction:column;align-items:center;}
+.oct>li{padding-top:0;}
+.oct li::before,.oct li::after{content:'';position:absolute;top:0;right:50%;
+  border-top:1.5px solid var(--line);width:50%;height:18px;}
+.oct li::after{right:auto;left:50%;border-left:1.5px solid var(--line);}
+.oct>li::before,.oct>li::after{display:none;}
+.oct li:only-child::before,.oct li:only-child::after{display:none;}
+.oct li:first-child::before,.oct li:last-child::after{border-top:0;}
+.oct li:last-child::before{border-right:1.5px solid var(--line);border-radius:0 7px 0 0;}
+.oct li:first-child::after{border-radius:7px 0 0 0;}
+.oct ul::before{content:'';position:absolute;top:0;left:50%;
+  border-left:1.5px solid var(--line);width:0;height:18px;}
+.occ{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:9px 12px;min-width:126px;max-width:170px;text-align:center;cursor:pointer;
+  transition:box-shadow .15s,transform .1s;}
+.occ:active{transform:scale(.98);}
+.occ.me{border-color:var(--acc);}
+.occ.off{opacity:.5;}
+.occ .ocn{font-size:14px;font-weight:600;line-height:1.3;}
+.occ .oci{font-size:11px;color:var(--tx3);margin-top:2px;}
+.occ .ocr{display:inline-block;margin-top:5px;font-size:11px;padding:1px 9px;
+  border-radius:999px;background:var(--tint);color:var(--accT);}
+.occ .ocr.plain{background:var(--card2);color:var(--tx3);}
+.ocb{margin-top:6px;font-size:11px;color:var(--tx3);background:transparent;
+  padding:2px 8px;border-radius:999px;border:1px solid var(--line);}
+.ocdup{font-size:10px;color:var(--tx3);}
+
 /* ── 帳號管理樹狀 ── */
 .utg{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;margin:6px 0 2px;
   font-size:13px;font-weight:600;color:var(--tx2);background:transparent;}
 .utl{display:inline-block;width:10px;height:10px;border-left:1.5px solid var(--line);
   border-bottom:1.5px solid var(--line);border-radius:0 0 0 3px;margin-right:2px;}
 .utc{cursor:pointer;}
+.utb{flex:0 0 auto;width:22px;height:22px;border-radius:7px;color:var(--tx3);
+  font-size:12px;line-height:22px;text-align:center;background:transparent;}
 
 /* ── 字體大小（小／中／大）──
    用 zoom 整體放大，版面比例不會跑掉 */
@@ -707,7 +741,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -910,13 +944,33 @@ function myRegion(){
   USERS.forEach(function(x){if(x.username===UNAME)me=x;});
   return me?String(me.region||'').trim():'';
 }
+/** 這個人的直屬主管一路往上找，會不會找到我 */
+function isUnderMe(username){
+  var map={};
+  USERS.forEach(function(x){map[x.username]=String(x.manager||'').trim();});
+  var cur=map[String(username||'').trim()],hop=0;
+  while(cur&&hop++<30){
+    if(cur===UNAME)return true;
+    cur=map[cur];
+  }
+  return false;
+}
 function canTouchUser(u){
   if(!u)return false;
   if(u.canEdit!==undefined)return !!u.canEdit;    // 後端已經判斷過
   if(ROLE==='admin')return true;
-  if(rankOf(u.role)<=rankOf(ROLE))return false;
-  var mr=myRegion(),tr=String(u.region||'').trim();
-  return !(mr&&tr&&tr!==mr);
+  return isUnderMe(u.username);
+}
+/** 我底下的所有人（含下屬的下屬），設定主管時用來避免循環 */
+function descendantsOf(username){
+  var out=[];
+  USERS.forEach(function(x){
+    if(String(x.manager||'').trim()===username){
+      out.push(x.username);
+      out=out.concat(descendantsOf(x.username));
+    }
+  });
+  return out;
 }
 function roleChoices(){
   return ROLE==='admin'?ROLE_ORDER:ROLE_ORDER.filter(function(k){return k!=='admin';});
@@ -1239,16 +1293,34 @@ function openDue(startup,mine){
 var DUE_KEY='espc_due_notice';
 /* 主管／排程／管理員：看全部到期名單
    其他角色：只看自己（登入者對應的工程師姓名） */
+/* 到期提醒只送給本人與他上面的每一層主管；
+   換句話說，我會看到自己的，加上我底下所有人的。 */
+var DUE_T=null;
+function dueTargets(cb){
+  if(DUE_T){cb(DUE_T);return;}
+  gas('dueTargets',TOKEN).then(function(r){
+    DUE_T=(r&&r.ok)?{names:r.names||[],all:!!r.all}:{names:[],all:false};
+    cb(DUE_T);
+  }).catch(function(){cb({names:[String(ENGNAME||'').trim()].filter(Boolean),all:false});});
+}
 function checkDueNotice(){
-  var mine=canWrite(ROLE)?'':String(ENGNAME||'').trim();
-  if(!canWrite(ROLE)&&!mine)return;       // 沒對應姓名就無從提醒
   var ym=twStr().slice(0,7);
   if(ls(DUE_KEY)===ym)return;             // 每月只提醒一次
-  var due=safetyDue();
-  if(mine)due=due.filter(function(x){return x.name===mine;});
-  lsS(DUE_KEY,ym);
-  if(!due.length)return;
-  setTimeout(function(){openDue(true,mine);},500);
+  dueTargets(function(t){
+    var due=safetyDue();
+    if(!t.all){
+      var ok={};
+      t.names.forEach(function(n){ok[n]=1;});
+      var me=String(ENGNAME||'').trim();
+      if(me)ok[me]=1;
+      due=due.filter(function(x){return ok[x.name];});
+    }
+    lsS(DUE_KEY,ym);
+    if(!due.length)return;
+    var mine=String(ENGNAME||'').trim();
+    var onlyMe=due.every(function(x){return x.name===mine;});
+    setTimeout(function(){openDue(true,onlyMe?mine:'');},500);
+  });
 }
 
 /** 只輸入數字即可，自動補上 -（手機鍵盤打不出減號） */
@@ -3951,10 +4023,9 @@ function usersHTML(){
     +userListHTML();
   return h;
 }
-var UTREE={};                       // 樹狀各段的收合狀態
+var UTREE={};                       // 節點收合狀態（預設全部展開）
 function utToggle(k){UTREE[k]=!UTREE[k];paintUsers();}
-function utOpen(k){return UTREE[k]!==true;}     // 預設展開
-var RG_ORDER=['台北','台中','高雄'];
+function utOpen(k){return UTREE[k]!==true;}
 function userFiltered(){
   var q=userQ.toLowerCase();
   return USERS.filter(function(u){
@@ -3966,72 +4037,75 @@ function userFiltered(){
     return [u.username,u.engineerName,tm,rg,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;
   });
 }
-function userCard(u,lv){
+/** 相容單一主管與多主管兩種寫法 */
+function mgrsOf(u){
+  if(u&&u.managers&&u.managers.length!==undefined)return u.managers;
+  return String((u&&u.manager)||'').split(/[,、，;；\/\s]+/)
+    .map(function(x){return x.trim();}).filter(Boolean);
+}
+function ocCard(u,dup){
   var me=u.username===UNAME;
   var nm=u.engineerName||u.username;
   var can=canTouchUser(u);
-  return '<div class="lrow utc"'
-    +' style="margin-left:'+(lv*14)+'px'+(u.active?'':';opacity:.55')+(can?'':';opacity:.5')+'"'
-    +(can?' onclick="editUser(\''+esc(u.username)+'\')"':'')
-    +'>'
-    +'<div class="pav"'+(me?' style="background:var(--brand);color:var(--accTx)"':'')+'>'
-    +he(nm.slice(0,1))+'</div>'
-    +'<div style="flex:1;min-width:0">'
-    +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
-    +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
-    +(u.team?'　·　'+he(u.team):'')
-    +(me?'　·　目前帳號':'')
-    +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div></div>'
-    +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
-    +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
-    +(can?'›':'🔒')+'</span>'
+  return '<div class="occ'+(me?' me':'')+(u.active&&can?'':' off')+'"'
+    +(can?' onclick="editUser(\''+esc(u.username)+'\')"':' title="不在你的管轄範圍"')+'>'
+    +'<div class="ocn">'+he(nm)+(can?'':' 🔒')+'</div>'
+    +'<div class="oci">'+he(u.username)+(u.team?'　'+he(u.team):'')+'</div>'
+    +(u.active?'':'<div class="oci" style="color:var(--err)">已停用</div>')
+    +'<span class="ocr'+(normRole(u.role)==='sampler'?' plain':'')+'">'+roleLabel(u.role)+'</span>'
+    +(dup?'<div class="ocdup">共管</div>':'')
     +'</div>';
 }
 function userListHTML(){
   var list=userFiltered();
   var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號'
-    +'<span style="font-weight:400;color:var(--tx3)">　依地區與層級排列</span></div>';
+    +'<span style="font-weight:400;color:var(--tx3)">　依直屬主管排列，點卡片可編輯</span></div>';
   if(!list.length)return h+'<div class="empty">查無符合的帳號</div></div>';
 
-  var regions=[],seen={};
-  RG_ORDER.forEach(function(r){seen[r]=1;});
-  RG_ORDER.forEach(function(r){
-    if(list.some(function(u){return (u.region||'').trim()===r;}))regions.push(r);});
+  var has={},byMgr={},roots=[];
+  list.forEach(function(u){has[u.username]=1;});
   list.forEach(function(u){
-    var r=(u.region||'').trim();
-    if(r&&!seen[r]){seen[r]=1;regions.push(r);}
+    var ms=mgrsOf(u).filter(function(m){return has[m];});
+    if(!ms.length){roots.push(u);return;}
+    ms.forEach(function(m){(byMgr[m]=byMgr[m]||[]).push(u);});
   });
-  if(list.some(function(u){return !(u.region||'').trim();}))regions.push('');
-
-  regions.forEach(function(rg){
-    var mine=list.filter(function(u){return (u.region||'').trim()===rg;});
-    if(!mine.length)return;
-    var rk='rg:'+rg;
-    h+='<button class="lb tyg" onclick="utToggle(\''+esc(rk)+'\')" style="width:100%">'
-      +(rg||'未指定地區')+'　<span style="color:var(--tx3)">'+mine.length+' 人</span>'
-      +'<span style="color:var(--tx3);font-size:11px">'+(utOpen(rk)?'收合':'展開')+'</span></button>';
-    if(!utOpen(rk))return;
-    h+='<div class="glist" style="margin-bottom:10px">';
-    ROLE_ORDER.forEach(function(role,lv){
-      var grp=mine.filter(function(u){return normRole(u.role)===role;});
-      if(!grp.length)return;
-      grp.sort(function(a,b){
-        var ta=(a.team||'').trim()||'zzz',tb=(b.team||'').trim()||'zzz';
-        if(ta!==tb)return ta.localeCompare(tb,'zh-Hant');
-        return (a.engineerName||a.username).localeCompare(b.engineerName||b.username,'zh-Hant');
-      });
-      var lk='rl:'+rg+':'+role;
-      h+='<button class="utg" onclick="utToggle(\''+esc(lk)+'\')"'
-        +' style="margin-left:'+(lv*14)+'px">'
-        +'<span class="utl"></span>'+ROLE_LABEL[role]
-        +'　<span style="color:var(--tx3);font-weight:400">'+grp.length+' 人</span>'
-        +'<span style="flex:1"></span>'
-        +'<span style="color:var(--tx3);font-size:15px">'+(utOpen(lk)?'▾':'▸')+'</span></button>';
-      if(!utOpen(lk))return;
-      grp.forEach(function(u){h+=userCard(u,lv);});
+  function sortU(a,b){
+    var ra=rankOf(a.role),rb=rankOf(b.role);
+    if(ra!==rb)return ra-rb;
+    return (a.engineerName||a.username).localeCompare(b.engineerName||b.username,'zh-Hant');
+  }
+  roots.sort(sortU);
+  Object.keys(byMgr).forEach(function(k){byMgr[k].sort(sortU);});
+  function count(name,seen){
+    var kids=byMgr[name]||[],n=0;
+    kids.forEach(function(k){
+      if(seen[k.username])return;
+      seen[k.username]=1;n+=1+count(k.username,seen);
     });
-    h+='</div>';
-  });
+    return n;
+  }
+  function node(u,depth,seen){
+    if(depth>12)return '';
+    var dup=!!seen[u.username];
+    var kids=byMgr[u.username]||[];
+    var k='u:'+u.username;
+    var total=count(u.username,{});
+    var out='<li>'+ocCard(u,dup&&mgrsOf(u).length>1);
+    if(kids.length&&!dup){
+      out+='<button class="ocb" onclick="event.stopPropagation();utToggle(\''+esc(k)+'\')">'
+        +(utOpen(k)?'▾ ':'▸ ')+total+' 人</button>';
+      if(utOpen(k)){
+        var mark={};
+        Object.keys(seen).forEach(function(x){mark[x]=1;});
+        mark[u.username]=1;
+        out+='<ul>'+kids.map(function(c){return node(c,depth+1,mark);}).join('')+'</ul>';
+      }
+    }
+    return out+'</li>';
+  }
+  h+='<div class="ocw"><ul class="oct">'
+    +roots.map(function(u){return node(u,0,{});}).join('')
+    +'</ul></div>';
   return h+'</div>';
 }
 function editUser(name){
@@ -4043,6 +4117,7 @@ function editUser(name){
     toast('只有管理員能調整管理員帳號','',3500);
     return;
   }
+  mgrInit(u.username,mgrsOf(u));
   var h='<div class="shh"><div>'
     +'<div class="evt" style="color:var(--accT)">帳號設定</div>'
     +'<h3 style="margin-top:3px">'+he(u.engineerName||u.username)+'</h3>'
@@ -4064,7 +4139,9 @@ function editUser(name){
       return '<option value="'+o+'"'+((u.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">組別</p>'
-    +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:18px">'
+    +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
+    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可以選兩位以上，共同管理</span></p>'
+    +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +extField(staffOf(u.engineerName))
     +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄'
@@ -4107,6 +4184,53 @@ function saveExtFor(name,ext){
   });
 }
 
+/* 正在編輯的帳號目前選了哪些主管 */
+var MG=[],MG_FOR='';
+function mgrInit(username,list){MG_FOR=username;MG=(list||[]).slice();}
+function mgrBox(username){
+  var h='';
+  MG.forEach(function(m,i){
+    var x=null;
+    USERS.forEach(function(u){if(u.username===m)x=u;});
+    h+='<div class="row" style="padding:7px 10px;background:var(--card2);border-radius:10px;margin-bottom:6px">'
+      +'<div style="flex:1;min-width:0;font-size:14px">'+he((x&&(x.engineerName||x.username))||m)
+      +'<span style="color:var(--tx3);font-size:12px">　'+he(m)+(x?'　'+roleLabel(x.role):'')+'</span></div>'
+      +'<button class="ib" style="width:28px;height:28px;font-size:13px" onclick="mgrDel('+i+')">✕</button></div>';
+  });
+  if(!MG.length)h+='<p class="hint" style="margin:0 0 6px">目前沒有主管，這個帳號會在最上層</p>';
+  var opts=mgrOptions(username,'');
+  h+='<select class="fld" onchange="mgrAdd(this.value);this.value=\'\'">'
+    +'<option value="">＋ 新增主管</option>'
+    +opts.replace(/<option value="">[^<]*<\/option>/,'')+'</select>';
+  return h;
+}
+function mgrAdd(v){
+  v=String(v||'').trim();
+  if(!v||MG.indexOf(v)>=0)return;
+  MG.push(v);paintMgr();
+}
+function mgrDel(i){MG.splice(i,1);paintMgr();}
+function paintMgr(){
+  var el=$('mgbox');
+  if(el)el.innerHTML=mgrBox(MG_FOR);
+}
+
+/** 直屬主管的候選名單：排除自己與自己的下屬（避免循環） */
+function mgrOptions(username,cur){
+  var skip={};
+  if(username){skip[username]=1;descendantsOf(username).forEach(function(n){skip[n]=1;});}
+  var list=USERS.filter(function(x){return !skip[x.username];});
+  list.sort(function(a,b){
+    var ra=rankOf(a.role),rb=rankOf(b.role);
+    if(ra!==rb)return ra-rb;
+    return (a.engineerName||a.username).localeCompare(b.engineerName||b.username,'zh-Hant');
+  });
+  return '<option value="">最上層（沒有主管）</option>'
+    +list.map(function(x){
+      return '<option value="'+he(x.username)+'"'+(cur===x.username?' selected':'')+'>'
+        +he(x.engineerName||x.username)+'（'+roleLabel(x.role)+'）</option>';}).join('');
+}
+
 /** 目前所有帳號用過的組別 */
 function userTeams(){
   var out=[];
@@ -4145,6 +4269,8 @@ function saveUser(name){
   if(rg!==(u.region||'')){f.region=rg;any=true;}
   var tm=$('e-t').value.trim();
   if(tm!==(u.team||'')){f.team=tm;any=true;}
+  var mg=MG.join(','),oldMg=mgrsOf(u).join(',');
+  if(MG_FOR===name&&mg!==oldMg){f.manager=mg;any=true;}
   var nu=$('e-u')?$('e-u').value.trim():name;
   var rename=(nu&&nu!==name);
   if(eng&&!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
@@ -4175,6 +4301,7 @@ function saveUser(name){
 }
 
 function newUser(){
+  mgrInit('',[UNAME]);
   openSheet('<div class="shh"><h3>新增帳號</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
     +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致</span></p>'
     +'<input class="fld" id="n-e" placeholder="例：王小明" style="margin-bottom:13px">'
@@ -4190,7 +4317,9 @@ function newUser(){
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'">'+(o||'未指定')+'</option>';}).join('')+'</select>'
     +'<p class="lb">組別（選填）</p>'
-    +'<input class="fld" id="n-t" list="utl2" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:18px">'
+    +'<input class="fld" id="n-t" list="utl2" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
+    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可以選兩位以上</span></p>'
+    +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox('')+'</div>'
     +'<datalist id="utl2">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<button class="btn btn-p btn-full" onclick="createUser()">建立</button>');
 }
@@ -4199,7 +4328,7 @@ function createUser(){
   if(!e){toast('請輸入姓名','no');return;}
   if(!u||!p){toast('帳號與密碼不得為空','no');return;}
   gas('createUser',TOKEN,u,p,$('n-r').value,e,
-      $('n-t').value.trim(),$('n-g').value).then(function(r){
+      $('n-t').value.trim(),$('n-g').value,MG.join(',')).then(function(r){
     if(r&&r.ok){toast('帳號已建立','ok');closeSheet();loadUsers();}
     else toast((r&&r.error)||'建立失敗','no');
   }).catch(function(){toast('操作失敗','no');});
