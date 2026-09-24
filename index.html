@@ -658,7 +658,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24w';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24aa';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1232,19 +1232,28 @@ window.addEventListener('DOMContentLoaded',function(){
     if($('pk').classList.contains('open')&&!$('pk').contains(e.target)&&!e.target.closest('#h-ttl'))
       $('pk').classList.remove('open');
   });
-  $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeSheet();});
+  // 背景只認「真的點一下」：表單面板不關，手指有移動（滑動）也不關
+  var _ovD=null;
+  $('ov').addEventListener('pointerdown',function(e){
+    _ovD=(e.target===$('ov'))?{x:e.clientX,y:e.clientY}:null;});
+  $('ov').addEventListener('click',function(e){
+    if(e.target!==$('ov'))return;
+    if(SHEET_FORM)return;
+    if(_ovD&&(Math.abs(e.clientX-_ovD.x)>10||Math.abs(e.clientY-_ovD.y)>10))return;
+    closeSheet();});
 
   if(TOKEN&&ROLE&&UNAME){
     // 本機還記得上次登入的身分 → 直接開起來，登入狀態在背景確認
     boot(UNAME,ROLE,ENGNAME);
-    gas('getMe',TOKEN).then(function(r){
+    getMeOnce().then(function(r){
       if(r&&r.ok){
         if(r.role!==ROLE||r.username!==UNAME||(r.engineerName||'')!==ENGNAME){
           saveSession(TOKEN,r.role,r.username,r.engineerName||'',r.profileOk);
           location.reload();          // 身分有變就重來一次
         }else if(!!r.profileOk!==PROFILE_OK){
           PROFILE_OK=!!r.profileOk;lsS('espc_prof',r.profileOk?'1':'');
-          if(!PROFILE_OK&&ENGNAME)openOnboarding();
+          if(PROFILE_OK)closeOnboarding();          // 已同意過就別再擋著
+          else if(needProfile())openOnboarding();
         }
       }else{
         clearSession();
@@ -1315,11 +1324,42 @@ function boot(u,r,eng){
   // 一律先用快取畫面，版本比對在背景做，開啟就有東西看
   loadStaff(function(){
     autoFilterSelf();
-    if(!PROFILE_OK&&ENGNAME){openOnboarding();return;}   // 第一次登入先確認並同意
-    if(back)go(back.t,back.s);
-    else loadToday(false);
-    checkDueNotice();
+    gateProfile(function(){        // 只有後端也說沒同意過才會擋在確認畫面
+      if(back)go(back.t,back.s);
+      else loadToday(false);
+      checkDueNotice();
+    });
   },false);
+}
+
+/* 同意「資料公開說明」是綁在帳號上（後端 Users.profile_ok），不是綁裝置。
+   換手機、換瀏覽器、清掉資料都不會再問一次。
+   啟動時本機旗標可能是空的，所以在跳出確認畫面前一定先問後端。 */
+var ME_P=null;
+/** 同一次啟動只問一次 getMe，兩邊共用同一個請求 */
+function getMeOnce(){
+  if(!ME_P)ME_P=gas('getMe',TOKEN);
+  return ME_P;
+}
+/** 這個帳號需要確認並同意嗎？
+ *  管理員是系統帳號、不在通訊錄裡，沒有資料要公開，所以不問。 */
+function needProfile(){
+  if(PROFILE_OK)return false;
+  if(ROLE==='admin')return false;
+  if(!String(ENGNAME||'').trim())return false;   // 沒綁人員就沒有資料要確認
+  if(STAFF_READY&&!selfName())return false;      // 通訊錄查不到這個人
+  return true;
+}
+function gateProfile(after){
+  if(!needProfile()){after();return;}
+  getMeOnce().then(function(r){
+    if(r&&r.ok&&r.profileOk){
+      PROFILE_OK=true;lsS('espc_prof','1');   // 後端說同意過了 → 直接進去
+      after();
+    }else if(r&&r.ok){
+      openOnboarding();                        // 後端也說還沒 → 這次才問
+    }else after();                             // 問不到身分就先放行，下次再確認
+  }).catch(function(){after();});               // 離線也放行，不要卡在確認畫面
 }
 
 /* 登入後預設只下載並顯示自己的行程（快很多），但隨時可以改篩別人 */
@@ -1832,6 +1872,7 @@ function bookList(){
   if(!list.length)h+='<div class="empty">查無符合的人員</div>';
   list.forEach(function(s){
     var ph=(s.phone||'').trim(),ex=(s.ext||'').trim();
+    if(ex===EXT_NO)ex='';
     h+='<div class="lrow'+(pinned&&s.name===me?' mine':'')+'">'+avatarHat(s.name)
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
       +he(s.name)
@@ -2566,7 +2607,9 @@ function initSwipe(){
 
 /* ══ 底部面板 ══ */
 var _lockY=0;
+var SHEET_FORM=false;     // 這張面板是表單嗎？是的話點背景不關，避免打到一半被滑掉
 function openSheet(html){
+  SHEET_FORM=/<input|<select|<textarea/i.test(String(html||''));
   $('sheetin').innerHTML=html;
   _lockY=window.pageYOffset||document.documentElement.scrollTop||0;
   document.body.style.top=(-_lockY)+'px';
@@ -2575,7 +2618,7 @@ function openSheet(html){
   $('sheet').scrollTop=0;
 }
 function closeSheet(){
-  EV_D='';
+  EV_D='';SHEET_FORM=false;
   if(!$('ov').classList.contains('open'))return;
   $('ov').classList.remove('open');
   document.body.classList.remove('locked');
@@ -2753,6 +2796,17 @@ function agreeToggle(){
   var b=$('onb-b');
   if(b)b.disabled=!AGREED;
 }
+/** 關掉確認畫面並照正常流程進入（已經同意過時用） */
+function closeOnboarding(){
+  var el=$('onb');
+  if(!el||!el.classList||!el.classList.contains('open'))return;
+  el.classList.remove('open');
+  el.innerHTML='';
+  var back=restoreTab();
+  if(back)go(back.t,back.s);
+  else loadToday(false);
+  checkDueNotice();
+}
 function openOnboarding(){
   var name=String(ENGNAME||'').trim();
   var s={name:name,phone:'',ext:'',region:'',team:'',alias:'',note:''};
@@ -2769,9 +2823,7 @@ function openOnboarding(){
     +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
     +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'
     +he(s.phone||'')+'" placeholder="0912345678" style="margin-bottom:13px">'
-    +'<p class="lb">分機</p>'
-    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(s.ext||'')
-    +'" placeholder="選填，例：215" style="margin-bottom:13px">'
+    +extField(s)
     +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">職安證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
@@ -2792,6 +2844,34 @@ function openOnboarding(){
   $('onb').classList.add('open');
   bindPhone();
 }
+/* 分機必填：沒有分機要明確選「無分機」，避免忘了填 */
+var EXT_NONE=false;
+function extField(s){
+  EXT_NONE=(String((s&&s.ext)||'').trim()===EXT_NO);
+  var v=EXT_NONE?'':String((s&&s.ext)||'').trim();
+  return '<p class="lb">分機　<span style="color:var(--tx3);font-weight:400">必填，沒有分機請選「無分機」</span></p>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:13px">'
+    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(v)+'" placeholder="例：215"'
+    +' style="flex:1;min-width:0"'+(EXT_NONE?' disabled':'')+'>'
+    +'<button class="btn'+(EXT_NONE?' btn-p':'')+'" id="s-xn" onclick="extNone()"'
+    +' style="flex:0 0 auto;padding:0 14px;white-space:nowrap">無分機</button>'
+    +'</div>';
+}
+function extNone(){
+  EXT_NONE=!EXT_NONE;
+  var i=$('s-x'),b=$('s-xn');
+  if(i){i.disabled=EXT_NONE;if(EXT_NONE)i.value='';}
+  if(b&&b.classList)b.classList.toggle('btn-p',EXT_NONE);
+  if(!EXT_NONE&&i&&i.focus)i.focus();
+}
+/** 有填數字或選了「無分機」才算填好 */
+function extOK(){
+  if(EXT_NONE)return true;
+  var i=$('s-x');
+  if(!i)return true;                 // 畫面上沒有這個欄位就不檢查
+  return /[0-9]/.test(String(i.value||''));
+}
+
 /** 電話欄位自動補 - */
 function bindPhone(){
   var ph=$('s-p');
@@ -2822,6 +2902,7 @@ function saveProfile(){
   if(!AGREED){toast('請先勾選同意','no');return;}
   var n=$('s-n').value.trim();
   if(!n){toast('找不到對應的姓名，請聯繫管理員','no',4000);return;}
+  if(!extOK()){toast('請填分機，沒有分機請選「無分機」','no',3500);return;}
   var b=$('onb-b');
   if(b){b.disabled=true;b.textContent='儲存中…';}
   ecSync();
@@ -2861,6 +2942,7 @@ function saveProfile(){
 }
 
 /* ══ 人員編輯 ══ */
+var EXT_NO='無';        // 存進資料庫代表「確認過沒有分機」
 var EDIT_S=null;
 function editStaff(name){
   var s={name:'',phone:'',ext:'',region:'',team:'',alias:'',note:''};
@@ -2875,9 +2957,7 @@ function editStaff(name){
     +'<p class="lb">姓名</p><input class="fld" id="s-n" value="'+he(s.name)+'" style="margin-bottom:13px"'+(name?' readonly':'')+'>'
     +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
     +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'+he(s.phone)+'" placeholder="0912345678" style="margin-bottom:13px">'
-    +'<p class="lb">分機</p>'
-    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(s.ext||'')
-    +'" placeholder="選填，例：215" style="margin-bottom:13px">'
+    +extField(s)
     +'<p class="lb">地區</p><select class="fld" id="s-r" style="margin-bottom:13px">'
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')+'</select>'
@@ -2970,8 +3050,9 @@ function ecAdd(){
 function ecDel(i){
   ecSync();EC.splice(i,1);paintCerts();
 }
-/** 分機：只留數字，最多 6 碼 */
+/** 分機：只留數字，最多 6 碼；選了「無分機」就存 EXT_NO */
 function extVal(){
+  if(EXT_NONE)return EXT_NO;
   var el=$('s-x');
   if(!el)return (EDIT_S&&EDIT_S.ext)||'';
   return String(el.value||'').replace(/[^0-9]/g,'').slice(0,6);
@@ -2979,6 +3060,7 @@ function extVal(){
 function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
+  if(!extOK()){toast('請填分機，沒有分機請選「無分機」','no',3500);return;}
   ecSync();
   var certs=EC.map(function(c){
                 return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
@@ -3496,13 +3578,16 @@ function saveUser(name){
 
 function newUser(){
   openSheet('<div class="shh"><h3>新增帳號</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
-    +'<p class="lb">帳號</p><input class="fld" id="n-u" style="margin-bottom:13px">'
+    +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致</span></p>'
+    +'<input class="fld" id="n-e" placeholder="例：許書齊" style="margin-bottom:13px">'
+    +'<p class="lb">帳號　<span style="color:var(--tx3);font-weight:400">登入用的工號</span></p>'
+    +'<input class="fld" id="n-u" placeholder="例：T19193" autocapitalize="characters"'
+    +' autocorrect="off" style="margin-bottom:13px">'
     +'<p class="lb">密碼　<span style="color:var(--tx3);font-weight:400">預設隨機 4 碼數字，可自行修改</span></p>'
     +'<input class="fld" id="n-p" type="text" inputmode="numeric" value="'+newPin()+'" style="margin-bottom:13px">'
     +'<p class="lb">角色</p><select class="fld" id="n-r" style="margin-bottom:13px">'
     +roleChoices().slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">對應人員（選填）</p><input class="fld" id="n-e" style="margin-bottom:13px">'
     +'<p class="lb">地區</p><select class="fld" id="n-g" style="margin-bottom:13px">'
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'">'+(o||'未指定')+'</option>';}).join('')+'</select>'
@@ -3512,9 +3597,10 @@ function newUser(){
     +'<button class="btn btn-p btn-full" onclick="createUser()">建立</button>');
 }
 function createUser(){
-  var u=$('n-u').value.trim(),p=$('n-p').value;
+  var u=$('n-u').value.trim(),p=$('n-p').value,e=$('n-e').value.trim();
+  if(!e){toast('請輸入姓名','no');return;}
   if(!u||!p){toast('帳號與密碼不得為空','no');return;}
-  gas('createUser',TOKEN,u,p,$('n-r').value,$('n-e').value.trim(),
+  gas('createUser',TOKEN,u,p,$('n-r').value,e,
       $('n-t').value.trim(),$('n-g').value).then(function(r){
     if(r&&r.ok){toast('帳號已建立','ok');closeSheet();loadUsers();}
     else toast((r&&r.error)||'建立失敗','no');
