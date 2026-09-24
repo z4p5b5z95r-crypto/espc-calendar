@@ -535,6 +535,15 @@ html[data-theme="dark"] .glass::after{
   padding:2px 8px;border-radius:999px;border:1px solid var(--line);}
 .ocdup{font-size:10px;color:var(--tx3);}
 
+.occ.drag{opacity:.35;}
+.occ.drop{border-color:var(--acc);box-shadow:0 0 0 3px var(--tint);}
+.ocghost{position:fixed;z-index:999;pointer-events:none;opacity:.92;
+  transform:translate(-50%,-50%) scale(.96);}
+.ocroot{margin:0 0 10px;padding:10px;border:1.5px dashed var(--line);border-radius:12px;
+  text-align:center;font-size:12.5px;color:var(--tx3);display:none;}
+.ocroot.show{display:block;}
+.ocroot.drop{border-color:var(--acc);color:var(--accT);background:var(--tint);}
+
 /* ── 帳號管理樹狀 ── */
 .utg{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;margin:6px 0 2px;
   font-size:13px;font-weight:600;color:var(--tx2);background:transparent;}
@@ -741,7 +750,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -947,11 +956,14 @@ function myRegion(){
 /** 這個人的直屬主管一路往上找，會不會找到我 */
 function isUnderMe(username){
   var map={};
-  USERS.forEach(function(x){map[x.username]=String(x.manager||'').trim();});
-  var cur=map[String(username||'').trim()],hop=0;
-  while(cur&&hop++<30){
+  USERS.forEach(function(x){map[x.username]=mgrsOf(x);});
+  var seen={},queue=(map[String(username||'').trim()]||[]).slice(),hop=0;
+  while(queue.length&&hop++<200){
+    var cur=queue.shift();
+    if(!cur||seen[cur])continue;
     if(cur===UNAME)return true;
-    cur=map[cur];
+    seen[cur]=1;
+    queue=queue.concat(map[cur]||[]);
   }
   return false;
 }
@@ -962,13 +974,15 @@ function canTouchUser(u){
   return isUnderMe(u.username);
 }
 /** 我底下的所有人（含下屬的下屬），設定主管時用來避免循環 */
-function descendantsOf(username){
+function descendantsOf(username,seen){
+  seen=seen||{};
   var out=[];
   USERS.forEach(function(x){
-    if(String(x.manager||'').trim()===username){
-      out.push(x.username);
-      out=out.concat(descendantsOf(x.username));
-    }
+    if(seen[x.username])return;
+    if(mgrsOf(x).indexOf(username)<0)return;
+    seen[x.username]=1;
+    out.push(x.username);
+    out=out.concat(descendantsOf(x.username,seen));
   });
   return out;
 }
@@ -1403,6 +1417,11 @@ window.addEventListener('DOMContentLoaded',function(){
   });
   // 背景只認「真的點一下」：表單面板不關，手指有移動（滑動）也不關
   var _ovD=null;
+  document.addEventListener('pointerdown',ocDown);
+  document.addEventListener('pointermove',ocMove,{passive:false});
+  document.addEventListener('pointerup',ocUp);
+  document.addEventListener('pointercancel',ocUp);
+
   $('ov').addEventListener('pointerdown',function(e){
     _ovD=(e.target===$('ov'))?{x:e.clientX,y:e.clientY}:null;});
   $('ov').addEventListener('click',function(e){
@@ -4048,6 +4067,7 @@ function ocCard(u,dup){
   var nm=u.engineerName||u.username;
   var can=canTouchUser(u);
   return '<div class="occ'+(me?' me':'')+(u.active&&can?'':' off')+'"'
+    +' data-u="'+he(u.username)+'"'+(can?' data-can="1"':'')
     +(can?' onclick="editUser(\''+esc(u.username)+'\')"':' title="不在你的管轄範圍"')+'>'
     +'<div class="ocn">'+he(nm)+(can?'':' 🔒')+'</div>'
     +'<div class="oci">'+he(u.username)+(u.team?'　'+he(u.team):'')+'</div>'
@@ -4103,12 +4123,15 @@ function userListHTML(){
     }
     return out+'</li>';
   }
-  h+='<div class="ocw"><ul class="oct">'
+  h+='<div class="ocroot" id="ocroot">放到這裡＝拿掉主管，變成最上層</div>'
+    +'<div class="ocw"><ul class="oct">'
     +roots.map(function(u){return node(u,0,{});}).join('')
-    +'</ul></div>';
+    +'</ul></div>'
+    +'<p class="hint" style="margin:8px 6px 0">按住卡片拖到另一張卡片上，就能改他的直屬主管。</p>';
   return h+'</div>';
 }
 function editUser(name){
+  if(DRAG_JUST){DRAG_JUST=false;return;}     // 剛拖完的那一下不算點擊
   var u=null;
   USERS.forEach(function(x){if(x.username===name)u=x;});
   if(!u)return;
@@ -4213,6 +4236,99 @@ function mgrDel(i){MG.splice(i,1);paintMgr();}
 function paintMgr(){
   var el=$('mgbox');
   if(el)el.innerHTML=mgrBox(MG_FOR);
+}
+
+/* ── 拖拉改上下關係 ── */
+var DRAG=null,DRAG_JUST=false;
+function ocCardEl(el){
+  while(el&&el!==document.body){
+    if(el.classList&&el.classList.contains('occ'))return el;
+    el=el.parentNode;
+  }
+  return null;
+}
+function userOf(u){
+  var out=null;
+  USERS.forEach(function(x){if(x.username===u)out=x;});
+  return out;
+}
+/** 可不可以把 u 掛到 mgr 底下（空字串＝最上層） */
+function canDropOn(u,mgr){
+  if(!u||u===mgr)return false;
+  var me=userOf(u);
+  if(!me||!canTouchUser(me))return false;
+  if(mgrsOf(me).length===1&&mgrsOf(me)[0]===mgr)return false;   // 沒有變動
+  if(!mgr)return mgrsOf(me).length>0;
+  if(!userOf(mgr))return false;
+  if(descendantsOf(u).indexOf(mgr)>=0)return false;             // 會繞成循環
+  return true;
+}
+function dragMark(el,on){
+  if(el&&el.classList)el.classList.toggle('drop',!!on);
+}
+function ocDown(e){
+  if(tab!=='admin'||sub)return;
+  var card=ocCardEl(e.target);
+  if(!card||!card.getAttribute('data-can'))return;
+  DRAG={u:card.getAttribute('data-u'),card:card,
+        x:e.clientX,y:e.clientY,on:false,over:null,ghost:null};
+}
+function ocMove(e){
+  if(!DRAG)return;
+  var dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y;
+  if(!DRAG.on){
+    if(Math.abs(dx)<8&&Math.abs(dy)<8)return;
+    DRAG.on=true;
+    DRAG.card.classList.add('drag');
+    var g=document.createElement('div');
+    g.className='occ ocghost';
+    g.innerHTML=DRAG.card.innerHTML;
+    document.body.appendChild(g);
+    DRAG.ghost=g;
+    var rz=$('ocroot');
+    if(rz)rz.classList.add('show');
+  }
+  if(e.cancelable)e.preventDefault();
+  DRAG.ghost.style.left=e.clientX+'px';
+  DRAG.ghost.style.top=e.clientY+'px';
+  var el=document.elementFromPoint(e.clientX,e.clientY);
+  var rz=$('ocroot');
+  var target=ocCardEl(el);
+  var onRoot=!!(el&&rz&&(el===rz||rz.contains(el)));
+  var next=onRoot?rz:(target&&target!==DRAG.card
+    &&canDropOn(DRAG.u,target.getAttribute('data-u'))?target:null);
+  if(next!==DRAG.over){
+    dragMark(DRAG.over,false);
+    dragMark(next,true);
+    DRAG.over=next;
+  }
+}
+function ocUp(){
+  if(!DRAG)return;
+  var d=DRAG;DRAG=null;
+  if(!d.on)return;
+  DRAG_JUST=true;
+  setTimeout(function(){DRAG_JUST=false;},300);
+  if(d.ghost&&d.ghost.remove)d.ghost.remove();
+  d.card.classList.remove('drag');
+  dragMark(d.over,false);
+  var rz=$('ocroot');
+  if(rz)rz.classList.remove('show');
+  if(!d.over)return;
+  var mgr=(d.over===rz)?'':d.over.getAttribute('data-u');
+  applyDrop(d.u,mgr);
+}
+function applyDrop(u,mgr){
+  if(!canDropOn(u,mgr))return;
+  var me=userOf(u),to=mgr?userOf(mgr):null;
+  var nm=(me&&(me.engineerName||me.username))||u;
+  var tn=to?(to.engineerName||to.username):'最上層';
+  if(!confirm('把「'+nm+'」的直屬主管改成「'+tn+'」？'))return;
+  gas('updateUser',TOKEN,u,{manager:mgr}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'變更失敗','no',4000);return;}
+    toast('已改為「'+tn+'」底下','ok');
+    loadUsers();
+  }).catch(function(){toast('操作失敗','no');});
 }
 
 /** 直屬主管的候選名單：排除自己與自己的下屬（避免循環） */
