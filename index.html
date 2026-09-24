@@ -87,6 +87,25 @@ input,select,textarea{font-size:16px;}
 .fld:focus{border-color:var(--acc);}
 /* 面板開啟時鎖住背景，避免鍵盤彈出把整頁推走 */
 body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
+/* 初次登入的資料確認與同意 */
+#onb{display:none;position:fixed;inset:0;z-index:95;overflow-y:auto;
+  background:var(--bg);padding:calc(24px + env(safe-area-inset-top)) 16px
+             calc(32px + env(safe-area-inset-bottom));}
+#onb.open{display:block;}
+.onbw{max-width:520px;margin:0 auto;}
+.onbh{font-size:23px;font-weight:600;letter-spacing:-.01em;margin-bottom:6px;}
+.onbs{font-size:13.5px;color:var(--tx2);line-height:1.75;margin-bottom:20px;}
+.onbn{font-size:12.5px;color:var(--tx2);line-height:1.8;
+  background:var(--card2);border-radius:12px;padding:13px 15px;margin:18px 0 14px;}
+.onbn b{color:var(--tx);}
+.agree{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;
+  background:var(--glStrong);border:1px solid var(--line);margin-bottom:14px;
+  font-size:13.5px;line-height:1.6;text-align:left;width:100%;}
+.agree.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
+.agbox{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);
+  flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;
+  color:transparent;font-size:12px;font-weight:700;}
+.agree.on .agbox{background:var(--acc);border-color:var(--acc);color:var(--accTx);}
 /* 證照卡片 */
 .cbox{background:var(--glStrong);border:1px solid var(--line);
   border-radius:16px;padding:12px 13px;}
@@ -589,6 +608,8 @@ html[data-theme="dark"] .glass::after{
   </div>
 </div>
 
+<div id="onb"></div>
+
 <div id="app">
   <div class="bar">
     <div class="who">
@@ -636,7 +657,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24p';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24r';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -777,6 +798,8 @@ function toast(msg,kind,ms){
 
 /* ── 身分 ── */
 var TOKEN=ls('espc_token'),ROLE=ls('espc_role'),UNAME=ls('espc_user'),ENGNAME=ls('espc_eng');
+var PROFILE_OK=(ls('espc_prof')==='1');   // 這個帳號同意並確認過聯絡資料了嗎
+var CONSENT_VER='2026-09-24';             // 同意條款版本，內容改了就把版本號往後調
 var PW_MIN=4;               // 密碼最短長度；預設密碼是 4 碼數字
 /** 產生一組 4 碼數字當預設密碼 */
 function newPin(){
@@ -801,11 +824,20 @@ function canEditStaff(name){
 }
 function roleLabel(r){return ROLE_LABEL[normRole(r)]||r;}
 function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
-function saveSession(t,r,u,e){TOKEN=t;ROLE=r;UNAME=u;ENGNAME=e||'';
-  lsS('espc_token',t);lsS('espc_role',r);lsS('espc_user',u);lsS('espc_eng',ENGNAME);}
+/** 可進帳號管理：管理員、主管、排程 */
+function canManage(r){return canWrite(r);}
+/** 非管理員不能動管理員帳號，也不能指派管理員 */
+function canTouchUser(u){return ROLE==='admin'||normRole(u&&u.role)!=='admin';}
+function roleChoices(){
+  return ROLE==='admin'?ROLE_ORDER:ROLE_ORDER.filter(function(k){return k!=='admin';});
+}
+function saveSession(t,r,u,e,ok){TOKEN=t;ROLE=r;UNAME=u;ENGNAME=e||'';
+  lsS('espc_token',t);lsS('espc_role',r);lsS('espc_user',u);lsS('espc_eng',ENGNAME);
+  if(ok!==undefined){PROFILE_OK=!!ok;lsS('espc_prof',ok?'1':'');}}
 function clearSession(){
   TOKEN=ROLE=UNAME=ENGNAME='';
-  ['espc_token','espc_role','espc_user','espc_eng','espc_sync','espc_tab'].forEach(lsD);
+  PROFILE_OK=false;
+  ['espc_token','espc_role','espc_user','espc_eng','espc_sync','espc_tab','espc_prof'].forEach(lsD);
   try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);
     if(k&&k.indexOf('espc_c_')===0)localStorage.removeItem(k);}}catch(e){}
 }
@@ -1207,8 +1239,11 @@ window.addEventListener('DOMContentLoaded',function(){
     gas('getMe',TOKEN).then(function(r){
       if(r&&r.ok){
         if(r.role!==ROLE||r.username!==UNAME||(r.engineerName||'')!==ENGNAME){
-          saveSession(TOKEN,r.role,r.username,r.engineerName||'');
+          saveSession(TOKEN,r.role,r.username,r.engineerName||'',r.profileOk);
           location.reload();          // 身分有變就重來一次
+        }else if(!!r.profileOk!==PROFILE_OK){
+          PROFILE_OK=!!r.profileOk;lsS('espc_prof',r.profileOk?'1':'');
+          if(!PROFILE_OK&&ENGNAME)openOnboarding();
         }
       }else{
         clearSession();
@@ -1219,7 +1254,7 @@ window.addEventListener('DOMContentLoaded',function(){
   }else if(TOKEN){
     $('login').innerHTML=loader('登入中…');
     gas('getMe',TOKEN).then(function(r){
-      if(r&&r.ok){saveSession(TOKEN,r.role,r.username,r.engineerName||'');
+      if(r&&r.ok){saveSession(TOKEN,r.role,r.username,r.engineerName||'',r.profileOk);
         boot(r.username,r.role,r.engineerName||'');}
       else{clearSession();location.reload();}
     }).catch(function(){
@@ -1246,7 +1281,8 @@ function doLogin(){
   if(!u||!p){$('l-err').textContent='請輸入帳號與密碼';return;}
   btn.disabled=true;btn.textContent='登入中…';$('l-err').textContent='';
   gas('login',u,p).then(function(r){
-    if(r&&r.ok){saveSession(r.token,r.role,r.username,r.engineerName||'');boot(r.username,r.role,r.engineerName||'');}
+    if(r&&r.ok){saveSession(r.token,r.role,r.username,r.engineerName||'',r.profileOk);
+      boot(r.username,r.role,r.engineerName||'');}
     else{$('l-err').textContent=(r&&r.error)||'登入失敗';btn.disabled=false;btn.textContent='登入';}
   }).catch(function(){$('l-err').textContent='連線失敗，請稍後再試';btn.disabled=false;btn.textContent='登入';});
 }
@@ -1277,6 +1313,7 @@ function boot(u,r,eng){
   // 一律先用快取畫面，版本比對在背景做，開啟就有東西看
   loadStaff(function(){
     autoFilterSelf();
+    if(!PROFILE_OK&&ENGNAME){openOnboarding();return;}   // 第一次登入先確認並同意
     if(back)go(back.t,back.s);
     else loadToday(false);
     checkDueNotice();
@@ -1317,7 +1354,7 @@ function restoreTab(){
   if(okTab.indexOf(v.t)<0)return null;
   if(v.t==='upload'&&!canWrite(ROLE))return null;
   if(v.s==='upload'&&!canWrite(ROLE))v.s='';
-  if(v.s==='admin'&&ROLE!=='admin')v.s='';
+  if(v.s==='admin'&&!canManage(ROLE))v.s='';
   if(v.t==='today')return null;                 // 今日是預設頁，照原流程走
   if(v.t==='cal'&&typeof v.y==='number'&&typeof v.m==='number'){
     curY=v.y;curM=v.m;                          // 連月份一起還原
@@ -1829,7 +1866,7 @@ function paintBook(){
 function morePage(){
   var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
-  if(ROLE==='admin')
+  if(canManage(ROLE))
     h+='<button class="link" onclick="go(\'more\',\'admin\')">帳號管理'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒'
@@ -2659,6 +2696,127 @@ function pickM(y,m){
   slidePage(d,function(){render();loadMonth();});
 }
 
+/* ══ 初次登入：確認聯絡資料並同意公開 ══════════════
+   只做一次；同意時會在後端留下時間、帳號、IP、裝置與條款版本 */
+var AGREED=false;
+function agreeToggle(){
+  AGREED=!AGREED;
+  var el=$('ag');
+  if(el&&el.classList)el.classList.toggle('on',AGREED);
+  var b=$('onb-b');
+  if(b)b.disabled=!AGREED;
+}
+function openOnboarding(){
+  var name=String(ENGNAME||'').trim();
+  var s={name:name,phone:'',region:'',team:'',alias:'',note:''};
+  STAFF.forEach(function(x){if(x.name===name)s=x;});
+  EDIT_S=s;AGREED=false;
+  EC=safetyList(name).map(function(o){
+    return {type:o.type,cert:o.cert,train:o.train,years:o.years,remind:o.remind};});
+
+  var teams=TEAMS.slice();
+  STAFF.forEach(function(x){var t=(x.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
+
+  var h='<div class="onbw">'
+    +'<div class="onbh">確認你的聯絡資料</div>'
+    +'<p class="onbs">這是第一次登入，請確認或補齊以下資料。<br>'
+    +'確認後不會再詢問，之後要修改可到「通訊錄」找自己那一列。</p>'
+    +'<p class="lb">姓名</p><input class="fld" id="s-n" value="'+he(s.name)+'" readonly style="margin-bottom:13px">'
+    +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
+    +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'
+    +he(s.phone||'')+'" placeholder="0912345678" style="margin-bottom:13px">'
+    +'<p class="lb">地區</p><select class="fld" id="s-r" style="margin-bottom:13px">'
+    +['','台北','台中','高雄'].map(function(o){
+      return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
+    +'</select>'
+    +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team||'')
+    +'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
+    +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +'<p class="lb">職安證照</p>'
+    +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
+    +'<div class="onbn"><b>資料公開說明</b><br>'
+    +'上述姓名、電話、地區、組別與職安證照（種類、證書字號、訓練日期、有效期限）'
+    +'會顯示在本系統的「通訊錄」，提供公司內其他使用者查詢聯絡方式與職安證照效期，'
+    +'並用於證照到期提醒。<br>'
+    +'資料僅供公司內部作業使用，不對外公開。你可以隨時到通訊錄修改自己的內容，'
+    +'或聯繫管理員調整。</div>'
+    +'<button class="agree" id="ag" onclick="agreeToggle()">'
+    +'<span class="agbox">✓</span>'
+    +'<span>我已確認上述資料正確，並同意公開給公司內部其他使用者查詢。</span></button>'
+    +'<button class="btn btn-p btn-full" id="onb-b" disabled onclick="saveProfile()">同意並進入</button>'
+    +'<p class="hint" style="text-align:center;margin-top:12px">'
+    +'同意時會記錄時間、帳號、IP 與裝置資訊，作為留存依據。</p>'
+    +'</div>';
+  $('onb').innerHTML=h;
+  $('onb').classList.add('open');
+  bindPhone();
+}
+/** 電話欄位自動補 - */
+function bindPhone(){
+  var ph=$('s-p');
+  if(!ph||!ph.addEventListener)return;
+  var fp=function(){
+    var atEnd=(ph.selectionStart===ph.value.length);
+    var c=fmtPhone(ph.value);
+    if(c===ph.value)return;
+    ph.value=c;
+    if(atEnd){try{ph.setSelectionRange(c.length,c.length);}catch(e){}}
+  };
+  ph.addEventListener('input',fp);
+  ph.addEventListener('blur',fp);
+}
+/** 取用戶端 IP 作為簽署佐證；取不到就留空，不影響流程 */
+function getIP(){
+  return new Promise(function(done){
+    var t=setTimeout(function(){done('');},2500);
+    try{
+      fetch('https://api.ipify.org?format=json')
+        .then(function(r){return r.json();})
+        .then(function(j){clearTimeout(t);done((j&&j.ip)||'');})
+        .catch(function(){clearTimeout(t);done('');});
+    }catch(e){clearTimeout(t);done('');}
+  });
+}
+function saveProfile(){
+  if(!AGREED){toast('請先勾選同意','no');return;}
+  var n=$('s-n').value.trim();
+  if(!n){toast('找不到對應的姓名，請聯繫管理員','no',4000);return;}
+  var b=$('onb-b');
+  if(b){b.disabled=true;b.textContent='儲存中…';}
+  ecSync();
+  var certs=EC.map(function(c){
+    return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
+    .filter(function(o){return o.t||o.c||o.d;});
+
+  gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
+      JSON.stringify(certs),(EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'')
+    .then(function(r){
+      if(!r||!r.ok)throw new Error((r&&r.error)||'儲存失敗');
+      return getIP();
+    })
+    .then(function(ip){
+      return gas('confirmProfile',TOKEN,{
+        ip:ip,ua:(navigator&&navigator.userAgent)||'',
+        ver:APP_VER,textVer:CONSENT_VER});
+    })
+    .then(function(r2){
+      if(!r2||!r2.ok)throw new Error((r2&&r2.error)||'記錄失敗');
+      PROFILE_OK=true;lsS('espc_prof','1');
+      $('onb').classList.remove('open');
+      $('onb').innerHTML='';
+      loadStaff(function(){
+        autoFilterSelf();
+        loadToday(true);
+        checkDueNotice();
+      },true);
+    })
+    .catch(function(e){
+      toast((e&&e.message)||'儲存失敗，請稍後再試','no',4000);
+      if(b){b.disabled=false;b.textContent='同意並進入';}
+    });
+}
+
 /* ══ 人員編輯 ══ */
 var EDIT_S=null;
 function editStaff(name){
@@ -2687,18 +2845,7 @@ function editStaff(name){
     +(name&&canWrite(ROLE)
       ?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
   openSheet(h);
-  var ph=$('s-p');
-  if(ph){
-    var fp=function(){
-      var atEnd=(ph.selectionStart===ph.value.length);
-      var c=fmtPhone(ph.value);
-      if(c===ph.value)return;
-      ph.value=c;
-      if(atEnd){try{ph.setSelectionRange(c.length,c.length);}catch(e){}}
-    };
-    ph.addEventListener('input',fp);
-    ph.addEventListener('blur',fp);
-  }
+  bindPhone();
 }
 
 /* ── 證照清單（可增減）───────────────────────────────── */
@@ -3180,7 +3327,8 @@ function userListHTML(){
       +(me?'　·　目前帳號':'')
       +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div></div>'
       +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
-      +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">›</span>'
+      +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
+      +(canTouchUser(u)?'›':'🔒')+'</span>'
       +'</div>';
   });
   return h+'</div></div>';
@@ -3197,6 +3345,10 @@ function editUser(name){
   USERS.forEach(function(x){if(x.username===name)u=x;});
   if(!u)return;
   var me=u.username===UNAME;
+  if(!canTouchUser(u)){
+    toast('只有管理員能調整管理員帳號','',3500);
+    return;
+  }
   var h='<div class="shh"><div>'
     +'<div class="evt" style="color:var(--accT)">帳號設定</div>'
     +'<h3 style="margin-top:3px">'+he(u.engineerName||u.username)+'</h3>'
@@ -3205,7 +3357,7 @@ function editUser(name){
     +'<button class="ib" onclick="closeSheet()">✕</button></div>'
     +'<p class="lb">角色</p>'
     +'<select class="fld" id="e-r" style="margin-bottom:13px"'+(me?' disabled':'')+'>'
-    +ROLE_ORDER.map(function(k){
+    +roleChoices().map(function(k){
       return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">對應人員　<span style="color:var(--tx3);font-weight:400">留空表示不自動篩選</span></p>'
@@ -3255,7 +3407,7 @@ function newUser(){
     +'<p class="lb">密碼　<span style="color:var(--tx3);font-weight:400">預設隨機 4 碼數字，可自行修改</span></p>'
     +'<input class="fld" id="n-p" type="text" inputmode="numeric" value="'+newPin()+'" style="margin-bottom:13px">'
     +'<p class="lb">角色</p><select class="fld" id="n-r" style="margin-bottom:13px">'
-    +ROLE_ORDER.slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
+    +roleChoices().slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">對應人員（選填）</p><input class="fld" id="n-e" style="margin-bottom:13px">'
     +'<p class="lb">地區</p><select class="fld" id="n-g" style="margin-bottom:13px">'
