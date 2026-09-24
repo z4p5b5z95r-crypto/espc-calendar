@@ -691,7 +691,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24ak';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24am';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -833,7 +833,32 @@ function toast(msg,kind,ms){
 /* ── 身分 ── */
 var TOKEN=ls('espc_token'),ROLE=ls('espc_role'),UNAME=ls('espc_user'),ENGNAME=ls('espc_eng');
 var PROFILE_OK=(ls('espc_prof')==='1');   // 這個帳號同意並確認過聯絡資料了嗎
-var CONSENT_VER='2026-09-24';             // 同意條款版本，內容改了就把版本號往後調
+var ORG='';                               // 公司全銜，留空就顯示「本公司」
+var CONSENT_VER='2026-09-24b';            // 同意條款版本，內容改了就把版本號往後調
+/* 條款全文：畫面上顯示的就是這一份，簽署時原文一起送到後端存證（ConsentTexts）。
+   改了文字就把 CONSENT_VER 往後調，舊版存證不會被覆蓋。 */
+function consentText(){
+  var org=String(ORG||'').trim()||'本公司';
+  return [
+    '個人資料蒐集、處理及利用告知暨同意事項（版本 '+CONSENT_VER+'）',
+    '',
+    '一、蒐集者：'+org+'（ESPC 監測行程行事曆系統）。',
+    '二、蒐集目的：提供公司內部同仁查詢聯絡方式、確認職業安全證照效期與到期提醒，'
+      +'以及監測行程的聯繫與安排。',
+    '三、個人資料類別：姓名、電話、分機、所屬地區與組別，以及職業安全證照的種類、'
+      +'證書字號、訓練日期與有效期限。',
+    '四、利用期間：在職期間；離職後 1 個月內刪除。',
+    '五、利用地區、對象及方式：僅於本系統內，供'+org+'內部已登入的使用者查詢，'
+      +'不對外公開，亦不提供第三人。',
+    '六、當事人權利：可隨時查詢、閱覽、補充或更正本人資料，或要求停止公開、刪除。'
+      +'姓名、電話、分機與證照可於「通訊錄」自行修改；地區與組別、刪除或停止利用，'
+      +'請聯繫系統管理員辦理。',
+    '七、不提供的影響：未提供上述資料，將無法在通訊錄被同仁查詢到聯絡方式，'
+      +'也無法收到職業安全證照的到期提醒。',
+    '八、簽署留存：按下「同意並進入」時，系統會記錄同意時間、登入帳號、姓名、'
+      +'連線來源 IP、裝置資訊、App 版本與本條款版本及全文雜湊，作為留存依據。'
+  ].join('\n');
+}
 var PW_MIN=4;               // 密碼最短長度；預設密碼是 4 碼數字
 /** 產生一組 4 碼數字當預設密碼 */
 function newPin(){
@@ -2918,18 +2943,12 @@ function openOnboarding(){
     +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">職安證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
-    +'<div class="onbn"><b>資料公開說明</b><br>'
-    +'你的姓名、電話、分機、地區、組別與職安證照（種類、證書字號、訓練日期、有效期限）'
-    +'會顯示在本系統的「通訊錄」，提供公司內其他使用者查詢聯絡方式與職安證照效期，'
-    +'並用於證照到期提醒。地區與組別由管理者維護，此處不提供修改。<br>'
-    +'資料僅供公司內部作業使用，不對外公開。你可以隨時到通訊錄修改自己的內容，'
-    +'或聯繫管理員調整。</div>'
+    +'<div class="onbn" style="white-space:pre-wrap">'+he(consentText())+'</div>'
     +'<button class="agree" id="ag" onclick="agreeToggle()">'
     +'<span class="agbox">✓</span>'
-    +'<span>我已確認上述資料正確，並同意公開給公司內部其他使用者查詢。</span></button>'
+    +'<span>我已閱讀並瞭解上述告知事項，確認本人資料正確，'
+    +'並同意於上述目的與期間內，公開給公司內部使用者查詢。</span></button>'
     +'<button class="btn btn-p btn-full" id="onb-b" disabled onclick="saveProfile()">同意並進入</button>'
-    +'<p class="hint" style="text-align:center;margin-top:12px">'
-    +'同意時會記錄時間、帳號、IP 與裝置資訊，作為留存依據。</p>'
     +'</div>';
   $('onb').innerHTML=h;
   $('onb').classList.add('open');
@@ -3013,7 +3032,7 @@ function saveProfile(){
     .then(function(ip){
       return gas('confirmProfile',TOKEN,{
         ip:ip,ua:(navigator&&navigator.userAgent)||'',
-        ver:APP_VER,textVer:CONSENT_VER});
+        ver:APP_VER,textVer:CONSENT_VER,text:consentText()});
     })
     .then(function(r2){
       if(!r2||!r2.ok)throw new Error((r2&&r2.error)||'記錄失敗');
@@ -3669,8 +3688,8 @@ function loadUsers(){
     var el=$('users');if(!el)return;
     if(!r||!r.ok){el.innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';return;}
     USERS=(r.users||[]).map(function(u){u.role=normRole(u.role);return u;})
-      // 管理員帳號只有管理員看得到（後端也擋，一份保險）
-      .filter(function(u){return ROLE==='admin'||u.role!=='admin';});
+      // 管理員是隱藏帳號，誰都不列出（後端也擋，一份保險）
+      .filter(function(u){return u.role!=='admin';});
     el.innerHTML=usersHTML();
   }).catch(function(){var el=$('users');if(el)el.innerHTML='<div class="empty">載入失敗</div>';});
 }
