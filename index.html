@@ -503,6 +503,15 @@ html[data-theme="dark"] .glass::after{
 .ts.no{background:var(--err);color:#fff;}
 
 
+/* ── 字體大小（小／中／大）──
+   用 zoom 整體放大，版面比例不會跑掉 */
+html[data-fs="m"] body{zoom:1.12;}
+html[data-fs="l"] body{zoom:1.25;}
+.segw{display:flex;gap:6px;}
+.segb{padding:6px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card2);color:var(--tx2);font-size:13.5px;}
+.segb.on{background:var(--tint);color:var(--accT);border-color:transparent;font-weight:600;}
+
 /* ── 下載行程（桌機限定）── */
 .nb.dlm{display:none;}
 .dlw{display:block;}
@@ -691,7 +700,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24ao';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24at';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -819,6 +828,12 @@ function applyTheme(){
   var b=document.querySelector('.lth');
   if(b&&typeof ic==='function')b.innerHTML=ic(dark?'sun2':'moon',19);
 }
+/* ── 字體大小 ── */
+function fsGet(){var v=ls('espc_fs');return (v==='m'||v==='l')?v:'s';}
+function applyFs(){document.documentElement.setAttribute('data-fs',fsGet());}
+function setFs(v){lsS('espc_fs',v);applyFs();render();}
+applyFs();
+
 function toggleTheme(){lsS('espc_theme',(ls('espc_theme')||'light')==='dark'?'light':'dark');applyTheme();render();}
 applyTheme();
 
@@ -1343,7 +1358,8 @@ function doLogin(){
   if(!u||!p){$('l-err').textContent='請輸入帳號與密碼';return;}
   btn.disabled=true;btn.textContent='登入中…';$('l-err').textContent='';
   gas('login',u,p).then(function(r){
-    if(r&&r.ok){saveSession(r.token,r.role,r.username,r.engineerName||'',r.profileOk);
+    if(r&&r.ok){LAST_PW=p;            // 只留在記憶體，供首次登入改密碼用
+      saveSession(r.token,r.role,r.username,r.engineerName||'',r.profileOk);
       boot(r.username,r.role,r.engineerName||'');}
     else{$('l-err').textContent=(r&&r.error)||'登入失敗';btn.disabled=false;btn.textContent='登入';}
   }).catch(function(){$('l-err').textContent='連線失敗，請稍後再試';btn.disabled=false;btn.textContent='登入';});
@@ -2015,6 +2031,12 @@ function morePage(){
       +'<div class="hint" style="margin-top:2px">關閉後每次開啟都顯示全部</div></div>'
       +'<span style="flex:1"></span>'
       +'<button class="sw'+(selfAuto()?' on':'')+'" onclick="toggleSelfAuto()"></button></div>':'')
+    +'<div class="link" style="cursor:default"><div>字體大小</div>'
+    +'<span style="flex:1"></span><div class="segw">'
+    +[['s','小'],['m','中'],['l','大']].map(function(o){
+      return '<button class="segb'+(fsGet()===o[0]?' on':'')+'" onclick="setFs(\''+o[0]+'\')">'
+        +o[1]+'</button>';}).join('')
+    +'</div></div>'
     +'<div class="link" style="cursor:default">深色模式'
     +'<button class="sw'+((ls('espc_theme')||'dark')==='dark'?' on':'')+'" onclick="toggleTheme()"></button></div>'
     +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
@@ -2918,35 +2940,84 @@ function closeOnboarding(){
   else loadToday(false);
   checkDueNotice();
 }
-function openOnboarding(){
+var LAST_PW='';          // 這次登入輸入的密碼，只在記憶體，用來首次登入換密碼
+var ONB_EDIT=false;      // 確認畫面目前是不是編輯模式
+/** 既有人員資料齊全 → 直接看過並同意；新人或資料不齊 → 自己建立通訊錄 */
+function onbNeedFill(s){
+  if(!s)return true;
+  if(!String(s.phone||'').trim())return true;
+  if(!String(s.ext||'').trim())return true;
+  return false;
+}
+function onbEdit(){ONB_EDIT=true;openOnboarding(true);}
+function openOnboarding(keep){
   var name=String(ENGNAME||'').trim();
-  var s={name:name,phone:'',ext:'',region:'',team:'',alias:'',note:''};
-  STAFF.forEach(function(x){if(x.name===name)s=x;});   // 新人查無資料就留空白讓他填
-  EDIT_S=s;AGREED=false;
-  EC=safetyList(name).map(function(o){
-    return {type:o.type,cert:o.cert,train:o.train,years:o.years,remind:o.remind};});
+  var found=null;
+  STAFF.forEach(function(x){if(x.name===name)found=x;});
+  var s=found||{name:name,phone:'',ext:'',region:'',team:'',alias:'',note:''};
+  var fill=onbNeedFill(found);
+  var edit=fill||ONB_EDIT;
+  if(!keep){EDIT_S=s;AGREED=false;ONB_EDIT=false;edit=fill;
+    EC=safetyList(name).map(function(o){
+      return {type:o.type,cert:o.cert,train:o.train,years:o.years,remind:o.remind};});}
 
   var h='<div class="onbw">'
-    +'<div class="onbh">確認你的聯絡資料</div>'
-    +'<p class="onbs">這是第一次登入，請確認或補齊以下資料。<br>'
-    +'確認後不會再詢問，之後要修改可到「通訊錄」找自己那一列。</p>'
-    +'<p class="lb">姓名</p><input class="fld" id="s-n" value="'+he(s.name)+'" readonly style="margin-bottom:13px">'
-    +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
-    +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'
-    +he(s.phone||'')+'" placeholder="0912345678" style="margin-bottom:13px">'
-    +extField(s)
-    +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +'<p class="lb">職安證照</p>'
-    +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
-    +'<div class="onbn" style="white-space:pre-wrap">'+he(consentText())+'</div>'
-    +'<button class="agree" id="ag" onclick="agreeToggle()">'
+    +'<div class="onbh">'+(fill?'建立你的通訊錄資料':'確認你的聯絡資料')+'</div>'
+    +'<p class="onbs">'
+    +(fill
+      ? '這是第一次登入，請填寫你的聯絡方式與職安證照，建立自己的通訊錄資料。'
+      : '這是第一次登入，請看過以下資料並確認正確。')
+    +'<br>確認後不會再詢問，之後要修改可到「通訊錄」找自己那一列。</p>';
+
+  if(edit){
+    h+='<p class="lb">姓名</p><input class="fld" id="s-n" value="'+he(s.name)+'" readonly style="margin-bottom:13px">'
+      +'<p class="lb">電話　<span style="color:var(--tx3);font-weight:400">直接輸入數字，會自動加上 -</span></p>'
+      +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'
+      +he(s.phone||'')+'" placeholder="0912345678" style="margin-bottom:13px">'
+      +extField(s)
+      +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+      +'<p class="lb">職安證照</p>'
+      +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>';
+  }else{
+    h+='<input type="hidden" id="s-n" value="'+he(s.name)+'">'
+      +'<div class="card" style="margin-bottom:13px">'+onbSummary(s)+'</div>'
+      +'<button class="btn btn-full" style="margin-bottom:13px" onclick="onbEdit()">資料有誤，我要修改</button>';
+  }
+
+  h+='<div class="onbn" style="white-space:pre-wrap">'+he(consentText())+'</div>'
+    +'<button class="agree'+(AGREED?' on':'')+'" id="ag" onclick="agreeToggle()">'
     +'<span class="agbox">✓</span>'
     +'<span>我確認以上資料正確，並同意公開給公司內部同仁查詢。</span></button>'
-    +'<button class="btn btn-p btn-full" id="onb-b" disabled onclick="saveProfile()">同意並進入</button>'
+    +'<button class="btn btn-p btn-full" id="onb-b"'+(AGREED?'':' disabled')
+    +' onclick="saveProfile()">同意並進入</button>'
+    +'<button class="btn btn-full" style="margin-top:9px" onclick="declineProfile()">不同意，離開</button>'
+    +'<p class="hint" style="text-align:center;margin-top:10px">不同意將無法使用本系統。</p>'
     +'</div>';
   $('onb').innerHTML=h;
   $('onb').classList.add('open');
-  bindPhone();
+  if(edit)bindPhone();
+}
+/** 既有資料的檢視版 */
+function onbSummary(s){
+  function row(k,v){
+    return '<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line)">'
+      +'<div style="color:var(--tx3);font-size:13px;width:68px;flex:0 0 auto">'+k+'</div>'
+      +'<div style="flex:1;min-width:0;font-size:14px">'+v+'</div></div>';
+  }
+  var ex=String(s.ext||'').trim();
+  var h=row('姓名',he(s.name))
+    +row('電話',he(s.phone||'未填'))
+    +row('分機',ex===EXT_NO?'無分機':he(ex||'未填'))
+    +row('地區',he(s.region||'未指定')+'　'+he(s.team||''));
+  var cs=safetyList(s.name);
+  h+='<div class="row" style="padding:7px 0">'
+    +'<div style="color:var(--tx3);font-size:13px;width:68px;flex:0 0 auto">證照</div>'
+    +'<div style="flex:1;min-width:0;font-size:14px">'
+    +(cs.length?cs.map(function(o){
+        return he(o.type)+(o.expire?'<span style="color:var(--tx3);font-size:12px">　至 '+he(o.expire)+'</span>':'');
+      }).join('<br>'):'未登記')
+    +'</div></div>';
+  return h;
 }
 /* 分機必填：沒有分機要明確選「無分機」，避免忘了填 */
 var EXT_NONE=false;
@@ -3002,13 +3073,88 @@ function getIP(){
     }catch(e){clearTimeout(t);done('');}
   });
 }
+/** 同意完成 → 收起確認畫面，照正常流程進入 */
+function onbDone(){
+  PROFILE_OK=true;lsS('espc_prof','1');
+  $('onb').classList.remove('open');
+  $('onb').innerHTML='';
+  loadStaff(function(){
+    autoFilterSelf();
+    loadToday(true);
+    checkDueNotice();
+  },true);
+  setTimeout(openPwForce,400);      // 進來後接著要求改掉預設密碼
+}
+
+/* ── 首次登入必須改密碼 ── */
+function openPwForce(){
+  var h='<div class="onbw">'
+    +'<div class="onbh">請設定你的密碼</div>'
+    +'<p class="onbs">你目前用的是系統給的預設密碼，請改成只有你知道的密碼，'
+    +'才能開始使用。</p>'
+    +(LAST_PW?'':'<p class="lb">目前密碼</p>'
+      +'<input class="fld" id="fp-o" type="password" autocomplete="current-password" style="margin-bottom:13px">')
+    +'<p class="lb">新密碼</p>'
+    +'<input class="fld" id="fp-n" type="password" autocomplete="new-password" placeholder="至少 '+PW_MIN+' 碼" style="margin-bottom:13px">'
+    +'<p class="lb">再輸入一次</p>'
+    +'<input class="fld" id="fp-c" type="password" autocomplete="new-password" style="margin-bottom:6px">'
+    +'<div class="lerr" id="fp-e"></div>'
+    +'<button class="btn btn-p btn-full" id="fp-b" onclick="savePwForce()">設定密碼並開始使用</button>'
+    +'<p class="hint" style="text-align:center;margin-top:10px">忘記目前密碼請聯繫管理員重設。</p>'
+    +'</div>';
+  $('onb').innerHTML=h;
+  $('onb').classList.add('open');
+}
+function savePwForce(){
+  var e=$('fp-e'),o=LAST_PW||($('fp-o')?$('fp-o').value:''),
+      n=$('fp-n').value,c=$('fp-c').value;
+  if(e)e.textContent='';
+  function bad(m){if(e)e.textContent=m;else toast(m,'no');}
+  if(!o){bad('請輸入目前密碼');return;}
+  if(n.length<PW_MIN){bad('新密碼至少需要 '+PW_MIN+' 個字元');return;}
+  if(n!==c){bad('兩次新密碼不一致');return;}
+  if(n===o){bad('新密碼不可與目前密碼相同');return;}
+  var b=$('fp-b');
+  if(b){b.disabled=true;b.textContent='設定中…';}
+  gas('changePassword',TOKEN,n,o).then(function(r){
+    if(!r||!r.ok)throw new Error((r&&r.error)||'修改失敗');
+    LAST_PW=n;
+    $('onb').classList.remove('open');
+    $('onb').innerHTML='';
+    toast('密碼已設定','ok');
+  }).catch(function(err){
+    bad((err&&err.message)||'操作失敗，請稍後再試');
+    if(b){b.disabled=false;b.textContent='設定密碼並開始使用';}
+  });
+}
+
+/** 不同意 → 直接登出離開，不會進入系統 */
+function declineProfile(){
+  if(!confirm('不同意就無法使用本系統，確定要離開嗎？'))return;
+  try{gas('logout',TOKEN).catch(function(){});}catch(e){}
+  clearSession();
+  location.reload();
+}
 function saveProfile(){
   if(!AGREED){toast('請先勾選同意','no');return;}
   var n=$('s-n').value.trim();
   if(!n){toast('找不到對應的姓名，請聯繫管理員','no',4000);return;}
-  if(!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
+  if($('s-p')&&!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
   var b=$('onb-b');
   if(b){b.disabled=true;b.textContent='儲存中…';}
+  if(!$('s-p')){                       // 檢視模式：資料沒動，直接記同意
+    getIP().then(function(ip){
+      return gas('confirmProfile',TOKEN,{ip:ip,ua:(navigator&&navigator.userAgent)||'',
+        ver:APP_VER,textVer:CONSENT_VER,text:consentText()});
+    }).then(function(r2){
+      if(!r2||!r2.ok)throw new Error((r2&&r2.error)||'記錄失敗');
+      onbDone();
+    }).catch(function(e){
+      toast((e&&e.message)||'儲存失敗，請稍後再試','no',4000);
+      if(b){b.disabled=false;b.textContent='同意並進入';}
+    });
+    return;
+  }
   ecSync();
   var certs=EC.map(function(c){
     return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
@@ -3030,14 +3176,7 @@ function saveProfile(){
     })
     .then(function(r2){
       if(!r2||!r2.ok)throw new Error((r2&&r2.error)||'記錄失敗');
-      PROFILE_OK=true;lsS('espc_prof','1');
-      $('onb').classList.remove('open');
-      $('onb').innerHTML='';
-      loadStaff(function(){
-        autoFilterSelf();
-        loadToday(true);
-        checkDueNotice();
-      },true);
+      onbDone();
     })
     .catch(function(e){
       toast((e&&e.message)||'儲存失敗，請稍後再試','no',4000);
