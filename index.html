@@ -774,7 +774,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25q';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -997,7 +997,7 @@ function canTouchUser(u){
   if(ROLE==='admin')return true;
   if(normRole(u.role)==='admin')return false;
   if(u.username===UNAME)return true;
-  return mgrsOf(u).length>0;      // 最上層帳號只有本人或管理員能動
+  return !u.protected;            // 受保護的帳號只有本人或管理員能動
 }
 /** 我底下的所有人（含下屬的下屬），設定主管時用來避免循環 */
 function descendantsOf(username,seen){
@@ -4272,10 +4272,9 @@ function mgrBox(username){
       +'<span style="color:var(--tx3);font-size:12px">　'+he(m)+(x?'　'+roleLabel(x.role):'')+'</span></div>'
       +'<button class="ib" style="width:28px;height:28px;font-size:13px" onclick="mgrDel('+i+')">✕</button></div>';
   });
-  if(!MG.length)h+='<p class="hint" style="margin:0 0 6px">目前沒有主管，這個帳號會在最上層</p>';
   var opts=mgrOptions(username,'');
   h+='<select class="fld" onchange="mgrAdd(this.value);this.value=\'\'">'
-    +'<option value="">＋ 新增主管</option>'
+    +'<option value="">＋ 新增直屬主管</option>'
     +opts.replace(/<option value="">[^<]*<\/option>/,'')+'</select>';
   return h;
 }
@@ -4324,15 +4323,12 @@ function editUser(name){
     +'<p class="lb">組別</p>'
     +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">證照到期時會通知他與他的上層</span></p>'
+    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可收到證照到期通知</span></p>'
     +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
-    +'<p class="hint" style="margin:-6px 6px 16px">電話與分機由本人在第一次登入時填寫，'
-    +'之後可在通訊錄修改'
-    +(u.createdAt||u.createdBy
-      ? '<br>建立於 '+he(shortStamp(u.createdAt)||'—')
-        +(u.createdBy?'　由 '+he(u.createdByName||u.createdBy)+' 新增':'')
-      :'')
-    +'</p>'
+    +((u.createdAt||u.createdBy)
+      ? '<p class="hint" style="margin:-6px 6px 16px">建立於 '+he(shortStamp(u.createdAt)||'—')
+        +(u.createdBy?'　由 '+he(u.createdByName||u.createdBy)+' 新增':'')+'</p>'
+      : '')
     +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
     +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
     +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
