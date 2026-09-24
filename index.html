@@ -658,7 +658,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24aa';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24ac';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1367,9 +1367,11 @@ function gateProfile(after){
 function selfName(){
   var n=String(ENGNAME||'').trim();
   if(!n)return '';
+  if(ROLE==='admin')return '';                       // 管理員是系統帳號，不綁行程
+  if(n===String(UNAME||'').trim())return '';         // 姓名就是工號 → 不是真人姓名
   var ok=false;
   STAFF.forEach(function(s){if(s.name===n)ok=true;});
-  return ok?n:'';
+  return ok?n:'';                                    // 通訊錄查無此人 → 顯示全部行程
 }
 /** 自己應該被篩在哪一欄 */
 function selfField(){
@@ -1381,7 +1383,23 @@ function selfField(){
  * PM 或組別是 PM 的人 → 篩 PM 欄；其他人 → 篩現場欄（含申報人員）。
  * 通訊錄裡查無此人（例如 admin 這種系統帳號）就不篩，直接看全部。
  */
+/** 這個帳號要不要「開啟就先篩自己」（預設要，可在更多頁關掉） */
+function selfAutoKey(){return 'espc_selfauto_'+String(UNAME||'');}
+function selfAuto(){return ls(selfAutoKey())!=='0';}
+function toggleSelfAuto(){
+  var on=!selfAuto();
+  lsS(selfAutoKey(),on?'1':'0');
+  var n=selfName();
+  if(on)autoFilterSelf();
+  else if(n){
+    if(F.en===n)F.en='';
+    if(F.st===n)F.st='';
+  }
+  refetch();
+  toast(on?'開啟時會先顯示自己的行程':'開啟時顯示全部行程','ok');
+}
 function autoFilterSelf(){
+  if(!selfAuto())return;              // 使用者選擇每次都看全部
   var n=selfName();
   if(!n||F.en||F.st)return;           // 已有條件就不動
   F[selfField()]=n;
@@ -1916,6 +1934,11 @@ function morePage(){
   h+='<div class="sec">偏好</div>'
     +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒'
     +'<span class="beta">BETA</span><span style="flex:1"></span>'+ic('bell',19)+'</button>'
+    +(selfName()?'<div class="link" style="cursor:default"><div>'
+      +'<div>開啟時先篩選自己的行程</div>'
+      +'<div class="hint" style="margin-top:2px">關閉後每次開啟都顯示全部</div></div>'
+      +'<span style="flex:1"></span>'
+      +'<button class="sw'+(selfAuto()?' on':'')+'" onclick="toggleSelfAuto()"></button></div>':'')
     +'<div class="link" style="cursor:default">深色模式'
     +'<button class="sw'+((ls('espc_theme')||'dark')==='dark'?' on':'')+'" onclick="toggleTheme()"></button></div>'
     +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
@@ -3579,9 +3602,9 @@ function saveUser(name){
 function newUser(){
   openSheet('<div class="shh"><h3>新增帳號</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
     +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致</span></p>'
-    +'<input class="fld" id="n-e" placeholder="例：許書齊" style="margin-bottom:13px">'
+    +'<input class="fld" id="n-e" placeholder="例：王小明" style="margin-bottom:13px">'
     +'<p class="lb">帳號　<span style="color:var(--tx3);font-weight:400">登入用的工號</span></p>'
-    +'<input class="fld" id="n-u" placeholder="例：T19193" autocapitalize="characters"'
+    +'<input class="fld" id="n-u" placeholder="例：T00000" autocapitalize="characters"'
     +' autocorrect="off" style="margin-bottom:13px">'
     +'<p class="lb">密碼　<span style="color:var(--tx3);font-weight:400">預設隨機 4 碼數字，可自行修改</span></p>'
     +'<input class="fld" id="n-p" type="text" inputmode="numeric" value="'+newPin()+'" style="margin-bottom:13px">'
