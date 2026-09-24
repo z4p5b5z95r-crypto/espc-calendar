@@ -664,7 +664,7 @@ html[data-theme="dark"] .glass::after{
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
     <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳</em></button>
-    <button class="nb dlm" data-t="dl"><span data-ic="file"></span><em>下載行程</em></button>
+    <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
@@ -691,7 +691,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24ai';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24ak';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1345,6 +1345,7 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
+  $('nb-dl').style.display=(r==='admin')?'':'none'; // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -1454,7 +1455,7 @@ function restoreTab(){
   try{v=JSON.parse(ls(TAB_KEY)||'null');}catch(e){v=null;}
   if(!v||!v.t)return null;
   var okTab=['today','cal','book','upload','dl','admin','more'];
-  if(v.t==='dl'&&!isDesk())return null;
+  if(v.t==='dl'&&(!isDesk()||ROLE!=='admin'))return null;
   if(okTab.indexOf(v.t)<0)return null;
   if(v.t==='upload'&&!canWrite(ROLE))return null;
   if(v.t==='admin'&&!canManage(ROLE))return null;
@@ -2939,7 +2940,7 @@ var EXT_NONE=false;
 function extField(s){
   EXT_NONE=(String((s&&s.ext)||'').trim()===EXT_NO);
   var v=EXT_NONE?'':String((s&&s.ext)||'').trim();
-  return '<p class="lb">分機　<span style="color:var(--tx3);font-weight:400">必填，沒有分機請選「無分機」</span></p>'
+  return '<p class="lb">分機　<span style="color:var(--tx3);font-weight:400">必填，沒有分機請點右邊「無分機」</span></p>'
     +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:13px">'
     +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(v)+'" placeholder="例：215"'
     +' style="flex:1;min-width:0"'+(EXT_NONE?' disabled':'')+'>'
@@ -2992,7 +2993,7 @@ function saveProfile(){
   if(!AGREED){toast('請先勾選同意','no');return;}
   var n=$('s-n').value.trim();
   if(!n){toast('找不到對應的姓名，請聯繫管理員','no',4000);return;}
-  if(!extOK()){toast('請填分機，沒有分機請選「無分機」','no',3500);return;}
+  if(!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
   var b=$('onb-b');
   if(b){b.disabled=true;b.textContent='儲存中…';}
   ecSync();
@@ -3150,7 +3151,7 @@ function extVal(){
 function saveStaff(){
   var n=$('s-n').value.trim();
   if(!n){toast('請輸入姓名','no');return;}
-  if(!extOK()){toast('請填分機，沒有分機請選「無分機」','no',3500);return;}
+  if(!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
   ecSync();
   var certs=EC.map(function(c){
                 return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
@@ -3185,6 +3186,7 @@ function dlInit(){
 }
 /** 讀取期間內的全部行程（不套個人篩選，客戶要看的是整個專案） */
 function dlLoad(force){
+  if(ROLE!=='admin')return;
   dlInit();
   DL.loading=true;DL.err='';
   if(tab==='dl')render();
@@ -3258,6 +3260,8 @@ function dlPicked(){
 }
 function dlPage(){
   dlInit();
+  if(ROLE!=='admin')
+    return '<div class="card"><div class="empty" style="padding:30px">沒有這個功能的權限</div></div>';
   if(!isDesk())
     return '<div class="card"><div class="empty" style="padding:30px">'
       +'下載行程表請在電腦上操作<br><span style="font-size:12px">需要較寬的畫面才能預覽並列印</span></div></div>';
@@ -3843,6 +3847,7 @@ function saveUser(name){
   if(tm!==(u.team||'')){f.team=tm;any=true;}
   var nu=$('e-u')?$('e-u').value.trim():name;
   var rename=(nu&&nu!==name);
+  if(eng&&!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
   var ex=extVal(),sOld=staffOf(eng||u.engineerName);
   var extChanged=(eng&&ex!==String((sOld&&sOld.ext)||''));
   if(!rename&&!any&&!extChanged){closeSheet();return;}
