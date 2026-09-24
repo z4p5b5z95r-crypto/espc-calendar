@@ -658,7 +658,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24ac';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24af';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1386,17 +1386,27 @@ function selfField(){
 /** 這個帳號要不要「開啟就先篩自己」（預設要，可在更多頁關掉） */
 function selfAutoKey(){return 'espc_selfauto_'+String(UNAME||'');}
 function selfAuto(){return ls(selfAutoKey())!=='0';}
-function toggleSelfAuto(){
+/** inFilter=1 代表是在篩選面板裡切換：只改設定與面板，不要動已經開著的篩選條件 */
+function toggleSelfAuto(inFilter){
   var on=!selfAuto();
   lsS(selfAutoKey(),on?'1':'0');
   var n=selfName();
-  if(on)autoFilterSelf();
-  else if(n){
-    if(F.en===n)F.en='';
-    if(F.st===n)F.st='';
+  if(inFilter){
+    if(on&&n&&!FT.en&&!FT.st)FT[selfField()]=n;   // 順手把自己帶進去，還是可以再改
+    else if(!on&&n){
+      if(FT.en===n)FT.en='';
+      if(FT.st===n)FT.st='';
+    }
+    paintFilter();
+  }else{
+    if(on)autoFilterSelf();
+    else if(n){
+      if(F.en===n)F.en='';
+      if(F.st===n)F.st='';
+    }
+    refetch();
   }
-  refetch();
-  toast(on?'開啟時會先顯示自己的行程':'開啟時顯示全部行程','ok');
+  toast(on?'下次開啟會先顯示自己的行程':'下次開啟顯示全部行程','ok');
 }
 function autoFilterSelf(){
   if(!selfAuto())return;              // 使用者選擇每次都看全部
@@ -2269,6 +2279,11 @@ function paintFilter(){
     +'<div class="opts" style="margin-bottom:4px">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
     +tyGroupsHTML(tys)
+    +(selfName()?'<div class="link" style="cursor:default;margin-top:14px"><div>'
+      +'<div>下次開啟先篩選我的行程</div>'
+      +'<div class="hint" style="margin-top:2px">關閉後每次開啟都顯示全部</div></div>'
+      +'<span style="flex:1"></span>'
+      +'<button class="sw'+(selfAuto()?' on':'')+'" onclick="toggleSelfAuto(1)"></button></div>':'')
     +'<div style="height:8px"></div>';
   $('sheetin').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
@@ -3512,6 +3527,8 @@ function editUser(name){
     +'<p class="hint" style="margin-top:3px">'+he(u.username)
     +(me?'　·　目前帳號':'')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致，留空表示不自動篩選</span></p>'
+    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="例：王小明" style="margin-bottom:13px">'
     +'<p class="lb">工號　<span style="color:var(--tx3);font-weight:400">同時也是登入帳號</span></p>'
     +'<input class="fld" id="e-u" value="'+he(u.username)+'" autocapitalize="characters"'
     +' autocorrect="off" style="margin-bottom:13px">'
@@ -3520,8 +3537,6 @@ function editUser(name){
     +roleChoices().map(function(k){
       return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
-    +'<p class="lb">對應人員　<span style="color:var(--tx3);font-weight:400">留空表示不自動篩選</span></p>'
-    +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="與排程表上的姓名一致" style="margin-bottom:13px">'
     +'<p class="lb">地區</p><select class="fld" id="e-g" style="margin-bottom:13px">'
     +['','台北','台中','高雄'].map(function(o){
       return '<option value="'+o+'"'+((u.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
@@ -3529,6 +3544,8 @@ function editUser(name){
     +'<p class="lb">組別</p>'
     +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:18px">'
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
+    +extField(staffOf(u.engineerName))
+    +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄</p>'
     +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
     +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
     +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
@@ -3539,6 +3556,30 @@ function editUser(name){
        +'通訊錄與上傳記錄不受影響。</p>');
   openSheet(h);
 }
+/** 通訊錄裡的那一筆（查不到回 null） */
+function staffOf(name){
+  var n=String(name||'').trim(),out=null;
+  if(!n)return null;
+  STAFF.forEach(function(x){if(x.name===n)out=x;});
+  return out;
+}
+/** 從帳號管理改分機：寫回通訊錄，其他欄位原值帶回去不動 */
+function saveExtFor(name,ext){
+  return new Promise(function(done){
+    var n=String(name||'').trim();
+    if(!n){done();return;}
+    var run=function(){
+      var s=staffOf(n);
+      gas('saveStaff',TOKEN,n,(s&&s.phone)||'',(s&&s.region)||'',(s&&s.team)||'',
+          JSON.stringify((s&&s.certs)||[]),(s&&s.note)||'',(s&&s.alias)||'',ext)
+        .then(function(){loadStaff(null,true);done();})
+        .catch(function(){done();});
+    };
+    if(STAFF_READY)run();               // 通訊錄沒載好就先載，免得把既有資料洗掉
+    else loadStaff(run,true);
+  });
+}
+
 /** 目前所有帳號用過的組別 */
 function userTeams(){
   var out=[];
@@ -3577,7 +3618,9 @@ function saveUser(name){
   if(tm!==(u.team||'')){f.team=tm;any=true;}
   var nu=$('e-u')?$('e-u').value.trim():name;
   var rename=(nu&&nu!==name);
-  if(!rename&&!any){closeSheet();return;}
+  var ex=extVal(),sOld=staffOf(eng||u.engineerName);
+  var extChanged=(eng&&ex!==String((sOld&&sOld.ext)||''));
+  if(!rename&&!any&&!extChanged){closeSheet();return;}
 
   // 先改工號，後面的欄位更新才會對到新帳號
   var first=rename?gas('renameUser',TOKEN,name,nu):Promise.resolve({ok:true});
@@ -3592,6 +3635,8 @@ function saveUser(name){
     return any?gas('updateUser',TOKEN,target,f):{ok:true};
   }).then(function(r2){
     if(!r2||!r2.ok)throw new Error((r2&&r2.error)||'儲存失敗');
+    return extChanged?saveExtFor(eng,ex):null;
+  }).then(function(){
     toast('已儲存','ok');closeSheet();loadUsers();
   }).catch(function(e){
     toast((e&&e.message)||'操作失敗','no',4000);
