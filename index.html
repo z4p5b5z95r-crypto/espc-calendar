@@ -774,7 +774,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25m';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25o';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -994,8 +994,7 @@ function isUnderMe(username){
 function canTouchUser(u){
   if(!u)return false;
   if(u.canEdit!==undefined)return !!u.canEdit;    // 後端已經判斷過
-  if(ROLE==='admin')return true;
-  return isUnderMe(u.username);
+  return ROLE==='admin'||normRole(u.role)!=='admin';
 }
 /** 我底下的所有人（含下屬的下屬），設定主管時用來避免循環 */
 function descendantsOf(username,seen){
@@ -4109,7 +4108,6 @@ function userListHTML(){
       +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
       +(u.team?'　·　'+he(u.team):'')+(u.region?'　·　'+he(u.region):'')
-      +(me?'　·　目前帳號':'')
       +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div>'
       +'</div>'
       +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
@@ -4347,7 +4345,7 @@ function editUser(name){
     +'<p class="lb">組別</p>'
     +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可以選兩位以上，共同管理</span></p>'
+    +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">證照到期時會通知他與他的上層</span></p>'
     +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
     +extField(staffOf(u.engineerName))
     +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄'
