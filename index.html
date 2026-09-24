@@ -691,7 +691,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24am';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24an';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1405,9 +1405,10 @@ function getMeOnce(){
 function needProfile(){
   if(PROFILE_OK)return false;
   if(ROLE==='admin')return false;
-  if(!String(ENGNAME||'').trim())return false;   // 沒綁人員就沒有資料要確認
-  if(STAFF_READY&&!selfName())return false;      // 通訊錄查不到這個人
-  return true;
+  var n=String(ENGNAME||'').trim();
+  if(!n)return false;                    // 沒綁人員就沒有資料要確認
+  if(n===String(UNAME||'').trim())return false;   // 姓名就是工號 → 系統帳號
+  return true;                           // 新人還不在通訊錄，更要請他確認一次
 }
 function gateProfile(after){
   if(!needProfile()){after();return;}
@@ -2926,7 +2927,7 @@ function closeOnboarding(){
 function openOnboarding(){
   var name=String(ENGNAME||'').trim();
   var s={name:name,phone:'',ext:'',region:'',team:'',alias:'',note:''};
-  STAFF.forEach(function(x){if(x.name===name)s=x;});
+  STAFF.forEach(function(x){if(x.name===name)s=x;});   // 新人查無資料就留空白讓他填
   EDIT_S=s;AGREED=false;
   EC=safetyList(name).map(function(o){
     return {type:o.type,cert:o.cert,train:o.train,years:o.years,remind:o.remind};});
