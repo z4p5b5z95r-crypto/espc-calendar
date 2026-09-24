@@ -774,7 +774,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25l';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25m';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -4081,6 +4081,12 @@ function mgrsOf(u){
   return String((u&&u.manager)||'').split(/[,、，;；\/\s]+/)
     .map(function(x){return x.trim();}).filter(Boolean);
 }
+/** 只重畫清單，不動上面的搜尋與篩選（篩選才會即時生效） */
+function paintUsers(){
+  var el=$('ulist');
+  if(!el){if(tab==='admin'&&!sub)render();return;}
+  el.outerHTML=userListHTML();
+}
 function userListHTML(){
   var list=userFiltered();
   list.sort(function(a,b){
@@ -4095,11 +4101,6 @@ function userListHTML(){
     var me=u.username===UNAME;
     var nm=u.engineerName||u.username;
     var can=canTouchUser(u);
-    var mgs=mgrsOf(u).map(function(m){
-      var x=null;
-      USERS.forEach(function(y){if(y.username===m)x=y;});
-      return x?(x.engineerName||x.username):m;
-    });
     h+='<div class="lrow"'+(u.active&&can?'':' style="opacity:.55"')
       +(can?' onclick="editUser(\''+esc(u.username)+'\')"':'')+'>'
       +'<div class="pav"'+(me?' style="background:var(--brand);color:var(--accTx)"':'')+'>'
@@ -4110,8 +4111,6 @@ function userListHTML(){
       +(u.team?'　·　'+he(u.team):'')+(u.region?'　·　'+he(u.region):'')
       +(me?'　·　目前帳號':'')
       +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div>'
-      +(mgs.length?'<div style="font-size:12px;color:var(--tx3);margin-top:1px">主管：'
-        +he(mgs.join('、'))+'</div>':'')
       +'</div>'
       +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
       +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
