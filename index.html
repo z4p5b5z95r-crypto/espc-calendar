@@ -503,6 +503,35 @@ html[data-theme="dark"] .glass::after{
 .ts.no{background:var(--err);color:#fff;}
 
 
+/* ── 下載行程（桌機限定）── */
+.nb.dlm{display:none;}
+.dlw{display:block;}
+.dlside{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px;}
+.dlout{background:#fff;color:#111;border-radius:16px;padding:26px 30px;}
+.dlout h4{margin:0;font-size:19px;font-weight:700;letter-spacing:.5px;}
+.dlout .sub{margin:4px 0 16px;font-size:12px;color:#666;}
+.dlt{width:100%;border-collapse:collapse;font-size:12.5px;}
+.dlt th{background:#f2f2f0;color:#444;font-weight:600;text-align:left;padding:7px 9px;
+  border-bottom:1px solid #d8d8d4;white-space:nowrap;}
+.dlt td{padding:7px 9px;border-bottom:1px solid #eceae4;vertical-align:top;}
+.dlt tr.d0 td{border-top:1px solid #d8d8d4;}
+.dlt .num{text-align:right;white-space:nowrap;}
+.dlt tfoot td{background:#f7f6f3;font-weight:600;border-top:1px solid #d8d8d4;border-bottom:none;}
+.dlfoot{margin-top:14px;font-size:11px;color:#777;line-height:1.7;}
+.dlempty{padding:40px 0;text-align:center;color:#888;font-size:13px;}
+
+@media print{
+  body{background:#fff!important;}
+  body::before,body::after{display:none!important;}
+  .bar,.nav,.fchips,.ov,.pk,.ts,.dlside,.dlnp{display:none!important;}
+  #app{padding:0!important;}
+  #page{padding:0!important;}
+  .dlout{border-radius:0;padding:0;}
+  .dlt{font-size:11px;}
+  .dlt tr{break-inside:avoid;}
+  @page{size:A4 portrait;margin:14mm 12mm;}
+}
+
 /* ══════════ 桌機版（≥ 900px）══════════
    導覽列移到最上方，內容置中限寬，行事曆格子加高 */
 .glist{display:block;}
@@ -535,6 +564,9 @@ html[data-theme="dark"] .glass::after{
 
   /* 桌機沒有滑動手勢，把換月箭頭放回來 */
   .ib.navm{display:inline-flex;}
+  .nb.dlm{display:flex;}
+  .dlw{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start;}
+  .dlside{position:sticky;top:132px;margin-bottom:0;}
   /* 按鈕加上滑鼠效果 */
   .ib{transition:background .15s,transform .1s;}
   .ib:hover{background:var(--line);}
@@ -632,6 +664,7 @@ html[data-theme="dark"] .glass::after{
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
     <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳</em></button>
+    <button class="nb dlm" data-t="dl"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
@@ -658,7 +691,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24ah';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24ai';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1420,7 +1453,8 @@ function restoreTab(){
   var v;
   try{v=JSON.parse(ls(TAB_KEY)||'null');}catch(e){v=null;}
   if(!v||!v.t)return null;
-  var okTab=['today','cal','book','upload','admin','more'];
+  var okTab=['today','cal','book','upload','dl','admin','more'];
+  if(v.t==='dl'&&!isDesk())return null;
   if(okTab.indexOf(v.t)<0)return null;
   if(v.t==='upload'&&!canWrite(ROLE))return null;
   if(v.t==='admin'&&!canManage(ROLE))return null;
@@ -1454,6 +1488,7 @@ function go(t,s){
   render();                                  // 先畫出容器，再載資料
   if(tab==='upload'||sub==='upload')loadHistory();
   else if(t==='admin'||sub==='admin')loadUsers();
+  else if(t==='dl'){if(!DL.rows)dlLoad();}
   else if(t==='cal'){if(needMonth)loadMonth();loadRegionUpdates();}
   else if(t==='today'&&!todayFor)loadToday();
   else if(t==='book')loadStaff(null);
@@ -1485,6 +1520,7 @@ function render(){
 function titleText(){
   if(tab==='upload'||sub==='upload')return '上傳排程';
   if(tab==='admin'||sub==='admin')return '帳號管理';
+  if(tab==='dl')return '下載行程';
   if(sub==='notify')return '提醒設定';   // BETA 標示在頁面內
   if(sub==='pw')return '修改密碼';
   if(tab==='today')return '今天';
@@ -1517,6 +1553,8 @@ function rightButtons(){
     return '<button class="ib" onclick="loadHistory(true)" title="重新整理">↻</button>';
   if(tab==='admin')
     return '<button class="ib" onclick="loadUsers()" title="重新整理">↻</button>';
+  if(tab==='dl')
+    return '<button class="ib" onclick="dlLoad(true)" title="重新讀取">↻</button>';
   return '';
 }
 function filterBtn(){
@@ -1554,6 +1592,7 @@ function pageHTML(){
   if(tab==='admin'||sub==='admin')return '<div id="users">'+loader('載入帳號…')+'</div>';
   if(sub==='notify')return notifyPage();
   if(sub==='pw')return pwPage();
+  if(tab==='dl')return dlPage();
   if(tab==='today')return todayPage();
   if(tab==='cal')return calPage();
   if(tab==='book')return bookPage();
@@ -3130,6 +3169,177 @@ function delStaff(n){
     if(!r||!r.ok){toast((r&&r.error)||'刪除失敗','no');return;}
     toast('已刪除','ok');closeSheet();loadStaff(render,true);
   }).catch(function(){toast('操作失敗','no');});
+}
+
+/* ══ 下載行程（給客戶的行程表，桌機限定）══ */
+function isDesk(){
+  try{return (window.innerWidth||document.documentElement.clientWidth||0)>=900;}
+  catch(e){return true;}
+}
+var DL={proj:'',ty:[],from:'',to:'',rows:null,loading:false,err:''};
+function dlInit(){
+  if(DL.from&&DL.to)return;
+  var n=twDate(),y=n.getFullYear(),m=n.getMonth();
+  DL.from=y+'-'+p2(m+1)+'-01';
+  DL.to=y+'-'+p2(m+1)+'-'+p2(new Date(y,m+1,0).getDate());
+}
+/** 讀取期間內的全部行程（不套個人篩選，客戶要看的是整個專案） */
+function dlLoad(force){
+  dlInit();
+  DL.loading=true;DL.err='';
+  if(tab==='dl')render();
+  gas('getData',TOKEN,{dateFrom:DL.from,dateTo:DL.to}).then(function(r){
+    DL.loading=false;
+    if(!r||!r.ok){DL.err=(r&&r.error)||'讀取失敗';DL.rows=[];}
+    else DL.rows=normRows(r.rows||[]);
+    if(tab==='dl')render();
+  }).catch(function(){
+    DL.loading=false;DL.err='讀取失敗，請重試';DL.rows=DL.rows||[];
+    if(tab==='dl')render();
+  });
+}
+function dlSetDate(which,v){
+  DL[which]=v;
+  if(DL.from&&DL.to&&DL.from>DL.to){if(which==='from')DL.to=DL.from;else DL.from=DL.to;}
+  dlLoad();
+}
+function dlSetProj(v){DL.proj=v;DL.ty=[];render();}
+function dlTy(t){
+  if(!t)DL.ty=[];
+  else{
+    var i=DL.ty.indexOf(t);
+    if(i<0)DL.ty.push(t);else DL.ty.splice(i,1);
+  }
+  render();
+}
+/** 目前期間內有哪些專案（依筆數多寡排序） */
+function dlProjects(){
+  var m={},out=[];
+  (DL.rows||[]).forEach(function(r){
+    var k=r.project||'';
+    if(!k)return;
+    if(!m[k]){m[k]={name:k,no:'',n:0};out.push(m[k]);}
+    m[k].n++;
+    if(!m[k].no&&okNo(r.projectNo))m[k].no=okNo(r.projectNo);
+  });
+  out.sort(function(a,b){return b.n-a.n||a.name.localeCompare(b.name,'zh-Hant');});
+  return out;
+}
+function dlTypes(){
+  var out=[];
+  (DL.rows||[]).forEach(function(r){
+    if(DL.proj&&r.project!==DL.proj)return;
+    if(r.type&&out.indexOf(r.type)<0)out.push(r.type);
+  });
+  return out.sort();
+}
+/** 挑出要印的列，並把同日期、同測項、同點位、同時間的重複合併 */
+function dlPicked(){
+  var m={},out=[];
+  (DL.rows||[]).forEach(function(r){
+    if(DL.proj&&r.project!==DL.proj)return;
+    if(DL.ty.length&&DL.ty.indexOf(r.type)<0)return;
+    var k=[r.date,r.type,r.location,r.sampTime].join('|');
+    if(!m[k]){
+      m[k]={date:r.date,type:r.type||'',loc:r.location||'',time:r.sampTime||'',
+            qtys:[],qseen:{}};
+      out.push(m[k]);
+    }
+    var g=m[k];
+    var qk=String(r.reportNum||'')+'｜'+String(r.qty==null?'':r.qty).trim();
+    if(!(r.reportNum&&g.qseen[qk]))g.qtys.push(String(r.qty==null?'':r.qty).trim());
+    g.qseen[qk]=1;
+  });
+  out.sort(function(a,b){
+    return a.date<b.date?-1:a.date>b.date?1:
+      (typeGroup(a.type)+a.type).localeCompare(typeGroup(b.type)+b.type,'zh-Hant');
+  });
+  return out;
+}
+function dlPage(){
+  dlInit();
+  if(!isDesk())
+    return '<div class="card"><div class="empty" style="padding:30px">'
+      +'下載行程表請在電腦上操作<br><span style="font-size:12px">需要較寬的畫面才能預覽並列印</span></div></div>';
+  return '<div class="dlw">'+dlSide()+'<div>'+dlOut()+'</div></div>';
+}
+function dlSide(){
+  var ps=dlProjects(),tys=dlTypes();
+  var h='<div class="dlside">'
+    +'<p class="lb">期間</p>'
+    +'<div style="display:flex;gap:8px;margin-bottom:13px">'
+    +'<input class="fld" type="date" value="'+he(DL.from)+'" onchange="dlSetDate(\'from\',this.value)">'
+    +'<input class="fld" type="date" value="'+he(DL.to)+'" onchange="dlSetDate(\'to\',this.value)">'
+    +'</div>'
+    +'<p class="lb">專案</p>'
+    +'<select class="fld" style="margin-bottom:13px" onchange="dlSetProj(this.value)">'
+    +'<option value="">請選擇專案</option>'
+    +ps.map(function(p){
+      return '<option value="'+he(p.name)+'"'+(DL.proj===p.name?' selected':'')+'>'
+        +he(p.name)+'（'+p.n+'）</option>';}).join('')
+    +'</select>';
+  if(DL.proj){
+    h+='<p class="lb">監測類別　<span style="color:var(--tx3);font-weight:400">不選＝全部</span></p>'
+      +'<div class="opts" style="margin-bottom:13px">'
+      +'<button class="ob'+(DL.ty.length?'':' on')+'" onclick="dlTy(\'\')">全部</button>'
+      +tys.map(function(t){
+        var on=DL.ty.indexOf(t)>=0;
+        return '<button class="ob'+(on?' on':'')+'" onclick="dlTy(\''+he(esc(t))+'\')">'
+          +(on?ic('check',15):'')+he(t)+'</button>';}).join('')
+      +'</div>'
+      +'<button class="btn btn-p btn-full" onclick="dlPrint()">'+ic('file',17)+'　列印／另存 PDF</button>'
+      +'<p class="hint" style="margin:9px 4px 0">列印視窗的「目的地」選「另存為 PDF」即可。</p>';
+  }
+  return h+'</div>';
+}
+function dlOut(){
+  if(DL.loading)return '<div class="dlout">'+loader('讀取行程…')+'</div>';
+  if(DL.err)return '<div class="dlout"><div class="dlempty">'+he(DL.err)+'</div></div>';
+  if(!DL.proj)
+    return '<div class="dlout"><div class="dlempty">選擇期間與專案後，這裡會顯示要給客戶的行程表</div></div>';
+  var list=dlPicked();
+  var p=null;
+  dlProjects().forEach(function(x){if(x.name===DL.proj)p=x;});
+  var days={},nd=0,tot=[];
+  list.forEach(function(g){
+    if(!days[g.date]){days[g.date]=1;nd++;}
+    g.qtys.forEach(function(q){tot.push(q);});
+  });
+  var h='<div class="dlout" id="dlout">'
+    +'<h4>'+he(DL.proj)+'　環境監測行程表</h4>'
+    +'<p class="sub">'+(p&&p.no?'計畫編號 '+he(p.no)+'　·　':'')
+    +he(dlDate(DL.from))+' ～ '+he(dlDate(DL.to))
+    +'　·　製表日期 '+he(twStr())+'</p>';
+  if(!list.length)return h+'<div class="dlempty">這段期間沒有符合的行程</div></div>';
+  h+='<table class="dlt"><thead><tr>'
+    +'<th style="width:82px">日期</th><th style="width:44px">星期</th>'
+    +'<th style="width:130px">監測類別</th><th>監測點位</th>'
+    +'<th style="width:104px">監測時間</th><th class="num" style="width:62px">數量</th>'
+    +'</tr></thead><tbody>';
+  var last='';
+  list.forEach(function(g){
+    var first=(g.date!==last);
+    h+='<tr'+(first?' class="d0"':'')+'>'
+      +'<td>'+(first?he(dlDate(g.date)):'')+'</td>'
+      +'<td>'+(first?DW[dowOf(g.date)]:'')+'</td>'
+      +'<td>'+he(g.type||'—')+'</td>'
+      +'<td>'+he(g.loc||'—')+'</td>'
+      +'<td>'+he(g.time||'—')+'</td>'
+      +'<td class="num">'+he(qtyText(g.qtys)||'—')+'</td></tr>';
+    last=g.date;
+  });
+  h+='</tbody><tfoot><tr><td colspan="5">合計　'+nd+' 個工作天　'+list.length+' 個項目</td>'
+    +'<td class="num">'+he(qtyText(tot)||'—')+'</td></tr></tfoot></table>'
+    +'<p class="dlfoot">本表為預定行程，實際監測日期可能因天候或現場狀況調整，異動將另行通知。</p>'
+    +'</div>';
+  return h;
+}
+function dlDate(d){
+  var a=String(d||'').split('-');
+  return a.length===3?(a[0]+'/'+a[1]+'/'+a[2]):String(d||'');
+}
+function dlPrint(){
+  try{window.print();}catch(e){toast('無法開啟列印視窗','no');}
 }
 
 /* ══ 上傳 ══ */
