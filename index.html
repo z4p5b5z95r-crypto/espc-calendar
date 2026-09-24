@@ -700,7 +700,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24az';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24bc';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2273,17 +2273,37 @@ function normName(v){
   return ALIAS[k.toLowerCase()]||k;
 }
 /** 把整批行程的人名換成正式姓名（就地修改） */
+/* 排程表有時把兩個人寫在同一格（「白奇正 郭偉信」）。
+   只要拆開後有人對得上通訊錄，就拆成兩個人；都對不上才維持原樣。 */
+function splitNames(v){
+  var raw=String(v||'').trim();
+  if(!raw)return [];
+  var parts=raw.split(/[、，,;；\/／\s]+/).map(function(x){return normName(x.trim());})
+    .filter(Boolean);
+  if(parts.length<2)return [normName(raw)];
+  var known=parts.some(function(x){return !!TEAM.hasOwnProperty(x)||PHONE.hasOwnProperty(x);});
+  return known?parts:[normName(raw)];
+}
 function normRows(list){
   (list||[]).forEach(function(r){
     if(r.engineer)r.engineer=normName(r.engineer);
     if(r.applicant)r.applicant=normName(r.applicant);
-    if(r.staff&&r.staff.length)r.staff=r.staff.map(normName);
+    if(r.staff&&r.staff.length){
+      var out=[],seen={};
+      r.staff.forEach(function(x){
+        splitNames(x).forEach(function(n){if(n&&!seen[n]){seen[n]=1;out.push(n);}});
+      });
+      r.staff=out;
+    }
   });
   return list||[];
 }
 
 function applyStaff(l){
-  STAFF=l||[];PHONE={};SAFETY={};ALIAS={};TEAM={};STAFF_READY=true;
+  // admin 是系統帳號，不該出現在通訊錄或任何人員清單
+  STAFF=(l||[]).filter(function(s){
+    return s&&String(s.name||'').trim()&&String(s.name).trim().toLowerCase()!=='admin';});
+  PHONE={};SAFETY={};ALIAS={};TEAM={};STAFF_READY=true;
   STAFF.forEach(function(s){
     if(!s.name)return;
     PHONE[s.name]=s.phone||'';
@@ -2443,12 +2463,38 @@ function isPM(n){
   for(var i=0;i<rs.length;i++)if(rs[i].engineer===n)return true;
   return false;
 }
+/** 手上所有行程資料：畫面上的＋本機快取（含背景抓回來的整月不分人資料） */
+function allKnownRows(){
+  var out=allRows.concat(todayRows);
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(!k||k.indexOf(CK+'m_')!==0&&k.indexOf(CK+'today')!==0)continue;
+      var c=jGet(k,null);
+      if(c&&c.rows&&c.rows.length)out=out.concat(c.rows);
+    }
+  }catch(e){}
+  return out;
+}
+/** 曾經出現在現場或申報欄的人（跨快取，所以篩選中也看得到其他人） */
+function siteNames(){
+  var m={};
+  allKnownRows().forEach(function(r){
+    splitNames(r.applicant).forEach(function(n){if(n)m[n]=1;});
+    (r.staff||[]).forEach(function(x){
+      splitNames(x).forEach(function(n){if(n)m[n]=1;});
+    });
+  });
+  return m;
+}
+
 /** 可選的人：通訊錄全部人員，再補上行程裡出現過但通訊錄沒建的人 */
 function pickNames(){
   var out=[],seen={};
   function add(n){
     n=String(n||'').trim();
-    if(n&&!seen[n]){seen[n]=1;out.push(n);}
+    if(!n||n.toLowerCase()==='admin')return;     // 系統帳號不列出
+    if(!seen[n]){seen[n]=1;out.push(n);}
   }
   if(PK.who==='en'){
     // PM 欄只列 PM，列不出來時才退回全部，免得變成空清單
@@ -2456,11 +2502,10 @@ function pickNames(){
     allRows.concat(todayRows).forEach(function(r){add(r.engineer);});
     if(!out.length)STAFF.forEach(function(s){add(s.name);});
   }else{
-    // 現場欄排除組別是 PM 的人；但真的出現在現場／申報欄的照樣列出
-    STAFF.forEach(function(s){if(!isPMTeam(s.name))add(s.name);});
-    allRows.concat(todayRows).forEach(function(r){
-      add(r.applicant);(r.staff||[]).forEach(add);
-    });
+    // 現場欄只列真的跑過現場或申報的人；通訊錄其他人（PM、內勤）不列
+    var seenSite=siteNames();
+    STAFF.forEach(function(s){if(seenSite[s.name])add(s.name);});
+    Object.keys(seenSite).forEach(add);
   }
   var cur=(PK.who==='en'?FT.en:FT.st);
   if(cur)add(cur);
@@ -3960,8 +4005,8 @@ function editUser(name){
        +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>'
        +'<button class="btn btn-d btn-full" style="margin-top:9px"'
        +' onclick="delUser(\''+esc(u.username)+'\')">刪除此帳號</button>'
-       +'<p class="hint" style="margin:9px 6px 0">停用會保留帳號但無法登入；刪除會把帳號移除且無法復原，'
-       +'通訊錄與上傳記錄不受影響。</p>');
+       +'<p class="hint" style="margin:9px 6px 0">停用會保留帳號但無法登入；刪除會把帳號與'
+       +'通訊錄裡對應的人員資料一起移除，且無法復原（上傳記錄與行程不受影響）。</p>');
   openSheet(h);
 }
 /** 通訊錄裡的那一筆（查不到回 null） */
@@ -3999,7 +4044,8 @@ function delUser(name){
   var u=null;
   USERS.forEach(function(x){if(x.username===name)u=x;});
   var who=u&&u.engineerName?u.engineerName+'（'+name+'）':name;
-  if(!confirm('確定要刪除帳號 '+who+'？\n\n此動作無法復原，該帳號會立刻無法登入。\n（只是暫時不用請改用「停用」）'))return;
+  if(!confirm('確定要刪除帳號 '+who+'？\n\n此動作無法復原，該帳號會立刻無法登入，'
+    +'通訊錄裡對應的人員資料也會一併刪除。\n（只是暫時不用請改用「停用」）'))return;
   var typed=prompt('請輸入工號 '+name+' 以確認刪除：');
   if(typed===null)return;
   if(String(typed).trim().toUpperCase()!==String(name).trim().toUpperCase()){
@@ -4007,8 +4053,9 @@ function delUser(name){
   }
   gas('deleteUser',TOKEN,name).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'刪除失敗','no',4000);return;}
-    toast('已刪除帳號','ok');
+    toast(r.staffDeleted?('已刪除帳號與通訊錄資料'):'已刪除帳號','ok');
     closeSheet();loadUsers();
+    if(r.staffDeleted)loadStaff(null,true);
   }).catch(function(){toast('操作失敗','no');});
 }
 function saveUser(name){
