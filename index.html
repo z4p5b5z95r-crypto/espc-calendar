@@ -636,7 +636,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24o';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24p';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -818,7 +818,7 @@ function cSet(k,o){try{localStorage.setItem(CK+k,JSON.stringify(o));}catch(e){cP
 function cPrune(hard){
   try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
     if(k&&k.indexOf(CK+'m_')===0)ks.push(k);}
-    ks.sort();while(ks.length>(hard?2:8))localStorage.removeItem(ks.shift());
+    ks.sort();while(ks.length>(hard?3:14))localStorage.removeItem(ks.shift());
     if(hard){for(var j=localStorage.length-1;j>=0;j--){var k2=localStorage.key(j);
       if(k2&&k2.indexOf(CK+'today')===0)localStorage.removeItem(k2);}}
   }catch(e){}
@@ -1201,10 +1201,26 @@ window.addEventListener('DOMContentLoaded',function(){
   });
   $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeSheet();});
 
-  if(TOKEN){
+  if(TOKEN&&ROLE&&UNAME){
+    // 本機還記得上次登入的身分 → 直接開起來，登入狀態在背景確認
+    boot(UNAME,ROLE,ENGNAME);
+    gas('getMe',TOKEN).then(function(r){
+      if(r&&r.ok){
+        if(r.role!==ROLE||r.username!==UNAME||(r.engineerName||'')!==ENGNAME){
+          saveSession(TOKEN,r.role,r.username,r.engineerName||'');
+          location.reload();          // 身分有變就重來一次
+        }
+      }else{
+        clearSession();
+        toast('登入已過期，請重新登入','no',4000);
+        setTimeout(function(){location.reload();},1200);
+      }
+    }).catch(function(){});           // 離線就先用快取撐著
+  }else if(TOKEN){
     $('login').innerHTML=loader('登入中…');
     gas('getMe',TOKEN).then(function(r){
-      if(r&&r.ok)boot(r.username,r.role,r.engineerName||'');
+      if(r&&r.ok){saveSession(TOKEN,r.role,r.username,r.engineerName||'');
+        boot(r.username,r.role,r.engineerName||'');}
       else{clearSession();location.reload();}
     }).catch(function(){
       $('login').innerHTML='<div class="lcard" style="text-align:center">'
@@ -1258,18 +1274,16 @@ function boot(u,r,eng){
   ntInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
   // 等通訊錄載好才決定要篩哪一欄（需要組別資料），再開始抓行程
+  // 一律先用快取畫面，版本比對在背景做，開啟就有東西看
   loadStaff(function(){
     autoFilterSelf();
     if(back)go(back.t,back.s);
-    else loadToday(fresh);
+    else loadToday(false);
     checkDueNotice();
-  },fresh);
+  },false);
 }
 
-/* ══ 只看自己 ══════════════════════════════════════
-   預設只下載並顯示自己的行程（快很多）。
-   要查別人時在篩選面板打開「查看其他人的行程」。 */
-var SEEALL=(ls('espc_all')==='1');
+/* 登入後預設只下載並顯示自己的行程（快很多），但隨時可以改篩別人 */
 /** 這個帳號綁定的人（通訊錄查得到才算） */
 function selfName(){
   var n=String(ENGNAME||'').trim();
@@ -1283,21 +1297,6 @@ function selfField(){
   var n=selfName();
   return (ROLE==='pm'||isPMTeam(n))?'en':'st';
 }
-/** 只看自己時，強制把條件鎖回自己身上 */
-function lockSelf(){
-  var n=selfName();
-  if(SEEALL||!n)return;
-  F.en='';F.st='';
-  F[selfField()]=n;
-}
-function seeAllToggle(){
-  var el=$('f-q');if(el)FT.q=el.value;
-  SEEALL=!SEEALL;
-  lsS('espc_all',SEEALL?'1':'');
-  if(!SEEALL){FT.en='';FT.st='';FT[selfField()]=selfName();}
-  paintFilter();
-}
-
 /**
  * 登入後先顯示自己的行程。
  * PM 或組別是 PM 的人 → 篩 PM 欄；其他人 → 篩現場欄（含申報人員）。
@@ -1305,9 +1304,7 @@ function seeAllToggle(){
  */
 function autoFilterSelf(){
   var n=selfName();
-  if(!n)return;
-  if(!SEEALL){lockSelf();return;}     // 只看自己：一定鎖回自己
-  if(F.en||F.st)return;               // 可看全部：已有條件就不動
+  if(!n||F.en||F.st)return;           // 已有條件就不動
   F[selfField()]=n;
 }
 
@@ -1424,11 +1421,8 @@ function renderChips(){
   var h='';
   if(F.q)h+='<span class="fc">「'+he(F.q)+'」<button onclick="clrF(\'q\')">✕</button></span>';
   if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
-  var lk=(!SEEALL&&selfName());
-  if(F.en)h+='<span class="fc">'+he(F.en)
-    +(lk?'':'<button onclick="clrF(\'en\')">✕</button>')+'</span>';
-  if(F.st)h+='<span class="fc">'+he(F.st)
-    +(lk?'':'<button onclick="clrF(\'st\')">✕</button>')+'</span>';
+  if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
+  if(F.st)h+='<span class="fc">'+he(F.st)+'<button onclick="clrF(\'st\')">✕</button></span>';
   F.ty.forEach(function(t){
     h+='<span class="fc">'+he(t)+'<button onclick="clrF(\'ty\',\''+he(t).replace(/'/g,"\\'")+'\')">✕</button></span>';});
   $('fchips').innerHTML=h;
@@ -1436,7 +1430,6 @@ function renderChips(){
 function clrF(k,v){
   if(k==='ty')F.ty=F.ty.filter(function(t){return t!==v;});
   else F[k]='';
-  lockSelf();            // 只看自己時，人員條件拿不掉
   refetch();
 }
 
@@ -1907,10 +1900,12 @@ function scopeOpts(o){
   return o;
 }
 /** 背景把完整資料抓回來存快取，不動畫面 */
-function prefetch(key,o){
+/** 背景抓資料存進快取，不動畫面。useScope=true 表示只抓目前篩選到的人 */
+function prefetch(key,o,useScope){
   var c=cGet(key);
   if(c&&c.version&&c.version===cVer())return;     // 快取已是最新
   var q={dateFrom:o.dateFrom,dateTo:o.dateTo};
+  if(useScope)scopeOpts(q);
   if(c&&c.version)q.version=c.version;
   gas('getData',TOKEN,q).then(function(r){
     if(!r||!r.ok||r.unchanged)return;
@@ -1918,6 +1913,21 @@ function prefetch(key,o){
     if(o.date)v.date=o.date;
     cSet(key,v);
   }).catch(function(){});
+}
+
+/** 把某年某月抓進快取（含目前的篩選範圍），滑過去就不用等 */
+function prefetchMonth(y,m){
+  if(m<0){m=11;y--;}else if(m>11){m=0;y++;}
+  var ym=y+'-'+p2(m+1);
+  var sk=scopeKey();
+  prefetch('m_'+ym+(sk?'_'+sk:''),
+    {dateFrom:ym+'-01',dateTo:ym+'-'+p2(new Date(y,m+1,0).getDate())},true);
+}
+/** 停在某個月時，順手把前後一個月備好 */
+function prefetchNeighbors(){
+  var y=curY,m=curM;
+  setTimeout(function(){prefetchMonth(y,m+1);},700);
+  setTimeout(function(){prefetchMonth(y,m-1);},1400);
 }
 
 function loadMonth(force){
@@ -1929,7 +1939,7 @@ function loadMonth(force){
   var onTab=(tab==='cal'&&!sub);        // 在別的頁籤時只默默更新，不動版面
   allScope=sk;
   var c=force?null:cGet(key);
-  if(c&&c.rows){calLoading=false;paintMonth(c.rows);}
+  if(c&&c.rows){calLoading=false;paintMonth(c.rows);prefetchNeighbors();}
   else{
     calLoading=true;
     if(onTab)render();          // 先把日期格子畫出來，行程位置放轉圈
@@ -1941,7 +1951,8 @@ function loadMonth(force){
     calLoading=false;
     if(!r||!r.ok){if(!c)toast((r&&r.error)||'載入失敗','no');paintMonth(allRows);return;}
     cVer(r.version);
-    if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月
+    if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
+    prefetchNeighbors();                                    // 背景備好前後一個月
     if(r.unchanged){paintMonth(allRows);return;}
     cSet(key,{version:r.version||'',rows:r.rows||[]});
     paintMonth(r.rows||[]);
@@ -2096,10 +2107,6 @@ function paintFilter(){
     +'<button class="btn btn-sm" onclick="clearFilter()">清除</button>'
     +'<button class="btn btn-p btn-sm" onclick="applyFilter()">篩選'
     +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
-    +(selfName()?'<div class="card" style="margin:0 0 16px"><div class="row">'
-      +'<div style="min-width:0"><div style="font-size:15px">查看其他人的行程</div>'
-      +'<div class="hint" style="margin-top:2px">關閉時只下載自己的行程，開啟速度較快</div></div>'
-      +'<button class="sw'+(SEEALL?' on':'')+'" onclick="seeAllToggle()"></button></div></div>':'')
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
@@ -2142,17 +2149,11 @@ function typeGroup(t){
 var PK={who:'',q:'',team:''};
 
 function pickBtn(who,val,empty){
-  var locked=(!SEEALL&&selfName());
   return '<button class="fld" style="margin-bottom:16px;display:flex;align-items:center;'
-    +'justify-content:space-between;text-align:left'+(locked?';opacity:.55':'')+'"'
-    +' onclick="'+(locked?'lockedHint()':'openPick(\''+who+'\')')+'">'
+    +'justify-content:space-between;text-align:left" onclick="openPick(\''+who+'\')">'
     +'<span'+(val?'':' style="color:var(--tx3)"')+'>'+he(val||empty)
     +(val&&TEAM[val]?' <span style="font-size:11px;color:var(--tx3)">'+he(TEAM[val])+'</span>':'')
-    +'</span><span style="color:var(--tx3);font-size:12px">'
-    +(locked?'已鎖定':'選擇 ›')+'</span></button>';
-}
-function lockedHint(){
-  toast('先打開「查看其他人的行程」才能選別人','',3500);
+    +'</span><span style="color:var(--tx3);font-size:12px">選擇 ›</span></button>';
 }
 function openPick(who){
   PK={who:who,q:'',team:''};
@@ -2308,14 +2309,11 @@ function tyPick(t){
 function applyFilter(){
   var el=$('f-q');if(el)FT.q=el.value;
   F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||''};
-  lockSelf();
   closeSheet();refetch();
   toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
 }
 function clearFilter(){
   FT={rg:'',en:'',ty:[],q:'',st:''};F={rg:'',en:'',ty:[],q:'',st:''};
-  lockSelf();
-  FT.en=F.en;FT.st=F.st;
   closeSheet();refetch();
   toast('已清除篩選','ok',2000);
 }
