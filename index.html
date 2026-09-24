@@ -700,7 +700,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24ax';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24az';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -3950,8 +3950,8 @@ function editUser(name){
     +extField(staffOf(u.engineerName))
     +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄'
     +(u.createdAt||u.createdBy
-      ? '<br>建立於 '+he(shortStamp(u.createdAt)||u.createdAt||'—')
-        +(u.createdBy?'　由 '+he(u.createdBy)+' 新增':'')
+      ? '<br>建立於 '+he(shortStamp(u.createdAt)||'—')
+        +(u.createdBy?'　由 '+he(u.createdByName||u.createdBy)+' 新增':'')
       :'')
     +'</p>'
     +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
