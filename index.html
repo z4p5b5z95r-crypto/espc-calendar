@@ -658,7 +658,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24af';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24ah';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1732,26 +1732,32 @@ function groupBy(list){
   list.forEach(function(r){
     var k=r.project||'（未分類）';
     if(!m[k]){m[k]={project:k,rows:[],types:[],locs:[],engs:[],cars:[],staff:[],
-      notes:[],reps:[],eqs:[],nums:[],qtys:[],no:'',samp:'',tmap:{},tlist:[]};order.push(k);}
+      notes:[],reps:[],eqs:[],nums:[],qtys:[],no:'',samp:'',tmap:{},tlist:[],qseen:{}};order.push(k);}
     var g=m[k];g.rows.push(r);
 
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,normName(r.engineer));
     add(g.notes,r.notes);add(g.reps,normName(r.applicant));add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
-    g.qtys.push(String(r.qty==null?'':r.qty).trim());
+    // 同一組報告編號被拆成兩組人跑時，數量只算一次
+    var qk=String(r.reportNum||'')+'｜'+String(r.type||'')+'｜'+String(r.qty==null?'':r.qty).trim();
+    var qdup=(r.reportNum&&g.qseen[qk]);
+    g.qseen[qk]=1;
+    if(!qdup)g.qtys.push(String(r.qty==null?'':r.qty).trim());
     if(r.car)String(r.car).split(/[、，,]/).forEach(function(c){add(g.cars,c.trim());});
     var ss=Array.isArray(r.staff)?r.staff:String(r.staff||'').split('、');
     ss.forEach(function(x){add(g.staff,normName(x.trim()));});
 
     // 依類別再分一層，數量／點位／儀器／報告編號各自歸屬
     var t=r.type||'（未分類）';
-    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};g.tlist.push(t);}
+    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:'',qseen:{}};g.tlist.push(t);}
     var tg=g.tmap[t];
     add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);
     add(tg.reps,normName(r.applicant));
     if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
-    tg.qtys.push(String(r.qty==null?'':r.qty).trim());
+    var tqk=String(r.reportNum||'')+'｜'+String(r.qty==null?'':r.qty).trim();
+    if(!(r.reportNum&&tg.qseen[tqk]))tg.qtys.push(String(r.qty==null?'':r.qty).trim());
+    tg.qseen[tqk]=1;
   });
   return order.map(function(k){return m[k];});
 }
@@ -2665,11 +2671,18 @@ function closeSheet(){
 }
 
 /** 取某日的行程：合併當月與今日視窗兩份來源並去重 */
+/** 同一列在「當月」和「今日視窗」兩份快取都有，要去重；
+ *  但同案子同測項分兩組人跑（儀器、公務車、人員不同）是兩列真實資料，不能當重複丟掉 */
+function rowKey(r){
+  var st=Array.isArray(r.staff)?r.staff.slice().sort().join('、'):String(r.staff||'');
+  return [r.date,r.project,r.projectNo,r.type,r.location,r.reportNum,r.engineer,
+          r.applicant,r.equipment,r.car,r.sampTime,r.qty,r.notes,st].join('|');
+}
 function dayRows(d){
   var seen={},out=[];
   allRows.concat(todayRows).forEach(function(r){
     if(r.date!==d||!passF(r))return;
-    var k=[r.date,r.project,r.type,r.location,r.reportNum,r.engineer].join('|');
+    var k=rowKey(r);
     if(seen[k])return;
     seen[k]=1;out.push(r);
   });
@@ -3441,7 +3454,9 @@ function loadUsers(){
   gas('listUsers',TOKEN).then(function(r){
     var el=$('users');if(!el)return;
     if(!r||!r.ok){el.innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';return;}
-    USERS=(r.users||[]).map(function(u){u.role=normRole(u.role);return u;});
+    USERS=(r.users||[]).map(function(u){u.role=normRole(u.role);return u;})
+      // 管理員帳號只有管理員看得到（後端也擋，一份保險）
+      .filter(function(u){return ROLE==='admin'||u.role!=='admin';});
     el.innerHTML=usersHTML();
   }).catch(function(){var el=$('users');if(el)el.innerHTML='<div class="empty">載入失敗</div>';});
 }
