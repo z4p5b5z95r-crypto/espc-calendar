@@ -658,7 +658,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24v';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24w';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -3427,7 +3427,11 @@ function editUser(name){
     +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
     +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
     +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
-       +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>');
+       +' onclick="setActive(\''+esc(u.username)+'\','+(!u.active)+')">'+(u.active?'停用此帳號':'重新啟用')+'</button>'
+       +'<button class="btn btn-d btn-full" style="margin-top:9px"'
+       +' onclick="delUser(\''+esc(u.username)+'\')">刪除此帳號</button>'
+       +'<p class="hint" style="margin:9px 6px 0">停用會保留帳號但無法登入；刪除會把帳號移除且無法復原，'
+       +'通訊錄與上傳記錄不受影響。</p>');
   openSheet(h);
 }
 /** 目前所有帳號用過的組別 */
@@ -3435,6 +3439,23 @@ function userTeams(){
   var out=[];
   USERS.forEach(function(u){var t=(u.team||'').trim();if(t&&out.indexOf(t)<0)out.push(t);});
   return out.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
+}
+/** 刪除帳號：兩段確認，第二段要打出工號，避免誤刪 */
+function delUser(name){
+  var u=null;
+  USERS.forEach(function(x){if(x.username===name)u=x;});
+  var who=u&&u.engineerName?u.engineerName+'（'+name+'）':name;
+  if(!confirm('確定要刪除帳號 '+who+'？\n\n此動作無法復原，該帳號會立刻無法登入。\n（只是暫時不用請改用「停用」）'))return;
+  var typed=prompt('請輸入工號 '+name+' 以確認刪除：');
+  if(typed===null)return;
+  if(String(typed).trim().toUpperCase()!==String(name).trim().toUpperCase()){
+    toast('工號不符，已取消','no');return;
+  }
+  gas('deleteUser',TOKEN,name).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'刪除失敗','no',4000);return;}
+    toast('已刪除帳號','ok');
+    closeSheet();loadUsers();
+  }).catch(function(){toast('操作失敗','no');});
 }
 function saveUser(name){
   var u=null;
