@@ -672,7 +672,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
-    <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳</em></button>
+    <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳排程</em></button>
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
@@ -700,7 +700,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24au';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24ax';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -3048,7 +3048,7 @@ function extField(s){
   var v=EXT_NONE?'':String((s&&s.ext)||'').trim();
   return '<p class="lb">分機　<span style="color:var(--tx3);font-weight:400">必填，沒有分機請點右邊「無分機」</span></p>'
     +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:13px">'
-    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(v)+'" placeholder="例：215"'
+    +'<input class="fld" id="s-x" inputmode="numeric" value="'+he(v)+'" placeholder="例：2150"'
     +' style="flex:1;min-width:0"'+(EXT_NONE?' disabled':'')+'>'
     +'<button class="btn'+(EXT_NONE?' btn-p':'')+'" id="s-xn" onclick="extNone()"'
     +' style="flex:0 0 auto;padding:0 14px;white-space:nowrap">無分機</button>'
@@ -3948,7 +3948,12 @@ function editUser(name){
     +'<input class="fld" id="e-t" list="utl" value="'+he(u.team||'')+'" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:18px">'
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +extField(staffOf(u.engineerName))
-    +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄</p>'
+    +'<p class="hint" style="margin:-6px 6px 16px">分機會寫入通訊錄'
+    +(u.createdAt||u.createdBy
+      ? '<br>建立於 '+he(shortStamp(u.createdAt)||u.createdAt||'—')
+        +(u.createdBy?'　由 '+he(u.createdBy)+' 新增':'')
+      :'')
+    +'</p>'
     +'<button class="btn btn-p btn-full" onclick="saveUser(\''+esc(u.username)+'\')">儲存</button>'
     +'<button class="btn btn-full" style="margin-top:9px" onclick="resetPw(\''+esc(u.username)+'\')">重設密碼</button>'
     +(me?'':'<button class="btn btn-full'+(u.active?' btn-d':'')+'" style="margin-top:9px"'
