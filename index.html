@@ -657,7 +657,7 @@ html[data-theme="dark"] .glass::after{
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24r';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -3355,6 +3355,9 @@ function editUser(name){
     +'<p class="hint" style="margin-top:3px">'+he(u.username)
     +(me?'　·　目前帳號':'')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="lb">工號　<span style="color:var(--tx3);font-weight:400">同時也是登入帳號</span></p>'
+    +'<input class="fld" id="e-u" value="'+he(u.username)+'" autocapitalize="characters"'
+    +' autocorrect="off" style="margin-bottom:13px">'
     +'<p class="lb">角色</p>'
     +'<select class="fld" id="e-r" style="margin-bottom:13px"'+(me?' disabled':'')+'>'
     +roleChoices().map(function(k){
@@ -3394,11 +3397,28 @@ function saveUser(name){
   if(rg!==(u.region||'')){f.region=rg;any=true;}
   var tm=$('e-t').value.trim();
   if(tm!==(u.team||'')){f.team=tm;any=true;}
-  if(!any){closeSheet();return;}
-  gas('updateUser',TOKEN,name,f).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
+  var nu=$('e-u')?$('e-u').value.trim():name;
+  var rename=(nu&&nu!==name);
+  if(!rename&&!any){closeSheet();return;}
+
+  // 先改工號，後面的欄位更新才會對到新帳號
+  var first=rename?gas('renameUser',TOKEN,name,nu):Promise.resolve({ok:true});
+  first.then(function(r){
+    if(!r||!r.ok)throw new Error((r&&r.error)||'工號更新失敗');
+    var target=rename?nu:name;
+    if(rename&&r.self){                       // 改到自己的工號就要更新本機記錄
+      saveSession(TOKEN,ROLE,nu,ENGNAME);
+      $('u-nm').innerHTML=he((ENGNAME&&ENGNAME!==nu?ENGNAME+'　':'')+nu+'（'+roleLabel(ROLE)+'）')
+        +(ROLE==='sampler'?'<span class="beta">BETA</span>':'');
+    }
+    return any?gas('updateUser',TOKEN,target,f):{ok:true};
+  }).then(function(r2){
+    if(!r2||!r2.ok)throw new Error((r2&&r2.error)||'儲存失敗');
     toast('已儲存','ok');closeSheet();loadUsers();
-  }).catch(function(){toast('操作失敗','no');});
+  }).catch(function(e){
+    toast((e&&e.message)||'操作失敗','no',4000);
+    loadUsers();
+  });
 }
 
 function newUser(){
