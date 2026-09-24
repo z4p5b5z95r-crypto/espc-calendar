@@ -700,7 +700,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-24bc';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-24bd';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1251,8 +1251,16 @@ function fmtPhone(v){
 }
 
 /** 姓名（電話）＋職安標記 */
+/** 這個人還在通訊錄嗎（帳號被刪除時通訊錄也會一併刪掉） */
+function inBook(n){
+  n=String(n||'').trim();
+  return !!n&&(PHONE.hasOwnProperty(n)||TEAM.hasOwnProperty(n));
+}
 function telLink(n){
   if(!n)return '';n=String(n).trim();
+  // 通訊錄查無此人（已刪除帳號）→ 灰字、不給電話
+  if(STAFF_READY&&!inBook(n))
+    return '<span style="color:var(--tx3)" title="已無通訊錄資料">'+he(n)+'</span>';
   var ph=PHONE[n],hat=hatMark(n);
   if(!ph)return he(n)+hat;
   return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)
