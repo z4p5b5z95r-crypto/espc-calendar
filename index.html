@@ -774,7 +774,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25k';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25l';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1441,11 +1441,6 @@ window.addEventListener('DOMContentLoaded',function(){
   });
   // 背景只認「真的點一下」：表單面板不關，手指有移動（滑動）也不關
   var _ovD=null;
-  document.addEventListener('pointerdown',ocDown);
-  document.addEventListener('pointermove',ocMove,{passive:false});
-  document.addEventListener('pointerup',ocUp);
-  document.addEventListener('pointercancel',ocUp);
-
   $('ov').addEventListener('pointerdown',function(e){
     _ovD=(e.target===$('ov'))?{x:e.clientX,y:e.clientY}:null;});
   $('ov').addEventListener('click',function(e){
@@ -4086,163 +4081,44 @@ function mgrsOf(u){
   return String((u&&u.manager)||'').split(/[,、，;；\/\s]+/)
     .map(function(x){return x.trim();}).filter(Boolean);
 }
-function ocCard(u,small){
-  var me=u.username===UNAME;
-  var nm=u.engineerName||u.username;
-  var can=canTouchUser(u);
-  return '<div class="occ'+(me?' me':'')+(u.active&&can?'':' off')+'"'
-    +' data-u="'+he(u.username)+'"'+(can?' data-can="1"':'')
-    +(can?' onclick="editUser(\''+esc(u.username)+'\')"':' title="不在你的管轄範圍"')+'>'
-    +'<div class="ocn">'+he(nm)+(can?'':' 🔒')+'</div>'
-    +'<div class="oci">'+he(u.username)+(u.team&&!small?'　'+he(u.team):'')+'</div>'
-    +(u.active?'':'<div class="oci" style="color:var(--err)">已停用</div>')
-    +'<span class="ocr'+(normRole(u.role)==='sampler'?' plain':'')+'">'+roleLabel(u.role)+'</span>'
-    +'</div>';
-}
-/** 末端人員的晶片樣式 */
-function ocChip(u){
-  var me=u.username===UNAME;
-  var nm=u.engineerName||u.username;
-  var can=canTouchUser(u);
-  return '<div class="ocip'+(me?' me':'')+(u.active&&can?'':' off')+'"'
-    +' data-u="'+he(u.username)+'"'+(can?' data-can="1"':'')
-    +' title="'+he(u.username+(u.team?'　'+u.team:'')+'　'+roleLabel(u.role))+'"'
-    +(can?' onclick="editUser(\''+esc(u.username)+'\')"':'')+'>'
-    +'<span class="ipav">'+he(nm.slice(0,1))+'</span>'
-    +he(nm)+(can?'':' 🔒')+'</div>';
-}
-var LEAF_GRID_MAX=6;         // 這個數量以內用網格，超過改用晶片
-function ocLeafBox(people,label){
-  if(!people.length)return '';
-  var body=people.length<=LEAF_GRID_MAX
-    ? '<div class="ocgrid">'+people.map(function(u){return ocCard(u,true);}).join('')+'</div>'
-    : '<div class="ocips">'+people.map(ocChip).join('')+'</div>';
-  return '<li><div class="ocleaf">'
-    +'<div class="lbl">'+he(label)+'　'+people.length+' 人</div>'+body+'</div></li>';
-}
 function userListHTML(){
   var list=userFiltered();
-  var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號'
-    +'<span style="font-weight:400;color:var(--tx3)">　點卡片編輯，拖曳可改上下關係</span></div>';
-  if(!list.length)return h+'<div class="empty">查無符合的帳號</div></div>';
-
-  var has={},byKey={},userMap={};
-  list.forEach(function(u){has[u.username]=1;userMap[u.username]=u;});
-  function keyOf(u){
-    var ms=mgrsOf(u).filter(function(m){return has[m];});
-    ms.sort();
-    return ms.join(',');
-  }
-  list.forEach(function(u){var k=keyOf(u);(byKey[k]=byKey[k]||[]).push(u);});
-  function sortU(a,b){
+  list.sort(function(a,b){
     var ra=rankOf(a.role),rb=rankOf(b.role);
     if(ra!==rb)return ra-rb;
     return (a.engineerName||a.username).localeCompare(b.engineerName||b.username,'zh-Hant');
-  }
-  Object.keys(byKey).forEach(function(k){byKey[k].sort(sortU);});
-
-  /* 共管：兩人以上共同帶的那一組，只要他們自己的上層相同就併成一個虛線框 */
-  var pairs={},inPair={};
-  Object.keys(byKey).forEach(function(k){
-    if(k.indexOf(',')<0)return;
-    var ms=k.split(',');
-    if(ms.some(function(m){return !userMap[m];}))return;
-    var pk=keyOf(userMap[ms[0]]);
-    if(ms.some(function(m){return keyOf(userMap[m])!==pk;}))return;
-    if(ms.some(function(m){return inPair[m];}))return;
-    ms.forEach(function(m){inPair[m]=k;});
-    (pairs[pk]=pairs[pk]||[]).push(k);
   });
-
-  /** 這個人底下（含共管）總共幾個人 */
-  function total(name,seen){
-    var n=0;
-    function eat(arr){
-      (arr||[]).forEach(function(k){
-        if(seen[k.username])return;
-        seen[k.username]=1;n+=1+total(k.username,seen);
-      });
-    }
-    eat(byKey[name]);
-    Object.keys(byKey).forEach(function(kk){
-      if(kk.indexOf(',')<0||kk.split(',').indexOf(name)<0)return;
-      eat(byKey[kk]);
+  var h='<div id="ulist"><div class="sec" style="margin-top:0">共 '+list.length+' 個帳號</div>'
+    +'<div class="glist">';
+  if(!list.length)h+='<div class="empty">查無符合的帳號</div>';
+  list.forEach(function(u){
+    var me=u.username===UNAME;
+    var nm=u.engineerName||u.username;
+    var can=canTouchUser(u);
+    var mgs=mgrsOf(u).map(function(m){
+      var x=null;
+      USERS.forEach(function(y){if(y.username===m)x=y;});
+      return x?(x.engineerName||x.username):m;
     });
-    return n;
-  }
-  function hasKids(u){return total(u.username,{})>0;}
-  /** 一組同層的人：有下屬的各自展開，沒有下屬的收進一個框 */
-  function groupHTML(people,label,depth,seen){
-    var branch=[],leaf=[];
-    people.forEach(function(u){
-      if(seen[u.username])return;
-      (hasKids(u)?branch:leaf).push(u);
-    });
-    var out=branch.map(function(u){return node(u,depth+1,seen);}).join('');
-    leaf.forEach(function(u){seen[u.username]=1;});
-    out+=ocLeafBox(leaf,label);
-    return out;
-  }
-  function kidsHTML(key,depth,seen,label){
-    var people=(byKey[key]||[]).filter(function(c){
-      return !inPair[c.username]||key===inPair[c.username];
-    });
-    var out=groupHTML(people,label||'成員',depth,seen);
-    (pairs[key]||[]).forEach(function(pk){out+=pairNode(pk,depth+1,seen);});
-    return out;
-  }
-  function node(u,depth,seen){
-    if(depth>12||seen[u.username])return '';
-    seen[u.username]=1;
-    var k='u:'+u.username;
-    var n=total(u.username,{});
-    var out='<li>'+ocCard(u);
-    if(n){
-      out+='<button class="ocb" onclick="event.stopPropagation();utToggle(\''+esc(k)+'\')">'
-        +(utOpen(k)?'▾ ':'▸ ')+n+' 人</button>';
-      if(utOpen(k)){
-        var kids=kidsHTML(u.username,depth,seen,'成員');
-        if(kids)out+='<ul>'+kids+'</ul>';
-      }
-    }
-    return out+'</li>';
-  }
-  function pairNode(pk,depth,seen){
-    var people=pk.split(',').map(function(m){return userMap[m];}).filter(Boolean);
-    if(!people.length)return '';
-    var k='p:'+pk;
-    var cnt={},n=0;
-    (byKey[pk]||[]).forEach(function(c){
-      if(cnt[c.username])return;cnt[c.username]=1;n+=1+total(c.username,cnt);});
-    var cards=people.map(function(m){
-      seen[m.username]=1;
-      var mn=total(m.username,{});
-      var solo=(mn&&utOpen('u:'+m.username))?kidsHTML(m.username,depth,seen,'成員'):'';
-      return '<div class="ocpm">'+ocCard(m)
-        +(mn?'<button class="ocb" onclick="event.stopPropagation();utToggle(\'u:'+esc(m.username)+'\')">'
-            +(utOpen('u:'+m.username)?'▾ ':'▸ ')+mn+' 人</button>':'')
-        +(solo?'<ul>'+solo+'</ul>':'')
-        +'</div>';
-    }).join('');
-    var out='<li><div class="ocpair"><span class="lbl">共同管理</span>'
-      +'<div class="ocprow">'+cards+'</div></div>';
-    if(n){
-      out+='<button class="ocb" onclick="event.stopPropagation();utToggle(\''+esc(k)+'\')">'
-        +(utOpen(k)?'▾ ':'▸ ')+n+' 人共管</button>';
-      if(utOpen(k)){
-        var kids=groupHTML(byKey[pk]||[],'共管成員',depth,seen);
-        if(kids)out+='<ul>'+kids+'</ul>';
-      }
-    }
-    return out+'</li>';
-  }
-
-  var seen={};
-  h+='<div class="ocroot" id="ocroot">放到這裡＝拿掉主管，變成最上層</div>'
-    +'<div class="ocw"><ul class="oct">'+kidsHTML('',0,seen,'最上層')+'</ul></div>'
-    +'<p class="hint" style="margin:8px 6px 0">按住卡片拖到另一張卡片上，'
-    +'可以選擇搬過去或加成共同主管。</p>';
-  return h+'</div>';
+    h+='<div class="lrow"'+(u.active&&can?'':' style="opacity:.55"')
+      +(can?' onclick="editUser(\''+esc(u.username)+'\')"':'')+'>'
+      +'<div class="pav"'+(me?' style="background:var(--brand);color:var(--accTx)"':'')+'>'
+      +he(nm.slice(0,1))+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
+      +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
+      +(u.team?'　·　'+he(u.team):'')+(u.region?'　·　'+he(u.region):'')
+      +(me?'　·　目前帳號':'')
+      +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div>'
+      +(mgs.length?'<div style="font-size:12px;color:var(--tx3);margin-top:1px">主管：'
+        +he(mgs.join('、'))+'</div>':'')
+      +'</div>'
+      +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
+      +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
+      +(can?'›':'🔒')+'</span>'
+      +'</div>';
+  });
+  return h+'</div></div>';
 }
 
 /* ── 拖拉改上下關係 ── */
