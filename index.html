@@ -798,7 +798,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26h';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -1430,7 +1430,8 @@ function dueTargets(cb){
 }
 function checkDueNotice(){
   var ym=twStr().slice(0,7);
-  if(ls(DUE_KEY)===ym)return;             // 每月只提醒一次
+  var deep=DUE_DEEP;DUE_DEEP=false;
+  if(!deep&&ls(DUE_KEY)===ym){pushAskLater();return;}   // 每月只提醒一次
   dueTargets(function(t){
     var due=safetyDue();
     if(!t.all){
@@ -1441,10 +1442,10 @@ function checkDueNotice(){
       due=due.filter(function(x){return ok[x.name];});
     }
     lsS(DUE_KEY,ym);
-    if(!due.length)return;
+    if(!due.length){pushAskLater();return;}
     var mine=String(ENGNAME||'').trim();
     var onlyMe=due.every(function(x){return x.name===mine;});
-    setTimeout(function(){openDue(true,onlyMe?mine:'');},500);
+    setTimeout(function(){openDue(!deep,onlyMe?mine:'');},500);
   });
 }
 
@@ -1822,10 +1823,11 @@ function restoreTab(){
 }
 
 /* ══ 從推播通知點進來：網址帶 ?d=日期（&p=案子），開月曆並展開那一天 ══ */
-var DEEP=null;
+var DEEP=null,DUE_DEEP=false;   // DUE_DEEP：從證照到期推播點進來
 function takeDeep(){
   try{
     var q=new URLSearchParams(location.search||'');
+    if(q.get('due')){DUE_DEEP=true;q.delete('due');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     var d=q.get('d')||'';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;
     DEEP={d:d,p:q.get('p')||''};
@@ -4916,8 +4918,10 @@ function icsPage(){
   if(!ICS.cfg&&!ICS.err){icsLoad();return loader('讀取提醒設定…');}
   if(ICS.err&&!ICS.cfg)return '<div class="empty">'+he(ICS.err)+'<br><br><button class="btn btn-sm" onclick="ICS.err=\'\';render()">重試</button></div>';
   var c=ICS.cfg;
-  var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">到了設定的時間，手機會跳一則<b>當天行程的彙整通知</b>'
-    +'（每個案子一段：案名、監測項目），App 關著也收得到。沒有行程的日子不會提醒。點通知會直接打開那一天。</div>';
+  var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">到了設定的時間，手機會跳一則<b>行程彙整通知</b>，App 關著也收得到。'
+    +'<b>只有排程裡有你的行程才會跳</b>，沒有行程的日子不會提醒。點通知會直接打開那一天。'
+    +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">⛑️ <b>職安證照到期提醒</b>：平日 08:30 自動通知（自己和底下人員的證照），'
+    +'到期前 3 個月起每月一次、逾期後每月一次，遇到週末順延到週一。</div></div>';
   h+=pushHTML();
   h+='<div class="sec">提醒時間　<span style="color:var(--tx3)">最多 3 個，所有手機共用</span></div><div class="card">';
   if(!c.alarms.length)h+='<div class="hint" style="padding:4px 2px 8px">目前不提醒</div>';
@@ -4989,6 +4993,7 @@ function pushHTML(){
       +'<input type="time" class="fld" id="pt-t" style="flex:1;min-width:0;margin:0" value="'+(PUSH.demo||dflt)+'">'
       +'<button class="btn btn-sm" style="flex:0 0 auto" onclick="pushDemo()">排定</button></div>'
       +(PUSH.demoAt?'<div class="hint" style="margin-top:8px;color:var(--accT)">已排定：今天 '+he(PUSH.demoAt)+' 左右跳出</div>':'')
+      +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="pushTest(\'cert\')">⛑️ 發送證照到期提醒範例</button>'
       +'</div>';
     /* ▲▲ 暫時測試功能結束 ▲▲ */
   }
@@ -4997,11 +5002,53 @@ function pushHTML(){
 function pushIsOn(){
   return !!ls('espc_push')&&('Notification' in window)&&Notification.permission==='granted';
 }
-/* 更多→偏好的開關：這支手機能開就直接開關；不能開（iPhone 未加入主畫面、不支援、未設定）就帶到行程提醒頁看說明 */
+/* 更多→偏好的開關：開啟時直接進行程提醒頁（順便設定時間），關閉就留在原頁；不能開（iPhone 未加入主畫面、不支援、未設定）就帶到行程提醒頁看說明 */
 function pushSwitch(){
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(!FCM_VAPID||(isIOS&&!isStandalone())||!pushSupported()||Notification.permission==='denied'){go('more','ics');return;}
-  if(pushIsOn())pushOff();else pushOn();
+  if(pushIsOn()){pushOff();return;}   // 關閉：留在原頁
+  go('more','ics');pushOn();           // 開啟：直接進行程提醒頁設定提醒時間
+}
+/* ══ 邀請開啟推播 ══
+   推播一定要本人在這支手機按「允許」，App 無法替使用者直接打開，所以改成主動詢問：
+   ・排程裡有自己行程的人（預設提醒：前一天 16:00、當天 08:30）
+   ・主管／排程／管理員，或底下有人員的人（平日 08:30 證照到期提醒）
+   按「稍後再說」14 天後再問；這支手機不能收推播（iPhone 未加入主畫面等）就不問 */
+var PUSH_ASK_KEY='espc_pushask', PUSH_ASK_MS=14*86400000;
+function pushAskLater(){setTimeout(pushAsk,1200);}
+function pushAsk(){
+  try{
+    if(!TOKEN||!FCM_VAPID||!pushSupported()||pushIsOn())return;
+    if(Notification.permission==='denied')return;
+    if(/iPad|iPhone|iPod/.test(navigator.userAgent)&&!isStandalone())return;
+    if($('ov').classList.contains('open'))return;               // 已經有其他視窗開著
+    var last=+ls(PUSH_ASK_KEY)||0;
+    if(Date.now()-last<PUSH_ASK_MS)return;
+  }catch(e){return;}
+  var n=selfName&&selfName();
+  var boss=(ROLE==='admin'||ROLE==='supervisor'||ROLE==='scheduler');
+  var go2=function(hasRows){
+    dueTargets(function(t){
+      var mgr=boss||t.all||(t.names||[]).length>1;
+      if(!hasRows&&!mgr)return;                                  // 沒行程也不是主管 → 不用推播
+      if($('ov').classList.contains('open')||pushIsOn())return;
+      lsS(PUSH_ASK_KEY,String(Date.now()));
+      var lines='';
+      if(hasRows)lines+='<div class="note" style="margin-top:10px">📋 <b>行程提醒</b>：前一天 16:00、當天 08:30 通知你的行程（只有排到你才會跳，可在「更多 → 行程提醒」修改時間）</div>';
+      if(mgr)lines+='<div class="note" style="margin-top:8px">⛑️ <b>證照到期提醒</b>：平日 08:30 通知'+(t.all?'全部人員':'你和底下人員')+'的職安證照到期</div>';
+      openSheet('<div class="shh"><div><h3>開啟推播通知</h3>'
+        +'<p class="hint" style="margin-top:3px">App 關著也收得到，按開啟後手機會詢問是否允許通知，請選「允許」</p></div>'
+        +'<button class="ib" onclick="closeSheet()">✕</button></div>'+lines
+        +'<button class="btn btn-p btn-full" style="margin-top:16px" onclick="closeSheet();pushOn()">開啟推播</button>'
+        +'<button class="btn btn-full" style="margin-top:8px" onclick="closeSheet()">稍後再說</button>');
+    });
+  };
+  if(!n){go2(false);return;}
+  var c=hasRowsCached(n);
+  if(c!==null){go2(c);return;}
+  gas('nameHasRows',TOKEN,n).then(function(r){
+    if(r&&r.ok){lsS(hasRowsKey(n),r.has?'1':'0');go2(!!r.has);}
+  }).catch(function(){});
 }
 function loadJS(src){
   return new Promise(function(ok,no){
@@ -5063,9 +5110,9 @@ function pushDemo(){
     toast('已排定 '+t+' 的測試通知，現在可以關掉 App 等它跳出','ok',4000);
   }).catch(function(){toast('連線失敗','no');});
 }
-function pushTest(){
+function pushTest(kind){
   toast('發送中…','',1500);
-  gas('testPush',TOKEN).then(function(r){
+  gas('testPush',TOKEN,kind||'').then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'發送失敗','no',4000);return;}
     toast(r.sent?'已送出，幾秒內會跳出通知':'送出失敗，請重新開啟推播',r.sent?'ok':'no',3500);
   }).catch(function(){toast('連線失敗','no');});
