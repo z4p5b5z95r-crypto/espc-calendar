@@ -382,25 +382,19 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
 .pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
-.pcard{position:relative;}
-.pcard.cast .pchd>span:nth-child(2){padding-right:50px;}
-.pcast{position:absolute;top:9px;right:34px;width:40px;height:40px;border-radius:50%;border:none;padding:0;
-  display:flex;align-items:center;justify-content:center;color:var(--accT);
-  background:linear-gradient(160deg,rgba(255,255,255,.72),rgba(255,255,255,.28) 55%,rgba(255,255,255,.42));
+.pcast{position:relative;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;
+  width:28px;height:28px;border-radius:50%;margin:-4px 0 -4px 6px;color:var(--accT);cursor:pointer;
+  background:linear-gradient(160deg,rgba(255,255,255,.75),rgba(255,255,255,.3) 55%,rgba(255,255,255,.45));
   backdrop-filter:blur(14px) saturate(190%);-webkit-backdrop-filter:blur(14px) saturate(190%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 1px rgba(0,0,0,.06),inset 0 0 0 .5px rgba(255,255,255,.6),0 6px 16px rgba(60,40,20,.14),0 1px 2px rgba(0,0,0,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 1px rgba(0,0,0,.06),inset 0 0 0 .5px rgba(255,255,255,.6),0 4px 10px rgba(60,40,20,.13);
   transition:transform .15s;}
-.pcast:active{transform:scale(.92);}
-.pcast::after{content:"";position:absolute;left:14%;right:14%;top:7%;height:38%;border-radius:999px;
+.pcast:active{transform:scale(.88);}
+.pcast::after{content:"";position:absolute;left:14%;right:14%;top:7%;height:40%;border-radius:999px;
   background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,0));pointer-events:none;}
 .pcast svg{position:relative;z-index:1;}
-.pcast .ring{position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(243,111,33,.4);
-  animation:castPulse 2.4s ease-out infinite;pointer-events:none;}
-@keyframes castPulse{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.35);opacity:0}}
-@media (prefers-reduced-motion:reduce){.pcast .ring{animation:none;opacity:.5;transform:none}}
 html[data-theme="dark"] .pcast{background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 1px rgba(0,0,0,.3),inset 0 0 0 .5px rgba(255,255,255,.15),0 6px 16px rgba(0,0,0,.35);}
-html[data-theme="dark"] .pcast::after{background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,0));}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 1px rgba(0,0,0,.3),inset 0 0 0 .5px rgba(255,255,255,.15),0 4px 10px rgba(0,0,0,.35);}
+html[data-theme="dark"] .pcast::after{background:linear-gradient(rgba(255,255,255,.25),rgba(255,255,255,0));}
 .cbox{background:var(--accBg,rgba(243,111,33,.08));border-radius:12px;padding:9px 11px;margin:6px 0 8px;}
 .cbox .ci+.ci{border-top:1px dashed var(--line);margin-top:7px;padding-top:7px;}
 .cbox .cm{font-size:12px;color:var(--tx3);}
@@ -409,6 +403,16 @@ html[data-theme="dark"] .pcast::after{background:linear-gradient(rgba(255,255,25
 .cchip{font-size:13.5px;padding:7px 12px;border-radius:999px;background:var(--gl);border:1px solid var(--glLine);color:var(--tx);text-align:left;}
 .cchip.on{background:var(--acc);border-color:var(--acc);color:#fff;}
 .cchip .x{margin-left:6px;opacity:.6;}
+.cchip small{opacity:.7;margin-left:4px;font-size:11.5px;}
+.gsec{font-size:12.5px;color:var(--tx3);margin:12px 2px 2px;display:flex;align-items:center;gap:8px;}
+.gsec a{color:var(--accT);font-size:12.5px;margin-left:auto;}
+.gmem{margin:4px 0 8px;padding:8px 10px;border-radius:12px;background:var(--gl);border:1px solid var(--glLine);}
+.gmem .gh{font-size:12.5px;font-weight:600;display:flex;align-items:center;margin-bottom:2px;}
+.gmem .gh a{margin-left:auto;font-weight:400;color:var(--accT);}
+.ibox{margin:2px 0 12px;}
+.ibox .ci{background:var(--glStrong);border:1px solid var(--glLine);border-radius:14px;padding:9px 12px;margin-bottom:6px;}
+.ibox .cm{font-size:12px;color:var(--tx3);}
+.ibox .ct{font-size:14.5px;white-space:pre-wrap;margin-top:2px;}
 .pchd{display:flex;gap:11px;align-items:center;width:100%;padding:12px 13px;text-align:left;background:none;}
 .pchd:active{opacity:.75;}
 .pbar{width:3.5px;border-radius:999px;align-self:stretch;flex-shrink:0;min-height:30px;}
@@ -800,6 +804,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳排程</em></button>
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
+    <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
@@ -825,7 +830,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26k';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26m';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -882,6 +887,7 @@ var ICON={
  cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
  book:'<path d="M20 3v18H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M5 8H3M5 12H3M5 16H3"/><circle cx="13" cy="10" r="2"/><path d="M10 16a3 3 0 0 1 6 0"/>',
  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ mega:'<path d="M3.5 10.2v3.6c0 .6.4 1 1 1h2.3l7.7 4.2V5L6.8 9.2H4.5c-.6 0-1 .4-1 1z"/><path d="M6.8 14.8l1.1 4.4c.1.5.6.8 1.1.8h.6c.6 0 1-.5.9-1.1l-.8-3.6"/><path d="M17.6 9.2a4 4 0 010 5.6"/><path d="M19.9 7a7.2 7.2 0 010 10"/>',
  logout:'<path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2"/><path d="M9 12h11M17 9l3 3-3 3"/>',
  filter:'<path d="M4 4h16l-6 7v7l-4 2v-9z"/>',
  upload:'<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5M12 4v12"/>',
@@ -1456,6 +1462,7 @@ function dueTargets(cb){
   }).catch(function(){cb({names:[String(ENGNAME||'').trim()].filter(Boolean),all:false});});
 }
 function checkDueNotice(){
+  inboxLoad(false);
   var ym=twStr().slice(0,7);
   var deep=DUE_DEEP;DUE_DEEP=false;
   if(!deep&&ls(DUE_KEY)===ym){pushAskLater();return;}   // 每月只提醒一次
@@ -1651,6 +1658,7 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
+  $('nb-cast').style.display=(r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：主管、排程
   $('nb-dl').style.display=(r==='admin')?'':'none'; // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
@@ -1854,6 +1862,7 @@ var DEEP=null,DUE_DEEP=false;   // DUE_DEEP：從證照到期推播點進來
 function takeDeep(){
   try{
     var q=new URLSearchParams(location.search||'');
+    if(q.get('inbox')){INBOX_DEEP=true;q.delete('inbox');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     if(q.get('due')){DUE_DEEP=true;q.delete('due');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     var d=q.get('d')||'';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;
@@ -1921,6 +1930,7 @@ function go(t,s){
   else if(t==='cal'){if(needMonth)loadMonth();loadRegionUpdates();}
   else if(t==='today'&&!todayFor)loadToday();
   else if(t==='book')loadStaff(null);
+  else if(t==='cast'){loadStaff(function(){if(tab==='cast'&&!sub)render();});inboxLoad(true);}
 }
 
 function onTitle(){
@@ -1955,6 +1965,7 @@ function titleText(){
   if(tab==='today')return '今日';
   if(tab==='cal')return curY+' 年 '+MO[curM];
   if(tab==='book')return '通訊錄';
+  if(tab==='cast')return '廣播';
   return '更多';
 }
 
@@ -1984,6 +1995,8 @@ function rightButtons(){
     return '<button class="ib" onclick="loadUsers()" title="重新整理">↻</button>';
   if(tab==='dl')
     return '<button class="ib" onclick="dlLoad(true)" title="重新讀取">↻</button>';
+  if(tab==='cast')
+    return '<button class="ib" onclick="inboxLoad(true)" title="重新整理">↻</button>';
   return '';
 }
 function filterBtn(){
@@ -2025,6 +2038,7 @@ function pageHTML(){
   if(tab==='today')return todayPage();
   if(tab==='cal')return calPage();
   if(tab==='book')return bookPage();
+  if(tab==='cast')return gcastPage();
   return morePage();
 }
 
@@ -2035,7 +2049,7 @@ function futToggle(){futOpen=!futOpen;render();}
 function todayPage(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
-  var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
+  var h=inboxBox()+'<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
   if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
   else h+='<div class="glist">'+groupBy(mine).map(function(g){return evCard(g,t,true);}).join('')+'</div>';
 
@@ -3477,13 +3491,15 @@ function openDay(d,focus){
   gs.forEach(function(g){
     var c=pcolor(g.project),on=!!EV_OPEN[g.project];
     var cc=on&&canCast(g);
-    h+='<div class="pcard'+(on?' on':'')+(cc?' cast':'')+'" id="pc-'+he(hashId(g.project))+'">'
-      +(cc?'<button class="pcast" title="廣播給現場人員" onclick="castOpen(\''+esc(g.project)+'\')"><span class="ring"></span>'+CAST_ICON+'</button>':'')
+    h+='<div class="pcard'+(on?' on':'')+'" id="pc-'+he(hashId(g.project))+'">'
       +'<button class="pchd" onclick="evToggle(\''+esc(g.project)+'\')">'
       +'<span class="pbar" style="background:'+c+'"></span>'
       +'<span style="min-width:0;flex:1">'
       +'<span class="pnm">'+he(g.project+carTag(g))
-      +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')+'</span>'
+      +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')
+      // 📣 放在案號後面（在標題列裡，但按它只開廣播、不會展開／收合）
+      +(cc?'<span class="pcast" role="button" title="廣播給現場人員" onclick="event.stopPropagation();castOpen(\''+esc(g.project)+'\')">'+CAST_ICON.replace('width="21" height="21"','width="15" height="15"')+'</span>':'')
+      +'</span>'
       +'<span class="pty" style="color:'+c+'">'+he(typeLabel(g))+'</span></span>'
       +'<span class="pchev'+(on?' on':'')+'">'+ic('right',15)+'</span></button>'
       +(on?'<div class="pbody">'+evDetail(g)+'</div>':'')
@@ -3608,6 +3624,142 @@ function castSend(){
     toast(msg,r.noPush&&r.noPush.length?'':'ok',5000);
     castLoad(EV_D,true);castClose();
   }).catch(function(){CAST.busy=false;toast('連線失敗','no');castPaint();});
+}
+/* ══ 📣 群組廣播（主管、排程的「廣播」頁籤）＋收件匣 ══
+   選一或多個組別（全組），或展開組別只勾個別人員；也能搜尋姓名直接加人。
+   收到的群組廣播顯示在「今日」頁上方（近 3 天），全部（1 個月內）可點開看。 */
+var INBOX={inbox:[],sent:[],at:0,busy:false},INBOX_DEEP=false;
+var GC={ppl:{},open:{},text:'',q:'',busy:false};
+function inboxLoad(force){
+  if(!TOKEN||INBOX.busy)return;
+  if(!force&&Date.now()-INBOX.at<120000)return;
+  INBOX.busy=true;
+  gas('getInbox',TOKEN).then(function(r){
+    INBOX.busy=false;
+    if(!r||!r.ok)return;
+    INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.at=Date.now();
+    if(r.tpl)CAST_TPL=r.tpl;
+    if(!$('ov').classList.contains('open')&&(tab==='today'||tab==='cast')&&!sub)render();
+    if(INBOX_DEEP){INBOX_DEEP=false;setTimeout(inboxAll,400);}
+  }).catch(function(){INBOX.busy=false;});
+}
+function castItem(x,mine){
+  return '<div class="ci"><div class="cm">📣 '+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
+    +(x.groups?'　'+he(x.groups):'')+'</div><div class="ct">'+he(x.text)+'</div>'
+    +(mine&&x.to?'<div class="cm" style="margin-top:3px">發給 '+x.to.length+' 人'
+      +(x.noPush&&x.noPush.length?'，<span style="color:var(--warn)">'+x.noPush.length+' 人沒開推播：'+he(x.noPush.join('、'))+'</span>':'')+'</div>':'')
+    +'</div>';
+}
+/** 今日頁上方：近 3 天收到的群組廣播 */
+function inboxBox(){
+  var cut=twStr(),d3=addDays(cut,-2);
+  var rec=INBOX.inbox.filter(function(x){return String(x.at).slice(0,10)>=d3;});
+  if(!rec.length)return '';
+  return '<div class="sec" style="margin-top:2px;display:flex">📣 廣播<span style="flex:1"></span>'
+    +(INBOX.inbox.length>rec.length||rec.length>3?'<a href="#" style="color:var(--accT)" onclick="inboxAll();return false">全部 '+INBOX.inbox.length+' 則</a>':'')+'</div>'
+    +'<div class="ibox">'+rec.slice(0,3).map(function(x){return castItem(x);}).join('')+'</div>';
+}
+function inboxAll(){
+  var h='<div class="shh"><div><h3>📣 收到的廣播</h3><p class="hint" style="margin-top:3px">保留 1 個月</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>';
+  h+=INBOX.inbox.length?'<div class="ibox">'+INBOX.inbox.map(function(x){return castItem(x);}).join('')+'</div>'
+    :'<div class="empty">1 個月內沒有收到廣播</div>';
+  openSheet(h);
+}
+/* 組別清單：地區 → 組別 → 人員（來自通訊錄） */
+var RG_ORDER=['台北','台中','高雄'];
+function gcGroups(){
+  var m={},me=String(ENGNAME||'').trim();
+  STAFF.forEach(function(s){
+    var n=String(s.name||'').trim();if(!n||n===me)return;
+    var rg=String(s.region||'').trim()||'未分地區',tm=String(s.team||'').trim()||'未分組';
+    var k=rg+'・'+tm;
+    (m[k]=m[k]||{key:k,rg:rg,tm:tm,ppl:[]}).ppl.push(n);
+  });
+  return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){
+    var ra=RG_ORDER.indexOf(a.rg),rb=RG_ORDER.indexOf(b.rg);ra=ra<0?9:ra;rb=rb<0?9:rb;
+    return ra-rb||a.tm.localeCompare(b.tm,'zh-Hant');
+  });
+}
+function gcCount(g){return g.ppl.filter(function(n){return GC.ppl[n];}).length;}
+function gcNames(){return Object.keys(GC.ppl).filter(function(n){return GC.ppl[n];});}
+function gcastPage(){
+  if(!STAFF_READY)return loader('載入通訊錄…');
+  var gs=gcGroups(),sel=gcNames(),tpl=CAST_TPL||[];
+  var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">選組別就會發給整組；點「選人」可以只勾組裡的個別人員。收到的人手機會跳通知，App「今日」頁上方也看得到，內容保留 1 個月。</div>';
+  h+='<input class="fld" placeholder="搜尋姓名直接加人" value="'+he(GC.q)+'" oninput="GC.q=this.value;gcSearch()" style="margin:10px 0 0">'
+    +'<div class="cchips" id="gc-q"></div>';
+  var lastRg='';
+  gs.forEach(function(g){
+    if(g.rg!==lastRg){if(lastRg)h+='</div>';h+='<div class="gsec">'+he(g.rg)+'</div><div class="cchips">';lastRg=g.rg;}
+    var c=gcCount(g),all=c===g.ppl.length;
+    h+='<button class="cchip'+(all?' on':'')+'" onclick="gcTeam(\''+esc(g.key)+'\')">'+he(g.tm)
+      +'<small>'+(c&&!all?c+'/':'')+g.ppl.length+'</small></button>';
+  });
+  if(lastRg)h+='</div>';
+  // 展開中的組：可勾個別人員
+  gs.forEach(function(g){
+    if(!GC.open[g.key])return;
+    h+='<div class="gmem"><div class="gh">'+he(g.key)+'<a href="#" onclick="gcAll(\''+esc(g.key)+'\',true);return false">全選</a>'
+      +'<a href="#" style="margin-left:12px" onclick="gcAll(\''+esc(g.key)+'\',false);return false">全不選</a>'
+      +'<a href="#" style="margin-left:12px" onclick="GC.open[\''+esc(g.key)+'\']=false;render();return false">收起</a></div><div class="cchips">'
+      +g.ppl.map(function(n){return '<button class="cchip'+(GC.ppl[n]?' on':'')+'" onclick="gcPerson(\''+esc(n)+'\')">'+he(n)+'</button>';}).join('')
+      +'</div></div>';
+  });
+  var closed=gs.filter(function(g){return !GC.open[g.key];});
+  if(closed.length)h+='<div class="gsec">選人（只發給組裡某幾位）</div><div class="cchips">'
+    +closed.map(function(g){return '<button class="cchip" onclick="GC.open[\''+esc(g.key)+'\']=true;render()">'+he(g.key)+' ›</button>';}).join('')+'</div>';
+  h+='<div class="sec" style="display:flex;align-items:center">內容<span style="flex:1"></span><span class="hint">已選 <b style="color:var(--accT)">'+sel.length+'</b> 人'
+    +(sel.length?'　<a href="#" style="color:var(--accT)" onclick="GC.ppl={};render();return false">清除</a>':'')+'</span></div>';
+  if(tpl.length)h+='<div class="cchips">'+tpl.map(function(t,i){return '<button class="cchip" onclick="gcTpl('+i+')">'+he(t)+'</button>';}).join('')+'</div>';
+  h+='<textarea class="fld" id="gc-t" rows="4" maxlength="300" placeholder="輸入要廣播的內容…" style="margin-top:8px;resize:vertical;border-radius:16px;line-height:1.5"'
+    +' oninput="GC.text=this.value;$(\'gc-n\').textContent=this.value.length">'+he(GC.text)+'</textarea>'
+    +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="gcTplAdd();return false">＋ 存成常用語</a>'
+    +'<span style="flex:1"></span><span class="hint"><span id="gc-n">'+GC.text.length+'</span>/300</span></div>'
+    +'<button class="btn btn-p btn-full" style="margin-top:12px"'+(GC.busy?' disabled':'')+' onclick="gcSend()">'
+    +(GC.busy?'送出中…':'送出廣播'+(sel.length?'（'+sel.length+' 人）':''))+'</button>';
+  h+='<div class="sec">我發出的（1 個月內）</div>'
+    +(INBOX.sent.length?'<div class="ibox">'+INBOX.sent.map(function(x){return castItem(x,true);}).join('')+'</div>'
+      :'<div class="empty" style="padding:14px">還沒有發過群組廣播</div>');
+  setTimeout(gcSearch,0);
+  return h;
+}
+function gcFind(k){var gs=gcGroups();for(var i=0;i<gs.length;i++)if(gs[i].key===k)return gs[i];return null;}
+function gcTeam(k){var g=gcFind(k);if(!g)return;var all=gcCount(g)===g.ppl.length;g.ppl.forEach(function(n){GC.ppl[n]=!all;});render();}
+function gcAll(k,on){var g=gcFind(k);if(!g)return;g.ppl.forEach(function(n){GC.ppl[n]=on;});render();}
+function gcPerson(n){GC.ppl[n]=!GC.ppl[n];render();}
+function gcSearch(){
+  var el=$('gc-q');if(!el)return;
+  var q=String(GC.q||'').trim(),me=String(ENGNAME||'').trim();
+  if(!q){el.innerHTML='';return;}
+  var hit=STAFF.filter(function(s){var n=String(s.name||'');return n&&n!==me&&n.indexOf(q)>=0;}).slice(0,12);
+  el.innerHTML=hit.length?hit.map(function(s){
+    return '<button class="cchip'+(GC.ppl[s.name]?' on':'')+'" onclick="gcPerson(\''+esc(s.name)+'\')">'+he(s.name)
+      +'<small>'+he((s.team||'').trim())+'</small></button>';}).join(''):'<span class="hint">找不到</span>';
+}
+function gcTpl(i){var t=(CAST_TPL||[])[i];if(!t)return;GC.text=GC.text.trim()?GC.text.replace(/\s+$/,'')+'\n'+t:t;render();}
+function gcTplAdd(){
+  var t=String(GC.text||'').trim();
+  if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
+  CAST_TPL=CAST_TPL||[];
+  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
+  if(CAST_TPL.length>=12){toast('常用語最多 12 則','no',3000);return;}
+  CAST_TPL.push(t.slice(0,100));castTplSave();render();toast('已存成常用語','ok');
+}
+function gcSend(){
+  var names=gcNames(),t=String(GC.text||'').trim();
+  if(!names.length){toast('請選擇組別或人員','no');return;}
+  if(!t){toast('請輸入內容','no');return;}
+  // 記錄涉及的組別：全選的寫組名，只選部分的寫「組名（n 人）」
+  var groups=gcGroups().map(function(g){var c=gcCount(g);return !c?'':(c===g.ppl.length?g.key:g.key+'（'+c+' 人）');}).filter(String);
+  if(!confirm('確定發給 '+names.length+' 人？'))return;
+  GC.busy=true;render();
+  gas('groupCast',TOKEN,names,groups,t).then(function(r){
+    GC.busy=false;
+    if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);render();return;}
+    toast('已通知 '+r.sent.length+' 人'+(r.noPush.length?'；'+r.noPush.length+' 人沒開推播（App 裡看得到）':''),r.noPush.length?'':'ok',5000);
+    GC.text='';GC.ppl={};GC.open={};inboxLoad(true);render();
+  }).catch(function(){GC.busy=false;toast('連線失敗','no');render();});
 }
 /** 專案名稱轉成可當 id 的短碼 */
 function hashId(s){
