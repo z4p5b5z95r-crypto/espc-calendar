@@ -793,7 +793,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zq';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zr';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2803,7 +2803,22 @@ function passF(r){
 }
 var FT={rg:'',en:'',ty:[],q:'',st:''};   // 面板上的暫存條件，按「篩選」才套用
 
+/* 篩選面板的類別選項：以前只從「目前畫面上載入的行程」收集，
+   開了「只看我的」或只載了這個月，就會漏掉其他類別。改成向後端要排程裡出現過的全部類別。 */
+var ALL_TYPES=[];
+(function(){var c=jGet(CK+'types');if(c&&c.types)ALL_TYPES=c.types;})();
+function loadTypes(){
+  var c=jGet(CK+'types');
+  gas('getTypes',TOKEN,(c&&c.version)||'').then(function(r){
+    if(!r||!r.ok||r.unchanged)return;
+    ALL_TYPES=r.types||[];
+    jSet(CK+'types',{version:r.version||'',types:ALL_TYPES});
+    var sh=$('ov');
+    if(sh&&sh.classList.contains('open')&&$('f-q'))paintFilter();   // 面板開著就補上新選項
+  }).catch(function(){});
+}
 function openFilter(){
+  loadTypes();
   FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',st:F.st||''};
   paintFilter();
   $('ov').classList.add('open');
@@ -2814,6 +2829,7 @@ function paintFilter(){
   var engs=[],tys=[],sts=[],s1={},s2={},s3={};
   var src=allRows.concat(todayRows);
   if(src.length)FSRC=src;else src=FSRC;
+  src=src.concat(ALL_TYPES.map(function(t){return {type:t};}));   // 排程裡所有類別都列出來
   src.forEach(function(r){
     if(r.engineer&&!s1[r.engineer]){s1[r.engineer]=1;engs.push(r.engineer);}
     if(r.type){
@@ -2907,6 +2923,7 @@ function tyItem(t){
   t=String(t||'').trim();
   if(!t)return '';
   if(TY_ITEM_C[t]!==undefined)return TY_ITEM_C[t];
+  if(/巡/.test(t))return (TY_ITEM_C[t]=t);         // 巡查、巡檢類是另一種工作，不併進監測項目
   var rules=TY_ITEMS[typeGroup(t)]||[],out=t;
   for(var i=0;i<rules.length;i++){if(rules[i][1].test(t)){out=rules[i][0];break;}}
   return (TY_ITEM_C[t]=out);
@@ -3071,6 +3088,10 @@ function allTypes(){
   allRows.concat(todayRows).forEach(function(r){
     var it=tyItem(r.type);
     if(it&&!seen[it]){seen[it]=1;out.push(it);TY_ITEM_G[it]=typeGroup(r.type);}
+  });
+  ALL_TYPES.forEach(function(t){
+    var it=tyItem(t);
+    if(it&&!seen[it]){seen[it]=1;out.push(it);TY_ITEM_G[it]=typeGroup(t);}
   });
   FT.ty.forEach(function(t){if(!seen[t]){seen[t]=1;out.push(t);}});
   return out;
