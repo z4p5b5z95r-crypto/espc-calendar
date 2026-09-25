@@ -327,7 +327,7 @@ html[data-theme="dark"] .glass::after{
 /* 遮罩調淡（原 .55），面板的毛玻璃才透得出後面的畫面；
    高度用 100lvh：iOS 主畫面 App 的 inset:0 會少掉狀態列高度，底部露出一條白邊 */
 .ov{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;
-  background:rgba(0,0,0,.28);z-index:70;display:none;align-items:flex-end;}
+  background:rgba(0,0,0,.4);z-index:70;display:none;align-items:flex-end;}
 html[data-theme="dark"] .ov{background:rgba(0,0,0,.4);}
 .ov.open{display:flex;}
 .sheet{width:100%;max-width:520px;margin:0 auto;
@@ -815,7 +815,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25ze';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zg';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -935,25 +935,17 @@ function stamp(v){if(!v)return '';var d=new Date(v);
 var DW=['日','一','二','三','四','五','六'];
 var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
-/* ── 鍵盤：點輸入框時一律把它捲到鍵盤上方 ──
-   iOS 第一次點輸入框時頁面沒有可捲的空間（登入頁剛好一個螢幕高），所以會被鍵盤擋住；
-   第二次才正常。做法：
-   1) 一點下去就先補一段「鍵盤高度」的留白（用上次量到的高度，沒量過先估 42%），
-      讓 iOS 自己的捲動第一次就有空間可以捲；
-   2) 鍵盤彈出後（visualViewport 變矮）量實際高度校正留白，
-      再把輸入框移到「鍵盤上方可見區域」的中間（自己算位移，不靠 scrollIntoView）。
-   注意：iOS Safari 的 window.innerHeight 會跟著鍵盤變矮，不能拿來當基準，
-   基準改用 documentElement.clientHeight 與鍵盤收起時量到的最大可視高度。 */
+/* ── 鍵盤：點輸入框時不被鍵盤擋住 ──
+   iOS 第一次點輸入框時頁面沒有可捲的空間（登入頁剛好一個螢幕高），iOS 想捲也捲不動，
+   所以被鍵盤擋住。做法：一點下去先在頁面下方補一段留白，讓 iOS 自己的捲動就能把輸入框帶上來。
+   程式自己只在「鍵盤停好後仍然被擋住」時補捲，而且只捲到剛好露出，不置中，避免跳兩次、跳太高。
+   iOS Safari 的 window.innerHeight 會跟著鍵盤變矮，鍵盤高度的基準改用 clientHeight。 */
 (function(){
-  var vv=window.visualViewport,full=0,lastKb=0,busy=0;
-  function baseH(){
-    var c=document.documentElement.clientHeight||window.innerHeight||0;
-    return Math.max(c,full);
-  }
-  function kbH(){
-    if(!vv)return 0;
-    return Math.max(0,Math.round(baseH()-vv.height));
-  }
+  var vv=window.visualViewport,full=0,lastKb=0,out=0,chk=0;
+  var touch=false;
+  try{touch=window.matchMedia('(pointer:coarse)').matches;}catch(e){}
+  function baseH(){return Math.max(document.documentElement.clientHeight||0,full);}
+  function kbH(){return vv?Math.max(0,Math.round(baseH()-vv.height)):0;}
   function isField(el){
     if(!el||!/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))return false;
     return !/^(checkbox|radio|button|submit|reset|file|range|color)$/i.test(el.type||'');
@@ -962,7 +954,6 @@ var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','
     document.documentElement.style.setProperty('--kb',px+'px');
     document.body.classList.toggle('kb',px>0);
   }
-  /** 往上找會捲動的容器（底部面板 .sheet 等）；找不到就是整頁 */
   function scroller(el){
     for(var p=el.parentElement;p&&p!==document.body;p=p.parentElement){
       var oy=getComputedStyle(p).overflowY;
@@ -970,39 +961,39 @@ var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','
     }
     return null;
   }
-  function reveal(){
+  /** 鍵盤停好後檢查一次：還被擋住才捲，捲到輸入框剛好在鍵盤上方 16px */
+  function check(){
     var el=document.activeElement;
     if(!isField(el))return;
-    var k=kbH();
-    if(k>80){lastKb=k;setPad(k);}
+    var k=kbH();if(k>80)lastKb=k;
     var r=el.getBoundingClientRect();
-    var top=vv?vv.offsetTop:0,h=vv?vv.height:window.innerHeight;
-    if(r.top>=top+16&&r.bottom<=top+h-16)return;          // 已經看得到
-    var d=Math.round((r.top+r.height/2)-(top+h/2));       // 移到可見區域中間
+    var top=vv?vv.offsetTop:0,bot=top+(vv?vv.height:window.innerHeight);
+    var d=0;
+    if(r.bottom>bot-16)d=r.bottom-(bot-16);
+    else if(r.top<top+16)d=r.top-(top+16);
+    if(Math.abs(d)<4)return;
     var sc=scroller(el);
-    if(sc)sc.scrollTop+=d;
-    else window.scrollBy(0,d);
+    if(sc)sc.scrollTop+=d;else window.scrollBy(0,d);
   }
+  function later(ms){clearTimeout(chk);chk=setTimeout(check,ms);}
   if(vv){
     full=vv.height;
     vv.addEventListener('resize',function(){
       if(!isField(document.activeElement)){full=Math.max(full,vv.height);return;}
-      reveal();
+      later(160);                                        // 等鍵盤動畫停下來只檢查一次
     });
   }
-  var touch=false;
-  try{touch=window.matchMedia('(pointer:coarse)').matches;}catch(e){}
   document.addEventListener('focusin',function(e){
-    if(!touch||!isField(e.target))return;                 // 桌機沒有螢幕鍵盤，不用處理
-    clearTimeout(busy);
+    if(!touch||!isField(e.target))return;
+    clearTimeout(out);
     if(!document.body.classList.contains('kb'))
-      setPad(lastKb||Math.round(baseH()*0.42));           // 先留空間，第一次就捲得動
-    [120,380,700].forEach(function(ms){setTimeout(reveal,ms);});  // 鍵盤動畫約 0.3 秒
+      setPad(lastKb||Math.round(baseH()*0.42));          // 先留空間，iOS 第一次就捲得動
+    later(450);                                          // 換下一格時鍵盤不會 resize，也檢查一次
   });
   document.addEventListener('focusout',function(){
-    clearTimeout(busy);
-    busy=setTimeout(function(){
-      if(!isField(document.activeElement))setPad(0);        // 換到下一格不收，真的離開才收
+    clearTimeout(out);
+    out=setTimeout(function(){
+      if(!isField(document.activeElement))setPad(0);       // 換到下一格不收，真的離開才收
     },250);
   });
 })();
@@ -2807,7 +2798,7 @@ var TY_ITEMS={
           ['納管水質',/納管/],['地面水',/地面水|河川|逕流/],['水位',/水位/]],
   '噪音振動':[['營建低頻',/營建.*低頻|低頻.*營建/],['營建噪音',/營建/],['低頻噪音',/低頻/],
           ['噪音振動',/噪音|振動/]],
-  '交通':[['交通流量',/流量|車流/],['行駛速率',/速率|延滯|旅行時間/],['路況',/路況/]],
+  '交通':[['交通流量',/流量|車流/],['行駛速率',/速率|延滯|旅行時間/],['交通錄影',/錄影/],['路況',/路況/]],
   '土壤廢棄物':[['土壤',/土壤/],['底泥',/底泥/],['廢棄物',/廢棄物|事業廢/],['毒化物',/毒化物/]]
 };
 var TY_ITEM_C={};
@@ -3015,11 +3006,9 @@ function tyGroupsHTML(tys,raw){
       +list.map(function(t){
         var on=FT.ty.indexOf(t)>=0;
         var rw=Object.keys(raw[t]||{});
-        var tip=rw.length>1?' title="'+he(rw.join('、'))+'"':'';
-        return '<button class="ob'+(on?' on':'')+(rw.length>1?' ob2':'')+'"'+tip
-          +' onclick="tyPick(\''+he(esc(t))+'\')">'+(on?ic('check',15):'')
-          +(rw.length>1?'<span>'+he(t)+'<small>含 '+rw.length+' 種寫法</small></span>':he(t))
-          +'</button>';}).join('')
+        var tip=rw.length>1?' title="'+he(rw.join('、'))+'"':'';   // 桌機滑過可看包含哪些寫法
+        return '<button class="ob'+(on?' on':'')+'"'+tip
+          +' onclick="tyPick(\''+he(esc(t))+'\')">'+(on?ic('check',15):'')+he(t)+'</button>';}).join('')
       +'</div>';
   });
   return h;
