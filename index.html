@@ -382,6 +382,19 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
 .pcard.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);}
+.pcard{position:relative;}
+.pcard.cast .pchd>span:nth-child(2){padding-right:46px;}
+.pcast{position:absolute;top:10px;right:36px;width:36px;height:36px;border-radius:50%;font-size:18px;line-height:36px;text-align:center;
+  background:var(--gl);border:1px solid var(--glLine);}
+.pcast:active{transform:scale(.92);}
+.cbox{background:var(--accBg,rgba(243,111,33,.08));border-radius:12px;padding:9px 11px;margin:6px 0 8px;}
+.cbox .ci+.ci{border-top:1px dashed var(--line);margin-top:7px;padding-top:7px;}
+.cbox .cm{font-size:12px;color:var(--tx3);}
+.cbox .ct{font-size:14px;white-space:pre-wrap;margin-top:2px;}
+.cchips{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 4px;}
+.cchip{font-size:13.5px;padding:7px 12px;border-radius:999px;background:var(--gl);border:1px solid var(--glLine);color:var(--tx);text-align:left;}
+.cchip.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+.cchip .x{margin-left:6px;opacity:.6;}
 .pchd{display:flex;gap:11px;align-items:center;width:100%;padding:12px 13px;text-align:left;background:none;}
 .pchd:active{opacity:.75;}
 .pbar{width:3.5px;border-radius:999px;align-self:stretch;flex-shrink:0;min-height:30px;}
@@ -798,7 +811,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26h';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26j';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -1039,7 +1052,7 @@ function toast(msg,kind,ms){
 var TOKEN=ls('espc_token'),ROLE=ls('espc_role'),UNAME=ls('espc_user'),ENGNAME=ls('espc_eng');
 var PROFILE_OK=(ls('espc_prof')==='1');   // 這個帳號同意並確認過聯絡資料了嗎
 var ORG='';                               // 公司全銜，留空就顯示「本公司」
-var CONSENT_VER='2026-09-24c';            // 同意條款版本，內容改了就把版本號往後調
+var CONSENT_VER='2026-09-26a';            // 同意條款版本，內容改了就把版本號往後調
 /* 條款全文：畫面上顯示的就是這一份，簽署時原文一起送到後端存證（ConsentTexts）。
    改了文字就把 CONSENT_VER 往後調，舊版存證不會被覆蓋。 */
 function consentText(){
@@ -1047,7 +1060,7 @@ function consentText(){
   return [
     '資料確認與公開說明（版本 '+CONSENT_VER+'）',
     '',
-    '你在本系統填寫的姓名、電話、分機、地區、組別與職業安全證照（種類、證書字號、'
+    '你在本系統填寫的姓名、電話、分機、地區、組別與證照（種類、證書字號、'
       +'訓練日期、有效期限），會顯示在「通訊錄」，供'+org+'內部已登入的同仁查詢'
       +'聯絡方式與證照效期，並用於證照到期提醒。資料不對外公開，也不提供第三人，'
       +'保存至離職後 1 個月內刪除。',
@@ -1151,14 +1164,14 @@ var PHONE={},SAFETY={},STAFF=[],STAFF_VER='',TEAM={};
 var allRows=[],rows=[],curY,curM,pkY;
 var todayRows=[],todayFor='';
 var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
-// 職安類型建議清單，可自行輸入其他值
+// 證照種類建議清單，可自行輸入其他值
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
   '貯存系統污染監測人員','船員證'];
 var F={rg:'',en:'',ty:[],q:'',st:''};
 var tab='today',sub='';
 
-/* ══ 職安效期 ══
+/* ══ 證照效期 ══
    訓練日起算 2 年有效，到期前 3 個月開始提醒 */
 var SAFETY_YEARS=2, SAFETY_WARN_DAYS=92;
 var YEAR_OPTS=[1,2,3,4,5,6];       // 可選效期；0 代表無期限
@@ -1293,7 +1306,7 @@ function certBadges(name){
   });
   return b;
 }
-/** 讓標記可以點開職安詳情 */
+/** 讓標記可以點開證照詳情 */
 function badgeClick(n){
   return ' style="pointer-events:auto;cursor:pointer" onclick="event.stopPropagation();showSafety(\''
     +esc(n)+'\')"';
@@ -1327,7 +1340,7 @@ function avatarHat(name){
   return h+'</div>';
 }
 
-/** 職安標記：點工地帽看種類與效期，顏色隨狀態變化 */
+/** 證照標記：點圖示看種類與效期，顏色隨狀態變化 */
 function hatMark(n){
   var o=safetyOf(n);
   if(!o)return '';
@@ -1339,15 +1352,15 @@ function hatMark(n){
   if(b.kit)inner+=KIT_SVG.replace('class="pavkit"','class="mki"');
   if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
-    +'showSafety(\''+esc(n)+'\')" title="職安證照">'+inner+hatDot(o)+'</button>';
+    +'showSafety(\''+esc(n)+'\')" title="證照">'+inner+hatDot(o)+'</button>';
 }
 
 function showSafety(n){
   n=String(n||'').trim();
   var list=safetyList(n);
-  if(!list.length){toast(n+' 未登記職安資料','',3000);return;}
+  if(!list.length){toast(n+' 未登記證照資料','',3000);return;}
   var h='<div class="shh"><div>'
-    +'<div class="evt" style="color:var(--accT)">職安人員</div>'
+    +'<div class="evt" style="color:var(--accT)">證照資料</div>'
     +'<h3 style="margin-top:3px">'+he(n)+'</h3>'
     +(list.length>1?'<p class="hint" style="margin-top:3px">共 '+list.length+' 張證照</p>':'')
     +'</div><button class="ib" onclick="closeSheet()">✕</button></div>';
@@ -1372,7 +1385,7 @@ function showSafety(n){
   if(PHONE[n])
     h+='<a class="btn btn-full" style="margin-top:14px" href="tel:'+he(PHONE[n].replace(/-/g,''))+'">撥打 '+he(PHONE[n])+'</a>';
   if(canEditStaff(n))
-    h+='<button class="btn btn-p btn-full" style="margin-top:8px" onclick="editStaff(\''+esc(n)+'\')">編輯職安資料</button>';
+    h+='<button class="btn btn-p btn-full" style="margin-top:8px" onclick="editStaff(\''+esc(n)+'\')">編輯證照資料</button>';
   openSheet(h);
 }
 
@@ -1387,16 +1400,16 @@ function openDue(startup,mine){
   var bad=due.filter(function(x){return x.o.state==='expired';}).length;
   var title;
   if(!startup)title='需要安排回訓';
-  else if(mine)title=(bad?'你的職安證照已逾期':'你的職安證照快到期了');
-  else title=(bad?bad+' 人職安已逾期':due.length+' 人職安即將到期');
+  else if(mine)title=(bad?'你的證照已逾期':'你的證照快到期了');
+  else title=(bad?bad+' 張證照已逾期':due.length+' 張證照即將到期');
   var h='<div class="shh"><div>'
     +'<div class="evt" style="color:var(--warn)">'
-    +(startup?'⛑️ 職安提醒':'職安回訓')+'</div>'
+    +(startup?'證照到期提醒':'證照到期')+'</div>'
     +'<h3 style="margin-top:3px">'+title+'</h3>'
     +'<p class="hint" style="margin-top:3px">'
     +(mine?'請與主管或排程人員聯繫安排回訓':'每張證照到期前 3 個月開始提醒')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>';
-  if(!due.length)h+='<div class="empty">目前沒有即將到期的職安人員</div>';
+  if(!due.length)h+='<div class="empty">目前沒有即將到期的證照</div>';
   due.forEach(function(x){
     var isBad=x.o.state==='expired';
     h+='<div class="ev" onclick="showSafety(\''+esc(x.name)+'\')">'
@@ -1470,7 +1483,7 @@ function fmtPhone(v){
   return d.slice(0,2)+'-'+d.slice(2,5)+'-'+d.slice(5,9);
 }
 
-/** 姓名（電話）＋職安標記 */
+/** 姓名（電話）＋證照標記 */
 /** 這個人還在通訊錄嗎（帳號被刪除時通訊錄也會一併刪掉） */
 function inBook(n){
   n=String(n||'').trim();
@@ -2259,10 +2272,10 @@ function bookPage(){
     if(due.length){
       var bad=due.filter(function(x){return x.o.state==='expired';}).length;
       h+='<button class="duebar'+(bad?' bad':'')+'" onclick="openDue()">'
-        +'<span style="font-size:23px;line-height:1">⛑️</span>'
+        +ic('shield',22)
         +'<span style="flex:1;text-align:left">'
-        +(bad?'<b>'+bad+' 人職安已逾期</b>':'<b>'+due.length+' 人職安即將到期</b>')
-        +(bad&&due.length>bad?'，另有 '+(due.length-bad)+' 人即將到期':'')
+        +(bad?'<b>'+bad+' 張證照已逾期</b>':'<b>'+due.length+' 張證照即將到期</b>')
+        +(bad&&due.length>bad?'，另有 '+(due.length-bad)+' 張即將到期':'')
         +'</span>'+ic('right',16)+'</button>';
     }
   }
@@ -3434,6 +3447,7 @@ function gotoDay(d,n){
 /* 當日面板：案子清單可各自展開，展開後的明細跟詳情頁一樣完整 */
 var EV_OPEN={};
 function openDay(d,focus){
+  CAST.p='';                               // 回到當日面板＝離開廣播畫面
   var gs=groupBy(dayRows(d));
   // 面板已經開著就只換內容，不要再跑一次彈出動畫（會整個閃一下）
   var isOpen=$('ov').classList.contains('open');
@@ -3448,7 +3462,9 @@ function openDay(d,focus){
 
   gs.forEach(function(g){
     var c=pcolor(g.project),on=!!EV_OPEN[g.project];
-    h+='<div class="pcard'+(on?' on':'')+'" id="pc-'+he(hashId(g.project))+'">'
+    var cc=on&&canCast(g);
+    h+='<div class="pcard'+(on?' on':'')+(cc?' cast':'')+'" id="pc-'+he(hashId(g.project))+'">'
+      +(cc?'<button class="pcast" title="廣播給現場人員" onclick="castOpen(\''+esc(g.project)+'\')">📣</button>':'')
       +'<button class="pchd" onclick="evToggle(\''+esc(g.project)+'\')">'
       +'<span class="pbar" style="background:'+c+'"></span>'
       +'<span style="min-width:0;flex:1">'
@@ -3460,6 +3476,7 @@ function openDay(d,focus){
       +'</div>';
   });
 
+  castLoad(d);
   if(isOpen){
     var sh=$('sheet'),top=sh.scrollTop;
     $('sheetin').innerHTML=h;
@@ -3470,6 +3487,112 @@ function openDay(d,focus){
     var el=$('pc-'+hashId(focus)),sh2=$('sheet');
     if(el&&sh2)sh2.scrollTop=Math.max(0,el.offsetTop-sh2.offsetTop-6);
   },40);
+}
+/* ══ 📣 PM 廣播 ══
+   只有 PM（且是這案的 PM）、主管、排程看得到按鈕；對象是這天這案的「現場」人員。
+   發過的內容會顯示在案子卡片最上面，現場人員沒開推播也看得到。 */
+var CASTS={},CAST_TPL=null,CAST={p:'',sel:{},text:'',edit:false,busy:false};
+function canCast(g){
+  if(!g.staff||!g.staff.length)return false;
+  if(ROLE==='supervisor'||ROLE==='scheduler')return true;
+  if(ROLE!=='pm')return false;
+  var me=String(ENGNAME||'').trim();
+  return !!me&&g.engs.some(function(e){return String(e).trim()===me;});
+}
+function castLoad(d,force){
+  var c=CASTS[d];
+  if(!force&&c&&(c.busy||Date.now()-c.at<60000))return;
+  CASTS[d]={list:c?c.list:[],at:Date.now(),busy:true};
+  gas('getCasts',TOKEN,d).then(function(r){
+    if(!r||!r.ok){CASTS[d].busy=false;return;}
+    var before=JSON.stringify(c?c.list:[]);
+    CASTS[d]={list:r.casts||[],at:Date.now(),busy:false};
+    if(r.tpl)CAST_TPL=r.tpl;
+    if(EV_D===d&&$('ov').classList.contains('open')&&!CAST.p&&JSON.stringify(r.casts||[])!==before)openDay(d);
+  }).catch(function(){if(CASTS[d])CASTS[d].busy=false;});
+}
+function castBox(g){
+  var c=CASTS[EV_D];
+  if(!c||!c.list.length)return '';
+  var mine=c.list.filter(function(x){return x.project===g.project;});
+  if(!mine.length)return '';
+  return '<div class="cbox">'+mine.map(function(x){
+    return '<div class="ci"><div class="cm">📣 '+he(x.from)+'　'+he(String(x.at).slice(11,16))
+      +'　→ '+he(x.to.join('、'))+'</div><div class="ct">'+he(x.text)+'</div>'
+      +(x.noPush&&x.noPush.length?'<div class="cm" style="color:var(--warn)">'+he(x.noPush.join('、'))+' 沒開推播，只能在 App 看到</div>':'')
+      +'</div>';
+  }).join('')+'</div>';
+}
+function castGroup(p){
+  var gs=groupBy(dayRows(EV_D));
+  for(var i=0;i<gs.length;i++)if(gs[i].project===p)return gs[i];
+  return null;
+}
+function castOpen(p){
+  var g=castGroup(p);if(!g)return;
+  var me=String(ENGNAME||'').trim();
+  CAST={p:p,sel:{},text:'',edit:false,busy:false};
+  g.staff.forEach(function(n){if(String(n).trim()!==me)CAST.sel[n]=true;});
+  if(!CAST_TPL)castLoad(EV_D,true);
+  castPaint();
+}
+function castClose(){var p=CAST.p;CAST.p='';openDay(EV_D,p);}
+function castPaint(){
+  var g=castGroup(CAST.p);if(!g){castClose();return;}
+  var d=EV_D,dd=d.split('-'),me=String(ENGNAME||'').trim();
+  var tpl=CAST_TPL||[];
+  var h='<div class="shh"><div><h3>📣 廣播給現場人員</h3>'
+    +'<p class="hint" style="margin-top:3px">'+he(g.project)+'　'+parseInt(dd[1])+'/'+parseInt(dd[2])+'（'+DW[dowOf(d)]+'）</p></div>'
+    +'<button class="ib" onclick="castClose()">✕</button></div>';
+  h+='<p class="lb" style="margin-top:6px">發給</p><div class="cchips">'
+    +g.staff.filter(function(n){return String(n).trim()!==me;}).map(function(n){
+      return '<button class="cchip'+(CAST.sel[n]?' on':'')+'" onclick="castSel(\''+esc(n)+'\')">'+he(n)+'</button>';
+    }).join('')+'</div>';
+  h+='<p class="lb" style="margin-top:12px;display:flex;align-items:center">常用語<span style="flex:1"></span>'
+    +'<a href="#" style="font-weight:400;color:var(--accT);font-size:13px" onclick="CAST.edit=!CAST.edit;castPaint();return false">'
+    +(CAST.edit?'完成':'編輯')+'</a></p><div class="cchips">'
+    +(tpl.length?tpl.map(function(t,i){
+      return '<button class="cchip" onclick="'+(CAST.edit?'castTplDel('+i+')':'castTplUse('+i+')')+'">'+he(t)
+        +(CAST.edit?'<span class="x">✕</span>':'')+'</button>';
+    }).join(''):'<span class="hint">還沒有常用語</span>')+'</div>';
+  h+='<textarea class="fld" id="cast-t" rows="4" maxlength="300" placeholder="輸入要提醒的內容…" style="margin-top:10px;resize:vertical;border-radius:16px;line-height:1.5"'
+    +' oninput="CAST.text=this.value;$(\'cast-n\').textContent=this.value.length">'+he(CAST.text)+'</textarea>'
+    +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="castTplAdd();return false">＋ 存成常用語</a>'
+    +'<span style="flex:1"></span><span class="hint"><span id="cast-n">'+CAST.text.length+'</span>/300</span></div>';
+  h+='<button class="btn btn-p btn-full" style="margin-top:14px"'+(CAST.busy?' disabled':'')+' onclick="castSend()">'
+    +(CAST.busy?'送出中…':'送出廣播')+'</button>';
+  openSheet(h);
+}
+function castSel(n){CAST.sel[n]=!CAST.sel[n];castPaint();}
+function castTplUse(i){
+  var t=(CAST_TPL||[])[i];if(!t)return;
+  CAST.text=CAST.text.trim()?CAST.text.replace(/\s+$/,'')+'\n'+t:t;
+  castPaint();
+}
+function castTplSave(){gas('saveCastTpl',TOKEN,CAST_TPL).catch(function(){});}
+function castTplDel(i){(CAST_TPL||[]).splice(i,1);castTplSave();castPaint();}
+function castTplAdd(){
+  var t=String(CAST.text||'').trim();
+  if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
+  CAST_TPL=CAST_TPL||[];
+  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
+  if(CAST_TPL.length>=12){toast('常用語最多 12 則，請先刪掉幾則','no',3000);return;}
+  CAST_TPL.push(t.slice(0,100));castTplSave();castPaint();toast('已存成常用語','ok');
+}
+function castSend(){
+  var names=Object.keys(CAST.sel).filter(function(n){return CAST.sel[n];});
+  var t=String(CAST.text||'').trim();
+  if(!names.length){toast('請選擇要通知的人','no');return;}
+  if(!t){toast('請輸入內容','no');return;}
+  CAST.busy=true;castPaint();
+  gas('castPush',TOKEN,EV_D,CAST.p,names,t).then(function(r){
+    CAST.busy=false;
+    if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);castPaint();return;}
+    var msg=r.sent.length?'已通知 '+r.sent.join('、'):'已記錄';
+    if(r.noPush&&r.noPush.length)msg+='；'+r.noPush.join('、')+' 沒開推播，建議打電話';
+    toast(msg,r.noPush&&r.noPush.length?'':'ok',5000);
+    castLoad(EV_D,true);castClose();
+  }).catch(function(){CAST.busy=false;toast('連線失敗','no');castPaint();});
 }
 /** 專案名稱轉成可當 id 的短碼 */
 function hashId(s){
@@ -3486,7 +3609,7 @@ function openEv(d,proj){openDay(d,proj);}
 
 /** 一個案子的完整明細：各測項一段，最後是共用資訊 */
 function evDetail(g){
-  var c=pcolor(g.project),multi=g.tlist.length>1,h='';
+  var c=pcolor(g.project),multi=g.tlist.length>1,h=castBox(g);
   g.tlist.forEach(function(t){
     var tg=g.tmap[t],q=qtyText(tg.qtys);
     var rows=dr('點位',locList(tg.locs))
@@ -3614,7 +3737,7 @@ function openOnboarding(keep){
     +'<div class="onbh">'+(fill?'建立你的通訊錄資料':'確認你的聯絡資料')+'</div>'
     +'<p class="onbs">'
     +(fill
-      ? '這是第一次登入，請填寫你的聯絡方式與職安證照，建立自己的通訊錄資料。'
+      ? '這是第一次登入，請填寫你的聯絡方式與證照，建立自己的通訊錄資料。'
       : '這是第一次登入，請看過以下資料並確認正確。')
     +'<br>確認後不會再詢問，之後要修改可到「通訊錄」找自己那一列。</p>';
 
@@ -3625,7 +3748,7 @@ function openOnboarding(keep){
       +he(s.phone||'')+'" placeholder="0912345678" style="margin-bottom:13px">'
       +extField(s)
       +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-      +'<p class="lb">職安證照</p>'
+      +'<p class="lb">證照</p>'
       +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>';
   }else{
     h+='<input type="hidden" id="s-n" value="'+he(s.name)+'">'
@@ -3858,7 +3981,7 @@ function editStaff(name){
     +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team)+'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
     +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
-    +'<p class="lb">職安證照</p>'
+    +'<p class="lb">證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
     +'<div style="height:6px"></div>'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
@@ -3877,7 +4000,7 @@ function certsHTML(){
       +'<div class="cbh"><span>證照 '+(i+1)+'</span>'
       +'<button onclick="ecDel('+i+')">刪除</button></div>'
       +'<p class="lb">種類</p>'
-      +'<input class="fld" id="c-t'+i+'" list="sfl" value="'+he(c.type||'')+'" placeholder="例：甲種職業安全衛生業務主管" style="margin-bottom:10px">'
+      +'<input class="fld" id="c-t'+i+'" list="sfl" value="'+he(c.type||'')+'" placeholder="例：急救人員、甲種職業安全衛生業務主管" style="margin-bottom:10px">'
       +'<p class="lb">證書字號</p>'
       +'<input class="fld" id="c-c'+i+'" value="'+he(c.cert||'')+'" placeholder="選填" style="margin-bottom:10px">'
       +'<div style="display:flex;gap:8px">'
@@ -4920,7 +5043,7 @@ function icsPage(){
   var c=ICS.cfg;
   var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">到了設定的時間，手機會跳一則<b>行程彙整通知</b>，App 關著也收得到。'
     +'<b>只有排程裡有你的行程才會跳</b>，沒有行程的日子不會提醒。點通知會直接打開那一天。'
-    +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">⛑️ <b>職安證照到期提醒</b>：平日 08:30 自動通知（自己和底下人員的證照），'
+    +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">'+ic('shield',15)+' <b>證照到期提醒</b>：平日 08:30 自動通知（自己和底下人員的證照），'
     +'到期前 3 個月起每月一次、逾期後每月一次，遇到週末順延到週一。</div></div>';
   h+=pushHTML();
   h+='<div class="sec">提醒時間　<span style="color:var(--tx3)">最多 3 個，所有手機共用</span></div><div class="card">';
@@ -4993,7 +5116,7 @@ function pushHTML(){
       +'<input type="time" class="fld" id="pt-t" style="flex:1;min-width:0;margin:0" value="'+(PUSH.demo||dflt)+'">'
       +'<button class="btn btn-sm" style="flex:0 0 auto" onclick="pushDemo()">排定</button></div>'
       +(PUSH.demoAt?'<div class="hint" style="margin-top:8px;color:var(--accT)">已排定：今天 '+he(PUSH.demoAt)+' 左右跳出</div>':'')
-      +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="pushTest(\'cert\')">⛑️ 發送證照到期提醒範例</button>'
+      +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="pushTest(\'cert\')">'+ic('shield',16)+'發送證照到期提醒範例</button>'
       +'</div>';
     /* ▲▲ 暫時測試功能結束 ▲▲ */
   }
@@ -5012,7 +5135,7 @@ function pushSwitch(){
 /* ══ 邀請開啟推播 ══
    推播一定要本人在這支手機按「允許」，App 無法替使用者直接打開，所以改成主動詢問：
    ・排程裡有自己行程的人（預設提醒：前一天 16:00、當天 08:30）
-   ・主管／排程／管理員，或底下有人員的人（平日 08:30 證照到期提醒）
+   ・底下有人員的主管（平日 08:30 收到本人與底下人員的證照到期提醒）
    按「稍後再說」14 天後再問；這支手機不能收推播（iPhone 未加入主畫面等）就不問 */
 var PUSH_ASK_KEY='espc_pushask', PUSH_ASK_MS=14*86400000;
 function pushAskLater(){setTimeout(pushAsk,1200);}
@@ -5026,16 +5149,15 @@ function pushAsk(){
     if(Date.now()-last<PUSH_ASK_MS)return;
   }catch(e){return;}
   var n=selfName&&selfName();
-  var boss=(ROLE==='admin'||ROLE==='supervisor'||ROLE==='scheduler');
   var go2=function(hasRows){
     dueTargets(function(t){
-      var mgr=boss||t.all||(t.names||[]).length>1;
+      var mgr=(t.names||[]).length>1;                           // 底下有人員 → 會收到他們的證照到期通知
       if(!hasRows&&!mgr)return;                                  // 沒行程也不是主管 → 不用推播
       if($('ov').classList.contains('open')||pushIsOn())return;
       lsS(PUSH_ASK_KEY,String(Date.now()));
       var lines='';
       if(hasRows)lines+='<div class="note" style="margin-top:10px">📋 <b>行程提醒</b>：前一天 16:00、當天 08:30 通知你的行程（只有排到你才會跳，可在「更多 → 行程提醒」修改時間）</div>';
-      if(mgr)lines+='<div class="note" style="margin-top:8px">⛑️ <b>證照到期提醒</b>：平日 08:30 通知'+(t.all?'全部人員':'你和底下人員')+'的職安證照到期</div>';
+      if(mgr)lines+='<div class="note" style="margin-top:8px">'+ic('shield',15)+' <b>證照到期提醒</b>：平日 08:30 通知你和底下人員的證照到期</div>';
       openSheet('<div class="shh"><div><h3>開啟推播通知</h3>'
         +'<p class="hint" style="margin-top:3px">App 關著也收得到，按開啟後手機會詢問是否允許通知，請選「允許」</p></div>'
         +'<button class="ib" onclick="closeSheet()">✕</button></div>'+lines
