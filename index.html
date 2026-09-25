@@ -28,8 +28,8 @@
   --warn:#a85600; --warnBg:rgba(243,111,33,.13);
   --ok:#1e7a44;             /* 效期內綠（淺底對比 4.8:1）*/
   --r:14px; --sh:0 8px 24px rgba(0,0,0,.12);
-  --gl:rgba(255,255,255,.6);         /* 玻璃底（2026-09-25z 統一 0.6，原 .62／.78） */
-  --glStrong:rgba(255,255,255,.6);   /* 卡片、按鈕、輸入框 */
+  --gl:rgba(255,255,255,.5);         /* 玻璃底（2026-09-25za 統一 0.5，原 .62／.78） */
+  --glStrong:rgba(255,255,255,.5);   /* 卡片、按鈕、輸入框 */
   --glLine:rgba(255,255,255,.7);     /* 玻璃邊緣高光 */
   --blur:saturate(180%) blur(20px);
 }
@@ -45,8 +45,8 @@ html[data-theme="dark"]{
   --warn:#ffb74d; --warnBg:rgba(255,183,77,.14);
   --ok:#5ed18f;             /* 深底上提亮 */
   --sh:0 8px 24px rgba(0,0,0,.4);
-  --gl:rgba(38,38,42,.6);
-  --glStrong:rgba(38,38,42,.6);
+  --gl:rgba(38,38,42,.5);
+  --glStrong:rgba(38,38,42,.5);
   --glLine:rgba(255,255,255,.1);
   --blur:saturate(180%) blur(20px);
 }
@@ -805,7 +805,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25z';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25za';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
