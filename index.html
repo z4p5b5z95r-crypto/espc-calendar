@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ESPC 監測行程</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-v2.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-v2.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-v2.png">
+<link rel="apple-touch-icon" href="icon-v3.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-v3.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v3.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512-v3.png">
 <meta name="theme-color" content="#F36F21">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -568,6 +568,32 @@ html[data-theme="dark"] .glass::after{
 .ocroot.show{display:block;}
 .ocroot.drop{border-color:var(--acc);color:var(--accT);background:var(--tint);}
 
+/* ── 新帳號憑證卡 ── */
+.nacard{background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:18px 18px 16px;text-align:center;}
+.naglass{width:72px;height:72px;margin:0 auto 12px;}
+.naglass .glass{width:72px;height:72px;margin:0 auto;border-radius:18px;}
+.naglass .glass::after{border-radius:18px;}
+.naglass .logo svg{width:40px;height:40px;}
+.naqr{margin:14px 0 4px;text-align:center;}
+.naqrbox{display:inline-block;background:#fff;padding:10px;border-radius:14px;
+  border:1px solid var(--line);line-height:0;}
+.naqrbox img,.naqrbox canvas,.naqrbox table{width:148px;height:148px;}
+.naqrt{font-size:11.5px;color:var(--tx3);margin-top:7px;}
+.nah{font-size:17px;font-weight:700;}
+.nas{font-size:13px;color:var(--tx3);margin-top:3px;}
+.narow{display:flex;align-items:center;gap:10px;padding:10px 2px;
+  border-top:1px solid var(--line);text-align:left;}
+.narow:first-of-type{border-top:none;}
+.nak{width:44px;flex:0 0 auto;font-size:13px;color:var(--tx3);}
+.nav2{flex:1;min-width:0;font-size:15.5px;font-weight:600;letter-spacing:.5px;
+  word-break:break-all;}
+.nav2.url{font-size:12.5px;font-weight:500;color:var(--accT);letter-spacing:0;}
+.nacp{flex:0 0 auto;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
+  color:var(--tx3);font-size:13px;background:var(--card2);}
+.nabox{background:var(--card2);border-radius:14px;padding:4px 12px;margin:12px 0 14px;}
+.nafoot{font-size:11.5px;color:var(--tx3);margin-top:10px;line-height:1.7;}
+
 /* ── 帳號管理樹狀 ── */
 .utg{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;margin:6px 0 2px;
   font-size:13px;font-weight:600;color:var(--tx2);background:transparent;}
@@ -774,7 +800,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25w';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -818,6 +844,8 @@ var ICON={
  bell:'<path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
  file:'<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M8 11h8M8 15h5"/>',
  check:'<path d="M5 12l5 5L20 7"/>',
+ copy:'<rect x="9" y="9" width="11" height="11" rx="2.4"/>'
+   +'<path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/>',
  right:'<path d="M9 6l6 6-6 6"/>',
  pin:'<path d="M12 21s-7-6-7-11a7 7 0 1 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/>',
  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -1450,6 +1478,12 @@ window.addEventListener('DOMContentLoaded',function(){
     if(SHEET_FORM)return;
     if(_ovD&&(Math.abs(e.clientX-_ovD.x)>10||Math.abs(e.clientY-_ovD.y)>10))return;
     closeSheet();});
+
+  // 從分享連結（?u=工號）進來時，先把帳號填好
+  try{
+    var qu=(location.search||'').match(/[?&]u=([^&]+)/);
+    if(qu&&$('i-u')&&!$('i-u').value)$('i-u').value=decodeURIComponent(qu[1]).trim();
+  }catch(e){}
 
   if(TOKEN&&ROLE&&UNAME){
     // 本機還記得上次登入的身分 → 直接開起來，登入狀態在背景確認
@@ -4433,10 +4467,125 @@ function createUser(){
   if(!u||!p){toast('帳號與密碼不得為空','no');return;}
   gas('createUser',TOKEN,u,p,$('n-r').value,e,
       $('n-t').value.trim(),$('n-g').value,MG.join(',')).then(function(r){
-    if(r&&r.ok){toast('帳號已建立','ok');closeSheet();loadUsers();}
+    if(r&&r.ok){
+      toast('帳號已建立','ok');
+      loadUsers();
+      showNewAccount(u,p,e,$('n-r')?$('n-r').value:'');
+    }
     else toast((r&&r.error)||'建立失敗','no');
   }).catch(function(){toast('操作失敗','no');});
 }
+/* ── 建立完成：把登入資訊交給使用者 ── */
+var NA=null;
+function appURL(){
+  try{
+    var l=window.location;
+    return l.origin+l.pathname.replace(/[^\/]*$/,'');
+  }catch(e){return '';}
+}
+/** 連結帶上帳號，開啟時會自動填入帳號欄（密碼不放進網址） */
+function naLink(){
+  if(!NA)return '';
+  return NA.url+'?u='+encodeURIComponent(NA.u);
+}
+function naText(){
+  if(!NA)return '';
+  return ['ESPC 監測行程行事曆',
+    '帳號：'+NA.u,
+    '密碼：'+NA.p,
+    '網址：'+naLink(),
+    '第一次登入請確認個人資料並自行設定新密碼'].join('\n');
+}
+function copyText(t,okMsg){
+  var done=function(){toast(okMsg||'已複製','ok');};
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done,function(){fallback();});
+      return;
+    }
+  }catch(e){}
+  fallback();
+  function fallback(){
+    try{
+      var ta=document.createElement('textarea');
+      ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      document.execCommand('copy');ta.remove();done();
+    }catch(err){toast('複製失敗，請長按選取','no');}
+  }
+}
+function naCopy(which){
+  if(!NA)return;
+  if(which==='u')copyText(NA.u,'已複製帳號');
+  else if(which==='p')copyText(NA.p,'已複製密碼');
+  else if(which==='url')copyText(naLink(),'已複製網址');
+  else copyText(naText(),'已複製全部資訊');
+}
+function naShare(){
+  if(!NA)return;
+  var t=naText();
+  try{
+    if(navigator.share){
+      navigator.share({title:'ESPC 監測行程行事曆',text:t}).catch(function(){});
+      return;
+    }
+  }catch(e){}
+  copyText(t,'已複製，貼上傳給他就好');
+}
+/* QR 只放網址，不放密碼；套件從 CDN 載入，載不到就把 QR 區塊收起來 */
+function naQR(){
+  var box=$('naqrbox');
+  if(!box||!NA)return;
+  var draw=function(){
+    try{
+      box.innerHTML='';
+      new QRCode(box,{text:naLink(),width:148,height:148,
+        colorDark:'#1c1c1e',colorLight:'#ffffff',
+        correctLevel:QRCode.CorrectLevel.M});
+    }catch(e){hide();}
+  };
+  var hide=function(){var w=$('naqr');if(w)w.style.display='none';};
+  if(window.QRCode){draw();return;}
+  var sc=document.createElement('script');
+  sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  sc.onload=draw;
+  sc.onerror=hide;
+  document.body.appendChild(sc);
+}
+function showNewAccount(u,p,eng,role){
+  NA={u:u,p:p,eng:eng,role:role,url:appURL()};
+  openSheet('<div class="shh"><h3>帳號已建立</h3>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<div class="nacard">'
+    +'<div class="naglass"><div class="glass">'
+    +'<span class="blob b1"></span><span class="blob b2"></span>'
+    +'<div class="logo">'+ic('logo',40)+'</div></div></div>'
+    +'<div class="nah">'+he(eng||u)+'</div>'
+    +'<div class="nas">'+he(roleLabel(role))+'　·　登入資訊如下</div>'
+    +'<div class="nabox">'
+    +'<div class="narow"><div class="nak">帳號</div>'
+    +'<div class="nav2">'+he(u)+'</div>'
+    +'<button class="nacp" onclick="naCopy(\'u\')" title="複製帳號">'+ic('copy',15)+'</button></div>'
+    +'<div class="narow"><div class="nak">密碼</div>'
+    +'<div class="nav2">'+he(p)+'</div>'
+    +'<button class="nacp" onclick="naCopy(\'p\')" title="複製密碼">'+ic('copy',15)+'</button></div>'
+    +'<div class="narow"><div class="nak">網址</div>'
+    +'<div class="nav2 url">'+he(naLink())+'</div>'
+    +'<button class="nacp" onclick="naCopy(\'url\')" title="複製網址">'+ic('copy',15)+'</button></div>'
+    +'</div>'
+    +'<div class="naqr" id="naqr">'
+    +'<div class="naqrbox" id="naqrbox"></div>'
+    +'<div class="naqrt">掃描開啟登入頁，帳號會自動帶入</div></div>'
+    +'<div style="display:flex;gap:8px;margin-top:12px">'
+    +'<button class="btn btn-full" style="flex:1" onclick="naCopy()">複製全部</button>'
+    +'<button class="btn btn-p btn-full" style="flex:1" onclick="naShare()">分享</button>'
+    +'</div>'
+    +'<p class="nafoot">第一次登入會請他確認個人資料、同意資料公開說明，<br>'
+    +'並要求改掉這組預設密碼。</p>'
+    +'</div>');
+  naQR();
+}
+
 function setRole(u,role){
   gas('setUserRole',TOKEN,u,role).then(function(r){
     if(r&&r.ok)toast('角色已改為「'+roleLabel(role)+'」','ok');
