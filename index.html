@@ -333,6 +333,10 @@ html[data-theme="dark"] .glass::after{
   height:82vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+/* 鍵盤彈出時多留出鍵盤高度的空間，讓輸入框捲得到鍵盤上方（--kb 由 JS 設定） */
+body.kb #login{padding-bottom:calc(26px + var(--kb,0px));}
+body.kb .sheet{padding-bottom:calc(26px + var(--kb,0px));}
+body.kb #app{padding-bottom:var(--kb,0px);}
 .strack{position:relative;}
 .spane{will-change:transform,opacity;}
 .shh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
@@ -805,7 +809,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25za';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zc';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -924,6 +928,40 @@ function stamp(v){if(!v)return '';var d=new Date(v);
 
 var DW=['日','一','二','三','四','五','六'];
 var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+/* ── 鍵盤：點輸入框時一律把它捲到鍵盤上方 ──
+   iOS 第一次點輸入框時鍵盤還沒彈完就算位置，頁面也沒有可捲的空間，所以會被擋住。
+   這裡等鍵盤出現後（visualViewport 變矮）補上鍵盤高度的留白，再把輸入框捲到可視範圍中間。 */
+(function(){
+  var vv=window.visualViewport;
+  function kbH(){return vv?Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop)):0;}
+  function isField(el){
+    if(!el||!/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))return false;
+    return !/^(checkbox|radio|button|submit|reset|file|range|color)$/i.test(el.type||'');
+  }
+  function setKb(){
+    var k=kbH(),on=k>80;
+    document.documentElement.style.setProperty('--kb',(on?k:0)+'px');
+    document.body.classList.toggle('kb',on);
+  }
+  function reveal(){
+    setKb();
+    var el=document.activeElement;
+    if(!isField(el))return;
+    var r=el.getBoundingClientRect();
+    var top=vv?vv.offsetTop:0,bot=top+(vv?vv.height:window.innerHeight);
+    if(r.top<top+12||r.bottom>bot-12){
+      try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){el.scrollIntoView();}
+    }
+  }
+  document.addEventListener('focusin',function(e){
+    if(!isField(e.target))return;
+    [80,320,650].forEach(function(ms){setTimeout(reveal,ms);});   // 鍵盤動畫大約 0.3 秒
+  });
+  document.addEventListener('focusout',function(){setTimeout(function(){
+    if(!isField(document.activeElement))setKb();},120);});
+  if(vv)vv.addEventListener('resize',reveal);
+})();
 
 /* ── 主題 ── */
 function applyTheme(){
@@ -2092,6 +2130,9 @@ function bookPage(){
   STAFF.forEach(function(s){var t=(s.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
 
   var h='';
+  // 新增人員放最上方，和帳號管理的「新增帳號」一致
+  if(canWrite(ROLE))
+    h+='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="editStaff()">新增人員</button>';
   // 回訓提醒：只有可維護通訊錄的人看得到
   if(canWrite(ROLE)){
     var due=safetyDue();
@@ -2123,8 +2164,6 @@ function bookPage(){
       return '<option value="'+he(t)+'"'+(bookSf===t?' selected':'')+'>'+he(t)+'</option>';}).join('')
     +'</select></div>'
     +bookList();
-  if(canWrite(ROLE))
-    h+='<button class="btn btn-p btn-full" style="margin-top:12px" onclick="editStaff()">新增人員</button>';
   return h;
 }
 
