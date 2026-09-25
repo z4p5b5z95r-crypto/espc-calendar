@@ -798,12 +798,12 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26c';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
   messagingSenderId:"265740284159",appId:"1:265740284159:web:730678802a563200151cca"};
-var FCM_VAPID='BPFci_gZjScHCiMjRObhTXMr4bjRhYM6wJ7Sapku1Y24GJ3aR2XS2aEICe0uSMtBV7Zo8RgJ7kTTtWlKL1tPjuM';   // Firebase「專案設定 → Cloud Messaging → 網路推播憑證」的公鑰
+var FCM_VAPID='BIz2nfyWMRth_bkPmkz-zdKvhVU39Y7RLmM29RxvFP-1Eu2r8pE0A8YV4Z_GvHHDZDppae83aMTsLi3-0MiUYIE';   // Firebase「專案設定 → Cloud Messaging → 網路推播憑證」的公鑰
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -882,7 +882,6 @@ var ICON={
    +'<rect x="1.8" y="14.4" width="20.4" height="3.2" rx="1.6"/>'
    +'<rect x="10.6" y="2.6" width="2.8" height="3.6" rx="1.4"/>'
    +'</g>',
- phone:'<rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.5 18.5h3"/>',
  moon:'<path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a7 7 0 0 0 9.5 9.5z"/>',
  sun2:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>',
  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
@@ -1509,7 +1508,7 @@ function carTag(g){
 var PAL=['#2563eb','#dc2626','#16a34a','#ea580c','#9333ea','#0891b2','#ca8a04','#db2777',
          '#4f46e5','#059669','#b45309','#7c3aed','#0d9488','#e11d48','#65a30d','#6366f1'];
 /* 顏色由案名算出（同一個案子在任何裝置、任何月份都是同一色），
-   後端的行事曆訂閱也用同一套算法，標題前的彩色圓點才會對得上。改這裡要一起改 Code.gs 的 projEmoji_ */
+   後端推播通知的彩色圓點用同一套算法。改這裡要一起改 Code.gs 的 projEmoji_ */
 var pmap={},pidx=0;   // pmap：月曆畫面用來判斷「本月有沒有案子」，每次畫月曆前清空
 function pcolor(n){
   if(!n)return '#71717a';
@@ -1822,7 +1821,7 @@ function restoreTab(){
   return {t:v.t,s:v.s||''};
 }
 
-/* ══ 從訂閱行事曆的事件點進來：網址帶 ?d=日期&p=案子，開月曆並展開那一天 ══ */
+/* ══ 從推播通知點進來：網址帶 ?d=日期（&p=案子），開月曆並展開那一天 ══ */
 var DEEP=null;
 function takeDeep(){
   try{
@@ -2504,7 +2503,7 @@ function morePage(){
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<button class="link" onclick="go(\'more\',\'ics\')">行程提醒'
-    +'<span class="hint" style="margin-left:6px">推播通知／行事曆訂閱</span><span style="flex:1"></span>'+ic('bell',19)+'</button>'
+    +'<span class="hint" style="margin-left:6px">推播通知</span><span style="flex:1"></span>'+ic('bell',19)+'</button>'
 
     +(selfName()?'<div class="link" style="cursor:default"><div>'
       +'<div>開啟時先篩選自己的行程</div>'
@@ -4896,31 +4895,29 @@ function changePw(){
   }).catch(function(){e.textContent='操作失敗，請稍後再試';});
 }
 
-/* ══ 行事曆訂閱提醒 ══════════════════════════════════
-   後端依個人產生訂閱網址（只有自己的行程），iPhone 行事曆／Google 日曆訂閱後，
-   由它們依這裡設定的時間跳提醒；點事件裡的網址會回到這個 App 的那一天。 */
-var ICS={tok:'',cfg:null,loading:false,err:'',dirty:false};
-function icsURL(){return ICS.tok?GAS_URL+'?ics='+ICS.tok:'';}
+/* ══ 行程提醒（推播） ══════════════════════════════════
+   提醒時間、週末要不要提醒存在後端（Users.ics_cfg），pushTick 依此發推播。
+   （行事曆訂閱功能已移除，只保留推播） */
+var ICS={cfg:null,loading:false,err:'',dirty:false};
 function icsLoad(){
   if(ICS.loading)return;
   ICS.loading=true;ICS.err='';
-  gas('getIcs',TOKEN).then(function(r){
+  gas('getRemind',TOKEN).then(function(r){
     ICS.loading=false;
     if(!r||!r.ok){ICS.err=(r&&r.error)||'讀取失敗';}
-    else{ICS.tok=r.icsToken||'';ICS.cfg=r.cfg||{alarms:[],weekend:false};ICS.dirty=false;}
+    else{ICS.cfg=r.cfg||{alarms:[],weekend:false};ICS.dirty=false;}
     if(sub==='ics')render();
   }).catch(function(){ICS.loading=false;ICS.err='連線失敗，請稍後再試';if(sub==='ics')render();});
 }
 function icsPage(){
-  if(!ICS.tok&&!ICS.err){icsLoad();return loader('讀取訂閱設定…');}
-  if(ICS.err&&!ICS.tok)return '<div class="empty">'+he(ICS.err)+'<br><br><button class="btn btn-sm" onclick="ICS.err=\'\';render()">重試</button></div>';
-  var c=ICS.cfg,url=icsURL();
-  var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">提醒有兩種，時間設定共用：'
-    +'<b>推播通知</b>直接跳在手機上，內容最完整；<b>行事曆訂閱</b>把行程放進 iPhone 行事曆／Google 日曆。<br>訂閱後，iPhone 行事曆或 Google 日曆會出現<b>你自己的行程</b>（每個案子每天一則，含點位、人員等完整資料），'
-    +'另外每天一則「📋 行程摘要」，到了下面設定的時間<b>只跳這一則</b>彙整提醒。沒有行程的日子不會提醒。點提醒進入事件後，按事件裡的網址即可回到這裡的那一天。</div>';
-
-  h+='<div class="sec">提醒時間　<span style="color:var(--tx3)">最多 3 個</span></div><div class="card">';
-  if(!c.alarms.length)h+='<div class="hint" style="padding:4px 2px 8px">目前不提醒（行事曆上仍會顯示行程）</div>';
+  if(!ICS.cfg&&!ICS.err){icsLoad();return loader('讀取提醒設定…');}
+  if(ICS.err&&!ICS.cfg)return '<div class="empty">'+he(ICS.err)+'<br><br><button class="btn btn-sm" onclick="ICS.err=\'\';render()">重試</button></div>';
+  var c=ICS.cfg;
+  var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">到了設定的時間，手機會跳一則<b>當天行程的彙整通知</b>'
+    +'（每個案子一段：案名、監測項目），App 關著也收得到。沒有行程的日子不會提醒。點通知會直接打開那一天。</div>';
+  h+=pushHTML();
+  h+='<div class="sec">提醒時間　<span style="color:var(--tx3)">最多 3 個，所有手機共用</span></div><div class="card">';
+  if(!c.alarms.length)h+='<div class="hint" style="padding:4px 2px 8px">目前不提醒</div>';
   c.alarms.forEach(function(a,i){
     h+='<div class="row" style="gap:8px;padding:6px 0">'
       +'<select class="fld" style="flex:0 0 108px;margin:0" onchange="icsSet('+i+',\'d\',this.value)">'
@@ -4932,30 +4929,10 @@ function icsPage(){
   if(c.alarms.length<3)h+='<button class="btn btn-sm" style="margin-top:6px" onclick="icsAdd()">＋ 新增提醒時間</button>';
   h+='</div>'
     +'<div class="card"><div class="row"><div><div style="font-size:15px">週六、週日也提醒</div>'
-    +'<div class="hint" style="margin-top:2px">關閉時，落在六日的提醒不會跳（行程照樣顯示）</div></div>'
+    +'<div class="hint" style="margin-top:2px">關閉時，落在六日的提醒不會跳</div></div>'
     +'<button class="sw'+(c.weekend?' on':'')+'" onclick="ICS.cfg.weekend=!ICS.cfg.weekend;ICS.dirty=true;render()"></button></div></div>'
-    +'<div class="card"><div class="row"><div><div style="font-size:15px">訂閱的行事曆也跳提醒</div>'
-    +'<div class="hint" style="margin-top:2px">已開推播的話建議關閉，才不會同一件事跳兩次</div></div>'
-    +'<button class="sw'+(c.ics!==false?' on':'')+'" onclick="ICS.cfg.ics=(ICS.cfg.ics===false);ICS.dirty=true;render()"></button></div></div>'
     +'<button class="btn btn-p btn-full" style="margin:6px 0 4px"'+(ICS.dirty?'':' disabled')+' onclick="icsSave()">'
-    +(ICS.dirty?'儲存提醒設定':'提醒設定已儲存')+'</button>'
-    +'<div class="hint" style="margin:2px 6px 0">改完後，行事曆下次更新時才會套用（iPhone 可設每 15 分鐘更新）。</div>';
-
-  h+=pushHTML();
-  h+='<div class="sec">行事曆訂閱</div>'
-    +'<a class="btn btn-p btn-full" style="margin-bottom:8px" href="'+he(url.replace(/^https:/,'webcal:'))+'">'+ic('phone',18)+'加入 iPhone 行事曆</a>'
-    // Google 日曆：calendar.google.com/calendar/r?cid=<webcal 網址> 會直接跳出「新增這個日曆」
-    +'<a class="btn btn-full" style="margin-bottom:8px" target="_blank" rel="noopener" href="'
-    +he('https://calendar.google.com/calendar/r?cid='+encodeURIComponent(url.replace(/^https:/,'webcal:')))+'">'+ic('cal',18)+'加入 Google 日曆</a>'
-    +'<button class="btn btn-full" style="margin-bottom:8px" onclick="icsCopy()">'+ic('copy',18)+'複製訂閱網址</button>'
-    +'<div class="note"><b>iPhone 必做設定</b>：訂閱後到「設定 → App → 行事曆 → 行事曆帳號 → 已訂閱的行事曆」點這個行事曆，'
-    +'把<b>「移除提醒」關閉</b>（預設會把提醒拿掉），並把更新頻率設為每 15 分鐘或每小時。</div>'
-    +'<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7"><b>Google 日曆</b>：按「加入 Google 日曆」後，在跳出的頁面按「新增」即可（手機會開瀏覽器版）。'
-    +'若沒跳出，改用電腦版「其他日曆 ＋ → 加入日曆網址」貼上複製的網址。Google 大約每幾小時到一天才更新一次，'
-    +'也不會照這裡的時間跳提醒，建議只用來查看。</div>'
-    +'<div class="note bad">這個網址等於你的行程鑰匙，請勿分享。不小心外流時按下面重設，舊網址會立即失效，'
-    +'之後要重新訂閱一次。</div>'
-    +'<button class="btn btn-full" onclick="icsReset()">重設訂閱網址</button>';
+    +(ICS.dirty?'儲存提醒設定':'提醒設定已儲存')+'</button>';
   return h;
 }
 function icsSet(i,k,v){
@@ -4969,21 +4946,9 @@ function icsAdd(){
 }
 function icsDel(i){ICS.cfg.alarms.splice(i,1);ICS.dirty=true;render();}
 function icsSave(){
-  gas('setIcsCfg',TOKEN,ICS.cfg).then(function(r){
+  gas('setRemind',TOKEN,ICS.cfg).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
-    ICS.dirty=false;toast('已儲存，行事曆下次更新時套用','ok');render();
-  }).catch(function(){toast('連線失敗','no');});
-}
-function icsCopy(){
-  var u=icsURL();if(!u)return;
-  try{navigator.clipboard.writeText(u).then(function(){toast('已複製訂閱網址','ok');},function(){prompt('複製這個網址：',u);});}
-  catch(e){prompt('複製這個網址：',u);}
-}
-function icsReset(){
-  if(!confirm('重設後舊的訂閱會失效，要重新訂閱一次。確定重設？'))return;
-  gas('resetIcs',TOKEN).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'重設失敗','no');return;}
-    ICS.tok=r.icsToken;toast('已重設，請重新訂閱','ok');render();
+    ICS.dirty=false;toast('已儲存提醒設定','ok');render();
   }).catch(function(){toast('連線失敗','no');});
 }
 /* ══ 推播通知（Firebase） ══ */
@@ -4995,7 +4960,7 @@ function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 }
 function pushHTML(){
-  var h='<div class="sec">推播通知（這支手機）</div>';
+  var h='<div class="sec">這支手機</div>';
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(!FCM_VAPID)return h+'<div class="note">推播功能尚未完成設定（管理員設定中）。</div>';
   if(isIOS&&!isStandalone())
@@ -5069,7 +5034,7 @@ function pushTest(){
 }
 
 /* ══ 啟動時的共用設定 ══
-   舊的「每日行程提醒 BETA」（App 自己跳通知）已移除，改用「行事曆訂閱提醒」。
+   舊的「每日行程提醒 BETA」（App 自己跳通知）已移除，改用後端推播（行程提醒）。
    sw.js 仍然註冊，讓網站可以「加入主畫面」。 */
 function regSW(){
   if(!('serviceWorker' in navigator))return;
