@@ -28,8 +28,8 @@
   --warn:#a85600; --warnBg:rgba(243,111,33,.13);
   --ok:#1e7a44;             /* 效期內綠（淺底對比 4.8:1）*/
   --r:14px; --sh:0 8px 24px rgba(0,0,0,.12);
-  --gl:rgba(255,255,255,.62);        /* 玻璃底 */
-  --glStrong:rgba(255,255,255,.78);  /* 需要更實的玻璃 */
+  --gl:rgba(255,255,255,.6);         /* 玻璃底（2026-09-25z 統一 0.6，原 .62／.78） */
+  --glStrong:rgba(255,255,255,.6);   /* 卡片、按鈕、輸入框 */
   --glLine:rgba(255,255,255,.7);     /* 玻璃邊緣高光 */
   --blur:saturate(180%) blur(20px);
 }
@@ -46,7 +46,7 @@ html[data-theme="dark"]{
   --ok:#5ed18f;             /* 深底上提亮 */
   --sh:0 8px 24px rgba(0,0,0,.4);
   --gl:rgba(38,38,42,.6);
-  --glStrong:rgba(38,38,42,.78);
+  --glStrong:rgba(38,38,42,.6);
   --glLine:rgba(255,255,255,.1);
   --blur:saturate(180%) blur(20px);
 }
@@ -421,6 +421,11 @@ html[data-theme="dark"] .glass::after{
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
   border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--tx2);}
 .ob.on{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:500;}
+/* 歸併項目：名稱下方小字註明涵蓋幾種寫法 */
+.ob2{border-radius:16px;padding:6px 14px;text-align:left;}
+.ob2 span{display:flex;flex-direction:column;line-height:1.3;}
+.ob2 small{font-size:10px;color:var(--tx3);font-weight:400;}
+.ob2.on small{color:rgba(255,255,255,.78);}
 
 /* ── 清單 ── */
 .lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
@@ -800,7 +805,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25y';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25z';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -2631,7 +2636,7 @@ function passF(r){
   if(F.rg&&(r.region||'')!==F.rg)return false;
   if(F.en&&r.engineer!==F.en)return false;
   if(F.st&&!hasPerson(r,F.st))return false;
-  if(F.ty.length&&F.ty.indexOf(r.type)<0)return false;
+  if(F.ty.length&&F.ty.indexOf(tyItem(r.type))<0)return false;
   if(F.q){
     var q=F.q.toLowerCase();
     var bits=[r.project,r.projectNo,r.location,r.reportNum,r.notes,
@@ -2653,7 +2658,11 @@ function paintFilter(){
   var engs=[],tys=[],sts=[],s1={},s2={},s3={};
   allRows.concat(todayRows).forEach(function(r){
     if(r.engineer&&!s1[r.engineer]){s1[r.engineer]=1;engs.push(r.engineer);}
-    if(r.type&&!s2[r.type]){s2[r.type]=1;tys.push(r.type);}
+    if(r.type){
+      var it=tyItem(r.type);
+      if(!s2[it]){s2[it]={};tys.push(it);TY_ITEM_G[it]=typeGroup(r.type);}
+      s2[it][r.type]=1;                     // 記下這個項目涵蓋哪些原始寫法
+    }
     (r.staff||[]).forEach(function(n){
       if(n&&!s3[n]){s3[n]=1;sts.push(n);}
     });
@@ -2663,10 +2672,8 @@ function paintFilter(){
   FT.ty.forEach(function(t){if(tys.indexOf(t)<0)tys.push(t);});
   engs.sort();
   sts.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
-  tys.sort();
-  // 空品車最常用，固定排第一
-  var ai=tys.indexOf('空品車');
-  if(ai>0)tys.unshift(tys.splice(ai,1)[0]);
+  // 依歸併規則的順序排（空品車固定第一），規則外的寫法排在該組最後
+  tys.sort(function(a,b){return tyOrder(a)-tyOrder(b)||a.localeCompare(b,'zh-Hant');});
 
   var h='<div class="shh" style="align-items:center">'
     +'<h3 style="flex-shrink:0">篩選</h3>'
@@ -2687,7 +2694,7 @@ function paintFilter(){
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
     +'<div class="opts" style="margin-bottom:4px">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
-    +tyGroupsHTML(tys)
+    +tyGroupsHTML(tys,s2)
     +(selfName()?'<div class="link" style="cursor:default;margin-top:14px"><div>'
       +'<div>下次開啟先篩選我的行程</div>'
       +'<div class="hint" style="margin-top:2px">關閉後每次開啟都顯示全部</div></div>'
@@ -2706,6 +2713,38 @@ function paintFilter(){
 /* ══ 測項分類 ══════════════════════════════════
    用關鍵字判斷，之後 Excel 出現新測項也會自動歸類 */
 var TY_GROUPS=['空氣','水質','噪音振動','交通','土壤廢棄物','其他'];
+/* 監測項目歸併：Excel 裡同一種監測有好幾種寫法（地下水／地下水質／地下水質(水位)…），
+   篩選時合成一個項目。每組由上往下比對，先中先用（具體的放前面）；
+   都對不到就保留原寫法自成一項，不會漏掉。新寫法要歸到哪，加在這裡就好。 */
+var TY_ITEMS={
+  '空氣':[['空品車',/空品/],['TSP 含鹽類',/TSP.*鹽/i],['落塵量',/落塵/],
+          ['粒狀物',/TSP|PM\s*10|PM\s*2\.?5|懸浮微粒|粉塵/i],['惡臭',/臭/],['戴奧辛',/戴奧辛/],
+          ['揮發性有機物',/VOC|揮發/i],['氣象',/風速|氣象/],['排放管道',/排放|燃燒|煙道/]],
+  '水質':[['地下水',/地下水/],['飲用水',/飲用水/],['放流水',/放流/],['海域水質',/海域/],
+          ['納管水質',/納管/],['地面水',/地面水|河川|逕流/],['水位',/水位/]],
+  '噪音振動':[['營建低頻',/營建.*低頻|低頻.*營建/],['營建噪音',/營建/],['低頻噪音',/低頻/],
+          ['噪音振動',/噪音|振動/]],
+  '交通':[['交通流量',/流量|車流/],['行駛速率',/速率|延滯|旅行時間/],['路況',/路況/]],
+  '土壤廢棄物':[['土壤',/土壤/],['底泥',/底泥/],['廢棄物',/廢棄物|事業廢/],['毒化物',/毒化物/]]
+};
+var TY_ITEM_C={};
+/** 原始類別 → 歸併後的監測項目名稱 */
+function tyItem(t){
+  t=String(t||'').trim();
+  if(!t)return '';
+  if(TY_ITEM_C[t]!==undefined)return TY_ITEM_C[t];
+  var rules=TY_ITEMS[typeGroup(t)]||[],out=t;
+  for(var i=0;i<rules.length;i++){if(rules[i][1].test(t)){out=rules[i][0];break;}}
+  return (TY_ITEM_C[t]=out);
+}
+function tyOrder(n){
+  var r=TY_ITEMS[itemGroup(n)]||[];
+  for(var i=0;i<r.length;i++)if(r[i][0]===n)return i;
+  return 99;
+}
+/** 歸併後的項目 → 所屬大類（用項目裡任一原始寫法判斷） */
+var TY_ITEM_G={};
+function itemGroup(n){return TY_ITEM_G[n]||typeGroup(n);}
 function typeGroup(t){
   t=String(t||'');
   if(/交通|行駛速率|車流|路況/.test(t))return '交通';
@@ -2856,14 +2895,15 @@ function pickSet(n){
 function allTypes(){
   var out=[],seen={};
   allRows.concat(todayRows).forEach(function(r){
-    if(r.type&&!seen[r.type]){seen[r.type]=1;out.push(r.type);}
+    var it=tyItem(r.type);
+    if(it&&!seen[it]){seen[it]=1;out.push(it);TY_ITEM_G[it]=typeGroup(r.type);}
   });
   FT.ty.forEach(function(t){if(!seen[t]){seen[t]=1;out.push(t);}});
   return out;
 }
 /** 點分類名稱＝整組全選／全不選 */
 function tyPickGroup(g){
-  var list=allTypes().filter(function(t){return typeGroup(t)===g;});
+  var list=allTypes().filter(function(t){return itemGroup(t)===g;});
   var allOn=list.length&&list.every(function(t){return FT.ty.indexOf(t)>=0;});
   list.forEach(function(t){
     var i=FT.ty.indexOf(t);
@@ -2874,9 +2914,10 @@ function tyPickGroup(g){
 }
 
 /** 依分類把測項排成一段一段 */
-function tyGroupsHTML(tys){
+function tyGroupsHTML(tys,raw){
+  raw=raw||{};
   var m={};
-  tys.forEach(function(t){var g=typeGroup(t);(m[g]=m[g]||[]).push(t);});
+  tys.forEach(function(t){var g=itemGroup(t);(m[g]=m[g]||[]).push(t);});
   var h='';
   TY_GROUPS.forEach(function(g){
     var list=m[g];
@@ -2890,8 +2931,12 @@ function tyGroupsHTML(tys){
       +'<div class="opts">'
       +list.map(function(t){
         var on=FT.ty.indexOf(t)>=0;
-        return '<button class="ob'+(on?' on':'')+'" onclick="tyPick(\''+he(esc(t))+'\')">'
-          +(on?ic('check',15):'')+he(t)+'</button>';}).join('')
+        var rw=Object.keys(raw[t]||{});
+        var tip=rw.length>1?' title="'+he(rw.join('、'))+'"':'';
+        return '<button class="ob'+(on?' on':'')+(rw.length>1?' ob2':'')+'"'+tip
+          +' onclick="tyPick(\''+he(esc(t))+'\')">'+(on?ic('check',15):'')
+          +(rw.length>1?'<span>'+he(t)+'<small>含 '+rw.length+' 種寫法</small></span>':he(t))
+          +'</button>';}).join('')
       +'</div>';
   });
   return h;
