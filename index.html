@@ -821,7 +821,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zj';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zm';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -841,7 +841,14 @@ function gas(fn){
     req=fetch(GAS_URL,opt);
   }
   return req.then(function(r){return r.json();})
-    .then(function(j){clearTimeout(timer);return j;})
+    .then(function(j){
+      clearTimeout(timer);
+      // 後端說還沒授權（profile_ok 被清掉等）→ 立刻擋下，叫出確認畫面
+      if(j&&j.needProfile&&typeof openOnboarding==='function'){
+        PROFILE_OK=false;lsD('espc_prof');
+        var o=$('onb');if(!(o&&o.classList.contains('open')))openOnboarding();
+      }
+      return j;})
     .catch(function(e){
       clearTimeout(timer);
       if(e&&e.name==='AbortError')
@@ -1626,6 +1633,7 @@ function doLogin(){
   gas('login',u,p).then(function(r){
     if(r&&r.ok){LAST_PW=p;            // 只留在記憶體，供首次登入改密碼用
       saveSession(r.token,r.role,r.username,r.engineerName||'',r.profileOk);
+      FRESH_LOGIN=true;                 // 登入回應已經帶了 profileOk，不用再問後端
       boot(r.username,r.role,r.engineerName||'');}
     else{$('l-err').textContent=(r&&r.error)||'登入失敗';btn.disabled=false;btn.textContent='登入';}
   }).catch(function(){$('l-err').textContent='連線失敗，請稍後再試';btn.disabled=false;btn.textContent='登入';});
@@ -1678,24 +1686,66 @@ function getMeOnce(){
 }
 /** 這個帳號需要確認並同意嗎？
  *  管理員是系統帳號、不在通訊錄裡，沒有資料要公開，所以不問。 */
+/* 授權規則：除了系統管理員帳號，所有人第一次登入都要確認資料並同意。
+   依據是後端 Users.profile_ok；沒有記錄就不能進入下一步。 */
 function needProfile(){
   if(PROFILE_OK)return false;
-  if(ROLE==='admin')return false;
-  var n=String(ENGNAME||'').trim();
-  if(!n)return false;                    // 沒綁人員就沒有資料要確認
-  if(n===String(UNAME||'').trim())return false;   // 姓名就是工號 → 系統帳號
-  return true;                           // 新人還不在通訊錄，更要請他確認一次
+  if(ROLE==='admin')return false;        // 系統管理員帳號，不對應任何人員
+  return true;
 }
+/** 帳號有沒有綁定人員姓名（沒有就無法建立通訊錄資料） */
+function hasOwnName(){
+  var n=String(ENGNAME||'').trim();
+  return !!n&&n!==String(UNAME||'').trim();
+}
+/** 在通訊錄找自己：忽略空白，也比對別名 */
+function findSelfStaff(name){
+  var k=String(name||'').replace(/\s+/g,''),f=null;
+  if(!k)return null;
+  var formal=normName(name);
+  STAFF.forEach(function(x){
+    if(f)return;
+    if(String(x.name||'').replace(/\s+/g,'')===k||x.name===formal)f=x;
+  });
+  return f;
+}
+/** 擋在畫面前的訊息卡（授權前的各種狀況），只能重試或登出 */
+function gateBlock(title,msg,retry){
+  var el=$('onb');if(!el)return;
+  el.innerHTML='<div class="onbw" style="padding-top:12vh;text-align:center">'
+    +'<div class="onbh">'+he(title)+'</div>'
+    +'<p class="onbs" style="margin:10px 0 22px">'+msg+'</p>'
+    +(retry?'<button class="btn btn-p btn-full" onclick="gateRetry()">重新確認</button>':'')
+    +'<button class="btn btn-full" style="margin-top:9px" onclick="gateLogout()">登出</button></div>';
+  el.classList.add('open');
+}
+function gateLogout(){
+  try{gas('logout',TOKEN).catch(function(){});}catch(e){}
+  clearSession();location.reload();
+}
+function gateRetry(){
+  ME_P=null;
+  $('onb').innerHTML='<div class="onbw" style="padding-top:20vh">'+loader('確認授權狀態…')+'</div>';
+  gateProfile(GATE_AFTER||function(){closeOnboarding();});
+}
+var FRESH_LOGIN=false,GATE_AFTER=null;
 function gateProfile(after){
+  GATE_AFTER=after;
   if(!needProfile()){after();return;}
+  // 剛輸入帳密登入：登入回應就是後端 profile_ok 的最新狀態，直接請他確認
+  if(FRESH_LOGIN){FRESH_LOGIN=false;openOnboarding();return;}
   getMeOnce().then(function(r){
     if(r&&r.ok&&r.profileOk){
       PROFILE_OK=true;lsS('espc_prof','1');   // 後端說同意過了 → 直接進去
       after();
     }else if(r&&r.ok){
-      openOnboarding();                        // 後端也說還沒 → 這次才問
-    }else after();                             // 問不到身分就先放行，下次再確認
-  }).catch(function(){after();});               // 離線也放行，不要卡在確認畫面
+      openOnboarding();                        // 還沒授權 → 一定要先確認
+    }else{
+      gateBlock('無法確認授權狀態','連不到伺服器，確認授權前無法使用。<br>請檢查網路後按「重新確認」。',true);
+    }
+  }).catch(function(){
+    gateBlock('無法確認授權狀態','連不到伺服器，確認授權前無法使用。<br>請檢查網路後按「重新確認」。',true);
+  });
 }
 
 /* 登入後預設只下載並顯示自己的行程（快很多），但隨時可以改篩別人 */
@@ -3463,16 +3513,21 @@ var LAST_PW='';          // 這次登入輸入的密碼，只在記憶體，用�
 var ONB_EDIT=false;      // 確認畫面目前是不是編輯模式
 /** 既有人員資料齊全 → 直接看過並同意；新人或資料不齊 → 自己建立通訊錄 */
 function onbNeedFill(s){
-  if(!s)return true;
+  if(!s)return true;                      // 通訊錄沒有這個人 → 要建立
   if(!String(s.phone||'').trim())return true;
   if(!String(s.ext||'').trim())return true;
   return false;
 }
 function onbEdit(){ONB_EDIT=true;openOnboarding(true);}
 function openOnboarding(keep){
+  if(!hasOwnName()){
+    gateBlock('帳號尚未綁定姓名','你的帳號（'+he(UNAME)+'）還沒有對應的人員姓名，無法建立通訊錄資料與授權。'
+      +'<br>請聯絡管理員在「帳號管理」填入你的姓名後再登入。',false);
+    return;
+  }
   var name=String(ENGNAME||'').trim();
-  var found=null;
-  STAFF.forEach(function(x){if(x.name===name)found=x;});
+  var found=findSelfStaff(name);
+  if(found)name=found.name;               // 用通訊錄上的正式寫法，避免多建一筆
   var s=found||{name:name,phone:'',ext:'',region:'',team:'',alias:'',note:''};
   var fill=onbNeedFill(found);
   var edit=fill||ONB_EDIT;
@@ -3658,6 +3713,8 @@ function saveProfile(){
   if(!AGREED){toast('請先勾選同意','no');return;}
   var n=$('s-n').value.trim();
   if(!n){toast('找不到對應的姓名，請聯繫管理員','no',4000);return;}
+  if($('s-p')&&String($('s-p').value||'').replace(/[^0-9]/g,'').length<8){
+    toast('請填寫電話','no',3000);return;}
   if($('s-p')&&!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
   var b=$('onb-b');
   if(b){b.disabled=true;b.textContent='儲存中…';}
@@ -4684,6 +4741,7 @@ function saveUser(name){
   var role=$('e-r')&&!$('e-r').disabled?$('e-r').value:u.role;
   if(role!==u.role){f.role=role;any=true;}
   var eng=$('e-e').value.trim();
+  if(!eng&&normRole(role)!=='admin'){toast('姓名不能空白','no');return;}   // 授權、通訊錄都靠姓名對應
   if(eng!==(u.engineerName||'')){f.engineerName=eng;any=true;}
   var rg=$('e-g').value;
   if(rg!==(u.region||'')){f.region=rg;any=true;}
