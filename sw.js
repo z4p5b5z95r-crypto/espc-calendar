@@ -3,7 +3,7 @@
         2) 讓網站可「加入主畫面」成為 PWA
    注意：不做離線快取，永遠走網路，避免舊版卡住 */
 
-const SW_VERSION = 'espc-v3';
+const SW_VERSION = 'espc-v4';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
@@ -25,13 +25,14 @@ self.addEventListener('push', function (e) {
   const jobs = [self.registration.showNotification(title, {
     body: body,
     tag: d.cid ? 'espc-cast-' + d.cid : 'espc-' + (url.split('d=')[1] || 'push'),   // 同一天的提醒只留最新一則；廣播每則分開
-    renotify: true,
+    renotify: !d.recall,          // 收回：安靜地把原本那則換掉，不再響
+    silent: !!d.recall,
     icon: 'icon-192-v3.png',
     badge: 'icon-192-v3.png',
     data: { url: url }
   })];
   // 廣播回條：手機收到就回報「送達」（App 關著也會跑）
-  if (d.cid && d.rurl && d.sig) {
+  if (d.cid && d.rurl && d.sig && !d.recall) {
     const payload = JSON.stringify({ fn: 'castReceipt', args: [d.cid, d.u, 'd', d.sig] });
     jobs.push(fetch(d.rurl + '?payload=' + encodeURIComponent(payload), { mode: 'no-cors' }).catch(function () {}));
   }

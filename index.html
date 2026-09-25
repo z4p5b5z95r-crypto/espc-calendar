@@ -444,6 +444,7 @@ html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
 .rca{margin-top:7px;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;color:var(--accT);
   background:var(--gl);border:1px solid var(--glLine);}
 .rca.done{display:inline-block;color:var(--ok,#1f8a4c);font-weight:500;border-color:transparent;background:none;padding:6px 0 0;}
+.rcx{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--tx3);text-decoration:underline;}
 .rrow{display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--line);font-size:14.5px;}
 .rrow .ph{font-size:12px;color:var(--tx3);margin-left:6px;}
 .rs{font-size:12.5px;color:var(--tx2);}
@@ -869,7 +870,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26t';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -3589,7 +3590,7 @@ function castBox(g){
   seenMark(mine);
   return '<div class="cbox">'+mine.map(function(x){
     return '<div class="ci"><div class="cm">📣 '+he(x.from)+'　'+he(String(x.at).slice(11,16))
-      +'　→ '+he(x.to.join('、'))+'</div><div class="ct">'+he(x.text)+'</div>'
+      +'　→ '+he(x.to.join('、'))+'</div>'+castText(x)
       +rcptLine(x,'case')+'</div>';
   }).join('')+'</div>';
 }
@@ -3684,14 +3685,22 @@ function inboxLoad(force){
 }
 function castItem(x,mine){
   return '<div class="ci"><div class="cm">📣 '+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
-    +(mine&&x.groups?'　'+he(x.groups):'')+'</div><div class="ct">'+he(x.text)+'</div>'   // 收件人只看誰、幾點發的；組別只給發送人看
+    +(mine&&x.groups?'　'+he(x.groups):'')+'</div>'+castText(x)   // 收件人只看誰、幾點發的；組別只給發送人看
     +rcptLine(x,mine?'sent':'inbox')+'</div>';
 }
 /* ── 回條：收件人按「👍 收到」；發送人看送達／已讀／收到 ── */
 var RC_ITEMS={},SEEN=null,SEEN_Q=[],SEEN_T=null;
+/** 內容：收回後收件人只看到「已收回」，發送人看到劃掉的原文 */
+function castText(x){
+  if(!x.recalled)return '<div class="ct">'+he(x.text)+'</div>';
+  if(x.mine)return '<div class="ct" style="text-decoration:line-through;color:var(--tx3)">'+he(x.text)+'</div>'
+    +'<div class="cm" style="margin-top:3px">🚫 已收回，收件人看不到內容</div>';
+  return '<div class="ct" style="color:var(--tx3);font-size:13.5px">🚫 '+he(x.from)+' 收回了這則廣播</div>';
+}
 function rcptLine(x,from){
   if(!x.id)return from==='sent'?'<div class="cm" style="margin-top:4px">更新前發的廣播，沒有回條</div>':'';
   RC_ITEMS[x.id]=x;
+  if(x.recalled)return '';
   var h='';
   if(x.rc){
     var n=x.rc.length,d=0,r=0,a=0;
@@ -3701,13 +3710,23 @@ function rcptLine(x,from){
   }
   if(x.toMe)h+=x.acked?'<div class="rca done">✓ 已回覆收到</div>'
     :'<button class="rca" onclick="castAckDo(\''+x.id+'\',\''+from+'\')">👍 收到</button>';
+  if(x.mine)h+='<a href="#" class="rcx" onclick="castRecallDo(\''+x.id+'\',\''+from+'\');return false">收回</a>';
   return h;
+}
+function castRecallDo(id,from){
+  var x=RC_ITEMS[id];if(!x)return;
+  if(!confirm('收回這則廣播？\n收件人會看不到內容，手機上的通知也會改成「已收回」。'))return;
+  gas('castRecall',TOKEN,id).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'收回失敗','no',3500);return;}
+    x.recalled=true;toast('已收回','ok');
+    if(from==='case'){castLoad(EV_D,true);openDay(EV_D);}else{inboxLoad(true);render();}
+  }).catch(function(){toast('連線失敗','no');});
 }
 /** 看到就算已讀：收件人的畫面出現這則時，背景回報一次（同一支手機只報一次） */
 function seenMark(list){
   if(!SEEN){try{SEEN=JSON.parse(ls('espc_seen')||'[]');}catch(e){SEEN=[];}}
   (list||[]).forEach(function(x){
-    if(x.toMe&&x.id&&SEEN.indexOf(x.id)<0&&SEEN_Q.indexOf(x.id)<0)SEEN_Q.push(x.id);
+    if(x.toMe&&x.id&&!x.recalled&&SEEN.indexOf(x.id)<0&&SEEN_Q.indexOf(x.id)<0)SEEN_Q.push(x.id);
   });
   if(!SEEN_Q.length||SEEN_T)return;
   SEEN_T=setTimeout(function(){
