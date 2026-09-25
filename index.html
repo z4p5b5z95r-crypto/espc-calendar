@@ -830,7 +830,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26n';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26o';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -1658,7 +1658,7 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
-  $('nb-cast').style.display=(r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：主管、排程
+  $('nb-cast').style.display=(r==='admin'||r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：管理員、主管、排程
   $('nb-dl').style.display=(r==='admin')?'':'none'; // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
@@ -3625,7 +3625,7 @@ function castSend(){
     castLoad(EV_D,true);castClose();
   }).catch(function(){CAST.busy=false;toast('連線失敗','no');castPaint();});
 }
-/* ══ 📣 群組廣播（主管、排程的「廣播」頁籤）＋收件匣 ══
+/* ══ 📣 群組廣播（管理員、主管、排程的「廣播」頁籤）＋收件匣 ══
    選一或多個組別（全組），或展開組別只勾個別人員；也能搜尋姓名直接加人。
    收到的群組廣播顯示在「今日」頁上方（近 3 天），全部（1 個月內）可點開看。 */
 var INBOX={inbox:[],sent:[],at:0,busy:false},INBOX_DEEP=false;
