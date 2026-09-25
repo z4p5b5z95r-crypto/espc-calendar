@@ -324,17 +324,23 @@ html[data-theme="dark"] .glass::after{
 .nb.on em{display:inline;}
 
 /* ── 底部面板 ── */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:70;display:none;align-items:flex-end;}
+/* 遮罩調淡（原 .55），面板的毛玻璃才透得出後面的畫面；
+   高度用 100lvh：iOS 主畫面 App 的 inset:0 會少掉狀態列高度，底部露出一條白邊 */
+.ov{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;
+  background:rgba(0,0,0,.28);z-index:70;display:none;align-items:flex-end;}
+html[data-theme="dark"] .ov{background:rgba(0,0,0,.4);}
 .ov.open{display:flex;}
 .sheet{width:100%;max-width:520px;margin:0 auto;
-  background:var(--gl);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  background:var(--gl);
+  /* 面板模糊減半（原 20px），看得出後面的內容，才有「透明」的感覺 */
+  backdrop-filter:saturate(170%) blur(10px);-webkit-backdrop-filter:saturate(170%) blur(10px);
   border-top:1px solid var(--glLine);
   border-radius:22px 22px 0 0;padding:16px 16px calc(26px + env(safe-area-inset-bottom));
   height:82vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
 /* 鍵盤彈出時多留出鍵盤高度的空間，讓輸入框捲得到鍵盤上方（--kb 由 JS 設定） */
-body.kb #login{padding-bottom:calc(26px + var(--kb,0px));}
+body.kb #login{min-height:calc(100vh + var(--kb,0px));padding-bottom:calc(26px + var(--kb,0px));}
 body.kb .sheet{padding-bottom:calc(26px + var(--kb,0px));}
 body.kb #app{padding-bottom:var(--kb,0px);}
 .strack{position:relative;}
@@ -809,7 +815,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zc';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25ze';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -930,37 +936,75 @@ var DW=['日','一','二','三','四','五','六'];
 var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
 /* ── 鍵盤：點輸入框時一律把它捲到鍵盤上方 ──
-   iOS 第一次點輸入框時鍵盤還沒彈完就算位置，頁面也沒有可捲的空間，所以會被擋住。
-   這裡等鍵盤出現後（visualViewport 變矮）補上鍵盤高度的留白，再把輸入框捲到可視範圍中間。 */
+   iOS 第一次點輸入框時頁面沒有可捲的空間（登入頁剛好一個螢幕高），所以會被鍵盤擋住；
+   第二次才正常。做法：
+   1) 一點下去就先補一段「鍵盤高度」的留白（用上次量到的高度，沒量過先估 42%），
+      讓 iOS 自己的捲動第一次就有空間可以捲；
+   2) 鍵盤彈出後（visualViewport 變矮）量實際高度校正留白，
+      再把輸入框移到「鍵盤上方可見區域」的中間（自己算位移，不靠 scrollIntoView）。
+   注意：iOS Safari 的 window.innerHeight 會跟著鍵盤變矮，不能拿來當基準，
+   基準改用 documentElement.clientHeight 與鍵盤收起時量到的最大可視高度。 */
 (function(){
-  var vv=window.visualViewport;
-  function kbH(){return vv?Math.max(0,Math.round(window.innerHeight-vv.height-vv.offsetTop)):0;}
+  var vv=window.visualViewport,full=0,lastKb=0,busy=0;
+  function baseH(){
+    var c=document.documentElement.clientHeight||window.innerHeight||0;
+    return Math.max(c,full);
+  }
+  function kbH(){
+    if(!vv)return 0;
+    return Math.max(0,Math.round(baseH()-vv.height));
+  }
   function isField(el){
     if(!el||!/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))return false;
     return !/^(checkbox|radio|button|submit|reset|file|range|color)$/i.test(el.type||'');
   }
-  function setKb(){
-    var k=kbH(),on=k>80;
-    document.documentElement.style.setProperty('--kb',(on?k:0)+'px');
-    document.body.classList.toggle('kb',on);
+  function setPad(px){
+    document.documentElement.style.setProperty('--kb',px+'px');
+    document.body.classList.toggle('kb',px>0);
+  }
+  /** 往上找會捲動的容器（底部面板 .sheet 等）；找不到就是整頁 */
+  function scroller(el){
+    for(var p=el.parentElement;p&&p!==document.body;p=p.parentElement){
+      var oy=getComputedStyle(p).overflowY;
+      if((oy==='auto'||oy==='scroll')&&p.scrollHeight>p.clientHeight+1)return p;
+    }
+    return null;
   }
   function reveal(){
-    setKb();
     var el=document.activeElement;
     if(!isField(el))return;
+    var k=kbH();
+    if(k>80){lastKb=k;setPad(k);}
     var r=el.getBoundingClientRect();
-    var top=vv?vv.offsetTop:0,bot=top+(vv?vv.height:window.innerHeight);
-    if(r.top<top+12||r.bottom>bot-12){
-      try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){el.scrollIntoView();}
-    }
+    var top=vv?vv.offsetTop:0,h=vv?vv.height:window.innerHeight;
+    if(r.top>=top+16&&r.bottom<=top+h-16)return;          // 已經看得到
+    var d=Math.round((r.top+r.height/2)-(top+h/2));       // 移到可見區域中間
+    var sc=scroller(el);
+    if(sc)sc.scrollTop+=d;
+    else window.scrollBy(0,d);
   }
+  if(vv){
+    full=vv.height;
+    vv.addEventListener('resize',function(){
+      if(!isField(document.activeElement)){full=Math.max(full,vv.height);return;}
+      reveal();
+    });
+  }
+  var touch=false;
+  try{touch=window.matchMedia('(pointer:coarse)').matches;}catch(e){}
   document.addEventListener('focusin',function(e){
-    if(!isField(e.target))return;
-    [80,320,650].forEach(function(ms){setTimeout(reveal,ms);});   // 鍵盤動畫大約 0.3 秒
+    if(!touch||!isField(e.target))return;                 // 桌機沒有螢幕鍵盤，不用處理
+    clearTimeout(busy);
+    if(!document.body.classList.contains('kb'))
+      setPad(lastKb||Math.round(baseH()*0.42));           // 先留空間，第一次就捲得動
+    [120,380,700].forEach(function(ms){setTimeout(reveal,ms);});  // 鍵盤動畫約 0.3 秒
   });
-  document.addEventListener('focusout',function(){setTimeout(function(){
-    if(!isField(document.activeElement))setKb();},120);});
-  if(vv)vv.addEventListener('resize',reveal);
+  document.addEventListener('focusout',function(){
+    clearTimeout(busy);
+    busy=setTimeout(function(){
+      if(!isField(document.activeElement))setPad(0);        // 換到下一格不收，真的離開才收
+    },250);
+  });
 })();
 
 /* ── 主題 ── */
