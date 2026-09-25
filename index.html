@@ -800,7 +800,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25w';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25y';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1758,7 +1758,7 @@ function titleText(){
   if(tab==='dl')return '下載行程';
   if(sub==='notify')return '提醒設定';   // BETA 標示在頁面內
   if(sub==='pw')return '修改密碼';
-  if(tab==='today')return '今天';
+  if(tab==='today')return '今日';
   if(tab==='cal')return curY+' 年 '+MO[curM];
   if(tab==='book')return '通訊錄';
   return '更多';
@@ -1775,7 +1775,7 @@ function rightButtons(){
   if(tab==='cal'){
     var n=twDate(),now=(n.getFullYear()===curY&&n.getMonth()===curM);
     return '<button class="ib navm" onclick="moveM(-1)" title="上個月">‹</button>'
-      +(now?'':'<button class="ib w" onclick="goToday()">今天</button>')
+      +(now?'':'<button class="ib w" onclick="goToday()">今日</button>')
       +'<button class="ib navm" onclick="moveM(1)" title="下個月">›</button>'
       +'<button class="ib" onclick="refreshCal()" title="重新整理">↻</button>'
       +filterBtn();
@@ -2218,6 +2218,109 @@ function paintBook(){
 }
 
 /* ── 更多 ── */
+/* ══ 隱藏工具：產生 App 圖示（連點「版本」5 下開啟）══
+   用 canvas 重畫登入頁的玻璃日曆標記，輸出 PNG 供上傳 GitHub。
+   canvas 沒有 backdrop-filter，玻璃層用漸層模擬；圖示滿版不留圓角，圓角交給系統裁切。 */
+var VT={n:0,t:0};
+function verTap(){
+  var now=Date.now();
+  VT.n=(now-VT.t<1500)?VT.n+1:1;VT.t=now;
+  if(VT.n>=5){VT.n=0;openIconTool();}
+}
+var ICON_OUT=[
+  {f:'icon-v3.png',s:180,d:'iPhone 主畫面（apple-touch-icon）'},
+  {f:'icon-192-v3.png',s:192,d:'Android／瀏覽器分頁'},
+  {f:'icon-512-v3.png',s:512,d:'安裝畫面、maskable 共用'},
+  {f:'icon.png',s:192,d:'通知圖示（sw.js 用）'}
+];
+/** CSS 角度漸層換算成 canvas 的起訖點（正方形） */
+function icGrad(ctx,S,deg){
+  var r=deg*Math.PI/180,vx=Math.sin(r),vy=-Math.cos(r);
+  var L=S*(Math.abs(vx)+Math.abs(vy))/2;
+  return ctx.createLinearGradient(S/2-vx*L,S/2-vy*L,S/2+vx*L,S/2+vy*L);
+}
+function icLogoImg(px){
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="'+px+'" height="'+px+'">'
+    +ICON.logo.replace(/currentColor/g,'#F36F21')+'</svg>';
+  return new Promise(function(ok,no){
+    var im=new Image();
+    im.onload=function(){ok(im);};im.onerror=no;
+    im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+}
+/** 畫一張 S×S 圖示；比例對照登入頁 .glass（88px 方塊、48px 標記） */
+function drawAppIcon(S){
+  var cv=document.createElement('canvas');cv.width=cv.height=S;
+  var ctx=cv.getContext('2d'),k=S/88;
+  ctx.fillStyle='#f4f4f5';ctx.fillRect(0,0,S,S);
+  // 玻璃本體（疊在淺灰底上）
+  var g=icGrad(ctx,S,145);
+  g.addColorStop(0,'rgba(255,255,255,.72)');g.addColorStop(1,'rgba(255,255,255,.34)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+  // 色團：CSS 裡 z-index:-1 在玻璃底色之上、高光之下；CSS 用 blur，這裡用放射漸層
+  function blob(x,y,r,c){
+    var g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba('+c+',1)');g.addColorStop(.4,'rgba('+c+',.8)');g.addColorStop(.75,'rgba('+c+',.25)');g.addColorStop(1,'rgba('+c+',0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+  }
+  ctx.globalAlpha=.5; blob(22*k,18*k,48*k,'243,111,33');
+  ctx.globalAlpha=.42;blob(71*k,79*k,44*k,'119,120,123');
+  ctx.globalAlpha=1;
+  // 底部內光
+  g=ctx.createLinearGradient(0,S,0,S-18*k);
+  g.addColorStop(0,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+  // 上緣高光
+  g=icGrad(ctx,S,160);
+  g.addColorStop(0,'rgba(255,255,255,.85)');g.addColorStop(.42,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+  // 橘色日曆標記＋投影
+  var px=Math.round(48*k);
+  return icLogoImg(px).then(function(im){
+    var s=px/48;
+    ctx.save();
+    ctx.shadowColor='rgba(243,111,33,.3)';ctx.shadowOffsetY=2*s;ctx.shadowBlur=4*s;
+    ctx.drawImage(im,(S-px)/2,(S-px)/2,px,px);
+    ctx.restore();
+    return cv;
+  });
+}
+function openIconTool(){
+  openSheet('<div style="padding:4px 2px 8px">'
+    +'<div style="font-size:17px;font-weight:700;margin-bottom:4px">產生 App 圖示</div>'
+    +'<div class="hint" style="margin-bottom:12px">下載後把 PNG 上傳到 GitHub repo 根目錄，檔名不要改。'
+    +'iPhone 若無法直接存檔，建議改用電腦操作。</div>'
+    +'<div id="icList">'+loader('繪製中…')+'</div>'
+    +'<div style="display:flex;gap:10px;margin-top:14px">'
+    +'<button class="btn btn-p" style="flex:1" onclick="icDownloadAll()">全部下載</button>'
+    +'<button class="btn" style="flex:1" onclick="closeSheet()">關閉</button></div></div>');
+  Promise.all(ICON_OUT.map(function(o){return drawAppIcon(o.s);})).then(function(cvs){
+    ICON_CV=cvs;
+    $('icList').innerHTML=ICON_OUT.map(function(o,i){
+      return '<div class="link" style="cursor:default;gap:12px">'
+        +'<img src="'+cvs[i].toDataURL('image/png')+'" width="52" height="52" '
+        +'style="border-radius:12px;flex:0 0 auto;box-shadow:0 2px 8px rgba(0,0,0,.12)">'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:600">'+he(o.f)+'</div>'
+        +'<div class="hint">'+o.s+'×'+o.s+'　'+he(o.d)+'</div></div>'
+        +'<button class="btn" style="padding:8px 14px;min-height:36px" onclick="icDownload('+i+')">下載</button></div>';
+    }).join('');
+  }).catch(function(e){
+    $('icList').innerHTML='<div class="empty">繪製失敗：'+he(e&&e.message||e)+'</div>';
+  });
+}
+var ICON_CV=[];
+function icDownload(i){
+  var cv=ICON_CV[i],o=ICON_OUT[i];if(!cv)return;
+  cv.toBlob(function(b){
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=o.f;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+  },'image/png');
+}
+function icDownloadAll(){
+  ICON_OUT.forEach(function(o,i){setTimeout(function(){icDownload(i);},i*400);});
+}
+
 function morePage(){
   var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
@@ -2239,7 +2342,7 @@ function morePage(){
     +'<button class="sw'+((ls('espc_theme')||'dark')==='dark'?' on':'')+'" onclick="toggleTheme()"></button></div>'
     +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
     +(ENGNAME?'<br>對應人員：'+he(ENGNAME):'')
-    +'<br>版本：'+he(APP_VER)
+    +'<br><span onclick="verTap()" style="-webkit-user-select:none;user-select:none">版本：'+he(APP_VER)+'</span>'
     +'　<a href="#" onclick="hardReload();return false" style="color:var(--accT)">強制更新</a></div>';
   return h;
 }
@@ -4071,6 +4174,7 @@ function loadUsers(){
 }
 var USERS=[],userQ='',userRg='',userTm='',userRo='';
 function usersHTML(){
+  if(userRo==='admin')userRo='';
   var teams=[];
   USERS.forEach(function(u){var t=(u.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
   teams.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
@@ -4091,7 +4195,7 @@ function usersHTML(){
     +'</select>'
     +'<select class="fld" onchange="userRo=this.value;paintUsers()" style="flex:1;min-width:0">'
     +'<option value="">全部角色</option>'
-    +ROLE_ORDER.map(function(k){
+    +ROLE_ORDER.filter(function(k){return k!=='admin';}).map(function(k){   // 管理員帳號不在清單中顯示，篩選也不列
       return '<option value="'+k+'"'+(userRo===k?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select></div>'
     +userListHTML();
@@ -4725,7 +4829,7 @@ function showNotif(title,body){
 }
 function ntText(t,list){
   var dd=t.split('-'),head=parseInt(dd[1])+'/'+parseInt(dd[2])+'（'+DW[dowOf(t)]+'）';
-  if(!list.length)return {title:head+' 今日無排程',body:'今天沒有安排監測行程。'};
+  if(!list.length)return {title:head+' 今日無排程',body:'今日沒有安排監測行程。'};
   var lines=groupBy(list).map(function(g){
     return '• '+g.project+(g.types.length?'（'+g.types.join('、')+'）':'')
       +(g.locs[0]?'\n　'+g.locs[0]:'')+(g.samp?'　'+g.samp:'');
@@ -4798,8 +4902,8 @@ function ntDiag(){
   var why=!c.on?'提醒開關沒開。'
     :perm!=='granted'?'沒有通知權限，請重新開啟開關授權。'
     :(isIOS&&!standalone)?'iPhone 必須從主畫面圖示開啟才會跳通知。'
-    :(n===0&&!c.notifyEmpty)?'今天沒有你的行程，而「沒有行程時仍提醒」是關閉的，所以不會跳。'
-    :(c.last===t)?'今天已經提醒過了（同一天只提醒一次）。'
+    :(n===0&&!c.notifyEmpty)?'今日沒有你的行程，而「沒有行程時仍提醒」是關閉的，所以不會跳。'
+    :(c.last===t)?'今日已經提醒過了（同一天只提醒一次）。'
     :'設定正常。若時間已過卻沒跳，多半是當時 App 已完全關閉。';
   el.innerHTML='<div class="card" style="margin-top:10px">'
     +r('提醒開關',c.on?'已開啟':'未開啟',!!c.on)
@@ -4808,10 +4912,10 @@ function ntDiag(){
     +r('Service Worker',SWREG?'已就緒':'載入中／不支援',!!SWREG)
     +r('提醒時間',c.time+(c.skipWeekend?'（六日不提醒）':''))
     +r('上次提醒',c.last||'尚未提醒過')
-    +r('今天行程',n+' 筆',n>0||c.notifyEmpty)
+    +r('今日行程',n+' 筆',n>0||c.notifyEmpty)
     +r('目前時間',stamp(new Date()))
     +'<p class="hint" style="margin-top:10px">'+he(why)+'</p>'
-    +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="ntReset()">清除「今天已提醒」重測</button></div>';
+    +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="ntReset()">清除「今日已提醒」重測</button></div>';
 }
 function ntReset(){
   var c=ntCfg();c.last='';jSet(NT,c);
