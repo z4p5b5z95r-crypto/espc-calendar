@@ -821,7 +821,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zh';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zj';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1778,6 +1778,7 @@ function restoreTab(){
   var v;
   try{v=JSON.parse(ls(TAB_KEY)||'null');}catch(e){v=null;}
   if(!v||!v.t)return null;
+  if(!v.at||Date.now()-v.at>TAB_KEEP_MS)return null;   // 超過 3 小時（或舊資料沒記時間）→ 開今日
   var okTab=['today','cal','book','upload','dl','admin','more'];
   if(v.t==='dl'&&(!isDesk()||ROLE!=='admin'))return null;
   if(okTab.indexOf(v.t)<0)return null;
@@ -1794,10 +1795,34 @@ function restoreTab(){
 
 /* ══ 導覽 ══ */
 var TAB_KEY='espc_tab';
+/* 回到上次的頁籤只保留 3 小時：3 小時內再開啟回到原本那頁，超過就直接開今日。
+   計時從「最後一次使用」（切頁籤、App 切到背景）開始算。 */
+var TAB_KEEP_MS=3*3600*1000;
 /** 記住目前位置，重新整理瀏覽器後回到同一頁 */
 function saveTab(){
-  try{lsS(TAB_KEY,JSON.stringify({t:tab,s:sub,y:curY,m:curM}));}catch(e){}
+  try{lsS(TAB_KEY,JSON.stringify({t:tab,s:sub,y:curY,m:curM,at:Date.now()}));}catch(e){}
 }
+/** 只更新「最後使用時間」，位置不變 */
+function touchTab(){
+  try{
+    var v=JSON.parse(ls(TAB_KEY)||'null');
+    if(v&&v.t){v.at=Date.now();lsS(TAB_KEY,JSON.stringify(v));}
+  }catch(e){}
+}
+/* App 沒被關掉、只是放在背景：切回來時如果離開超過 3 小時，也跳回今日 */
+(function(){
+  var hiddenAt=0;
+  function away(){touchTab();hiddenAt=Date.now();}
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){away();return;}
+    var gone=hiddenAt?Date.now()-hiddenAt:0;
+    hiddenAt=0;
+    if(!TOKEN||gone<=TAB_KEEP_MS)return;
+    if(tab==='today'&&!sub)return;
+    go('today');
+  });
+  window.addEventListener('pagehide',away);
+})();
 function go(t,s){
   tab=t;sub=s||'';
   saveTab();
@@ -2740,9 +2765,12 @@ function openFilter(){
   $('ov').classList.add('open');
 }
 
+var FSRC=[];   // 篩選選項的來源；即時篩選重新載入資料時手上暫時沒資料，先沿用上一份，選項才不會消失
 function paintFilter(){
   var engs=[],tys=[],sts=[],s1={},s2={},s3={};
-  allRows.concat(todayRows).forEach(function(r){
+  var src=allRows.concat(todayRows);
+  if(src.length)FSRC=src;else src=FSRC;
+  src.forEach(function(r){
     if(r.engineer&&!s1[r.engineer]){s1[r.engineer]=1;engs.push(r.engineer);}
     if(r.type){
       var it=tyItem(r.type);
@@ -2765,7 +2793,7 @@ function paintFilter(){
     +'<h3 style="flex-shrink:0">篩選</h3>'
     +'<div style="display:flex;gap:7px;flex:1;justify-content:flex-end">'
     +'<button class="btn btn-sm" onclick="clearFilter()">清除</button>'
-    +'<button class="btn btn-p btn-sm" onclick="applyFilter()">篩選'
+    +'<button class="btn btn-p btn-sm" onclick="applyFilter()">完成'
     +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
@@ -2792,9 +2820,25 @@ function paintFilter(){
 
   var q=$('f-q');
   if(q){
-    q.oninput=function(){FT.q=this.value;};                 // 打字時不重畫，避免失焦
+    q.oninput=function(){FT.q=this.value;liveFilter(350);};   // 打字時不重畫面板（避免失焦），停手 0.35 秒後背景套用
     q.onkeydown=function(e){if(e.key==='Enter'){FT.q=this.value;applyFilter();}};
   }
+  liveFilter(0);                          // 面板上每改一個條件，背後的頁面就跟著篩
+}
+/* 即時篩選：不用按「完成」，條件一改背後的今日／月曆就更新 */
+var LIVE_T=0;
+function sameF(a,b){
+  return a.rg===b.rg&&a.en===b.en&&a.st===b.st&&(a.q||'')===(b.q||'')
+    &&a.ty.length===b.ty.length&&a.ty.every(function(t){return b.ty.indexOf(t)>=0;});
+}
+function liveFilter(ms){
+  clearTimeout(LIVE_T);
+  LIVE_T=setTimeout(function(){
+    var el=$('f-q');if(el)FT.q=el.value;
+    var nf={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||''};
+    if(sameF(nf,F))return;
+    F=nf;refetch();
+  },ms||0);
 }
 /* ══ 測項分類 ══════════════════════════════════
    用關鍵字判斷，之後 Excel 出現新測項也會自動歸類 */
