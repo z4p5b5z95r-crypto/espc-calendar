@@ -272,7 +272,7 @@ html[data-theme="dark"] .glass::after{
 .dnt{flex:1;text-align:center;line-height:1.25;}
 .dnt b{display:block;font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .dnt span{font-size:12px;color:var(--tx3);}
-.plist{display:flex;flex-direction:column;gap:4px;}
+
 .cell.tdy{outline:1.5px solid var(--acc);outline-offset:-1px;}
 .dn{font-size:11px;text-align:center;line-height:1.35;font-weight:500;}
 .dn.out{color:var(--tx3);font-weight:400;}
@@ -285,6 +285,12 @@ html[data-theme="dark"] .glass::after{
 .calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   gap:10px;color:var(--tx3);font-size:13px;pointer-events:none;}
 .calwrap.busy .cgrid{opacity:.3;}
+/* 先顯示手機裡上次的資料、正在向後端確認：畫面淡一點並標示，避免被舊資料誤導 */
+.calwrap.chk .cgrid,.chkwrap{opacity:.5;transition:opacity .2s;}
+.chkbar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 8px;
+  padding:6px 12px;border-radius:999px;font-size:12.5px;color:var(--tx2);background:var(--card2);}
+.chkbar.fail{color:var(--warn);background:var(--warnBg);}
+.chkbar .spin{width:13px;height:13px;border-width:2px;}
 
 /* ── 年月選擇 ── */
 .pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
@@ -360,12 +366,9 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .kr>svg{color:var(--tx3);margin-top:2px;flex-shrink:0;}
 .kk{color:var(--tx3);flex-shrink:0;min-width:62px;}
 .kvv{flex:1;min-width:0;color:var(--tx);line-height:1.7;word-break:break-word;}
-.tsec{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glLine);border-radius:var(--r);padding:11px 14px;margin-bottom:8px;}
-.tsh{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;
-  padding-bottom:7px;border-bottom:1px solid var(--line);}
-.tq{background:var(--card2);color:var(--tx2);font-size:11px;font-weight:500;
-  border-radius:999px;padding:1px 8px;}
+
+
+
 /* ── 行程詳情（窄標籤明細表）── */
 .dcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);padding:4px 13px;margin-bottom:8px;}
@@ -374,11 +377,11 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .dk{width:58px;flex-shrink:0;font-size:11.5px;color:var(--tx3);padding-top:2px;line-height:1.5;}
 .dv{flex:1;min-width:0;font-size:13.5px;color:var(--tx);line-height:1.65;word-break:break-word;}
 .dv a{color:var(--accT);}
-.dph{font-size:11.5px;color:var(--tx3);margin-left:4px;}
+
 .pil{display:inline-block;font-size:11px;padding:2px 8px;border-radius:7px;
   background:var(--card2);color:var(--tx2);margin:0 4px 4px 0;}
-.dhd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
-.dsub{font-size:11.5px;color:var(--tx3);margin:7px 0 4px 2px;}
+
+
 /* 當天行程頁籤 */
 /* 換月／換日的滑動動畫 */
 .pcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
@@ -437,11 +440,10 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
   border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--tx2);}
 .ob.on{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:500;}
-/* 歸併項目：名稱下方小字註明涵蓋幾種寫法 */
-.ob2{border-radius:16px;padding:6px 14px;text-align:left;}
-.ob2 span{display:flex;flex-direction:column;line-height:1.3;}
-.ob2 small{font-size:10px;color:var(--tx3);font-weight:400;}
-.ob2.on small{color:rgba(255,255,255,.78);}
+
+
+
+
 
 /* ── 清單 ── */
 .lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
@@ -524,70 +526,47 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .ts.no{background:var(--err);color:#fff;}
 
 
-/* ── 帳號管理：上下式組織圖 ── */
-.ocw{overflow-x:auto;overflow-y:hidden;padding:6px 0 14px;-webkit-overflow-scrolling:touch;}
-.oct,.oct ul{display:flex;justify-content:center;padding:0;margin:0;list-style:none;position:relative;}
-.oct ul{padding-top:20px;}
-.oct li{position:relative;padding:20px 8px 0;list-style:none;display:flex;
-  flex-direction:column;align-items:center;}
-.oct>li{padding-top:0;}
-.oct li::before,.oct li::after{content:'';position:absolute;top:0;right:50%;
-  border-top:1.5px solid var(--line);width:50%;height:20px;}
-.oct li::after{right:auto;left:50%;border-left:1.5px solid var(--line);}
-.oct>li::before,.oct>li::after{display:none;}
-.oct li:only-child::before,.oct li:only-child::after{display:none;}
-.oct li:first-child::before,.oct li:last-child::after{border-top:0;}
-.oct li:last-child::before{border-right:1.5px solid var(--line);border-radius:0 8px 0 0;}
-.oct li:first-child::after{border-radius:8px 0 0 0;}
-.oct ul::before{content:'';position:absolute;top:0;left:50%;
-  border-left:1.5px solid var(--line);width:0;height:20px;}
 
-.occ{background:var(--card);border:1px solid var(--line);border-radius:14px;
-  padding:9px 14px;min-width:132px;max-width:180px;text-align:center;cursor:pointer;
-  transition:box-shadow .15s,transform .1s,border-color .15s;}
-.occ:hover{box-shadow:0 2px 12px rgba(0,0,0,.07);}
-.occ:active{transform:scale(.98);}
-.occ.me{border-color:var(--acc);}
-.occ.off{opacity:.5;}
-.occ .ocn{font-size:14.5px;font-weight:600;line-height:1.3;}
-.occ .oci{font-size:11px;color:var(--tx3);margin-top:2px;}
-.occ .ocr{display:inline-block;margin-top:5px;font-size:11px;padding:1px 10px;
-  border-radius:999px;background:var(--tint);color:var(--accT);}
-.occ .ocr.plain{background:var(--card2);color:var(--tx3);}
-.ocb{margin-top:7px;font-size:11.5px;color:var(--tx3);background:var(--card);
-  padding:2px 10px;border-radius:999px;border:1px solid var(--line);}
 
-/* 末端人員：少的排網格、多的排晶片 */
-.ocleaf{background:var(--card);border:1px solid var(--line);border-radius:16px;
-  padding:11px 13px;max-width:560px;}
-.ocleaf .lbl{font-size:11.5px;color:var(--tx3);margin-bottom:9px;text-align:center;}
-.ocgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;}
-.ocgrid .occ{min-width:0;max-width:none;padding:8px 6px;}
-.ocips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;}
-.ocip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);
-  border-radius:999px;padding:4px 12px 4px 4px;font-size:13.5px;background:var(--bg);
-  cursor:pointer;transition:box-shadow .15s,border-color .15s;}
-.ocip:hover{box-shadow:0 2px 10px rgba(0,0,0,.06);}
-.ocip.me{border-color:var(--acc);}
-.ocip.off{opacity:.5;}
-.ocip .ipav{width:24px;height:24px;border-radius:50%;background:var(--tint);color:var(--accT);
-  display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;}
 
-/* 共管：虛線框圈起兩張卡 */
-.ocpair{border:1.5px dashed var(--line);border-radius:18px;padding:9px 12px 11px;
-  display:inline-flex;flex-direction:column;align-items:center;gap:7px;background:var(--card2);}
-.ocpair .lbl{font-size:11px;color:var(--tx3);letter-spacing:.5px;}
-.ocprow{display:flex;gap:10px;align-items:flex-start;}
-.ocpm{display:flex;flex-direction:column;align-items:center;}
 
-.occ.drag{opacity:.35;}
-.occ.drop,.ocip.drop{border-color:var(--acc);box-shadow:0 0 0 3px var(--tint);}
-.ocghost{position:fixed;z-index:999;pointer-events:none;opacity:.92;
-  transform:translate(-50%,-50%) scale(.96);}
-.ocroot{margin:0 0 10px;padding:10px;border:1.5px dashed var(--line);border-radius:12px;
-  text-align:center;font-size:12.5px;color:var(--tx3);display:none;}
-.ocroot.show{display:block;}
-.ocroot.drop{border-color:var(--acc);color:var(--accT);background:var(--tint);}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ── 新帳號憑證卡 ── */
 .nacard{background:var(--card);border:1px solid var(--line);border-radius:18px;
@@ -615,14 +594,9 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .nabox{background:var(--card2);border-radius:14px;padding:4px 12px;margin:12px 0 14px;}
 .nafoot{font-size:11.5px;color:var(--tx3);margin-top:10px;line-height:1.7;}
 
-/* ── 帳號管理樹狀 ── */
-.utg{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;margin:6px 0 2px;
-  font-size:13px;font-weight:600;color:var(--tx2);background:transparent;}
-.utl{display:inline-block;width:10px;height:10px;border-left:1.5px solid var(--line);
-  border-bottom:1.5px solid var(--line);border-radius:0 0 0 3px;margin-right:2px;}
-.utc{cursor:pointer;}
-.utb{flex:0 0 auto;width:22px;height:22px;border-radius:7px;color:var(--tx3);
-  font-size:12px;line-height:22px;text-align:center;background:transparent;}
+
+
+
 
 /* ── 字體大小（小／中／大）──
    用 zoom 整體放大，版面比例不會跑掉 */
@@ -653,7 +627,7 @@ html[data-fs="l"] body{zoom:1.25;}
 @media print{
   body{background:#fff!important;}
   body::before,body::after{display:none!important;}
-  .bar,.nav,.fchips,.ov,.pk,.ts,.dlside,.dlnp{display:none!important;}
+  .bar,.nav,.fchips,.ov,.pk,.ts,.dlside{display:none!important;}
   #app{padding:0!important;}
   #page{padding:0!important;}
   .dlout{border-radius:0;padding:0;}
@@ -711,7 +685,7 @@ html[data-fs="l"] body{zoom:1.25;}
   .cell{height:138px;padding:6px 5px;border-radius:12px;}
   .dn{font-size:13px;text-align:left;padding-left:3px;}
   .evc{font-size:12px;line-height:1.75;padding:0 7px;margin-top:3px;}
-  .legend{padding:18px 4px 4px;gap:12px;}
+
 
   /* 年月選擇器對齊標題 */
   .pk{top:132px;left:var(--gut);right:auto;margin:0;width:400px;}
@@ -726,8 +700,6 @@ html[data-fs="l"] body{zoom:1.25;}
   .drop:hover{border-color:var(--acc);background:var(--tint);}
   .scroll{max-height:none;}
 
-  /* 表單類頁面不要撐到 1180，太寬反而難讀 */
-  .narrow{max-width:620px;}
 
   /* 底部面板改成置中對話框 */
   .ov{align-items:center;}
@@ -821,12 +793,19 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zm';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zq';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
-var GAS_TIMEOUT={saveData:240000,clearAll:180000,archiveYear:240000,seedStaff:120000};
+var GAS_TIMEOUT={saveData:240000,clearAllData:180000};
+var GAS_LOG=[];   // 最近 30 次後端呼叫花的時間（隱藏工具裡看得到，查慢的原因用）
+function gasLog(fn,t0,ok,j){
+  GAS_LOG.unshift({fn:fn,ms:Date.now()-t0,ok:ok,
+    note:j?(j.unchanged?'未變更':(j.rows?j.rows.length+' 筆':(j.error||''))):'',at:new Date().toTimeString().slice(0,8)});
+  if(GAS_LOG.length>30)GAS_LOG.length=30;
+}
 function gas(fn){
+  var t0=Date.now();
   var args=Array.prototype.slice.call(arguments,1);
   var payload=JSON.stringify({fn:fn,args:args});
   var ms=GAS_TIMEOUT[fn]||45000;
@@ -843,6 +822,7 @@ function gas(fn){
   return req.then(function(r){return r.json();})
     .then(function(j){
       clearTimeout(timer);
+      gasLog(fn,t0,!!(j&&j.ok),j);
       // 後端說還沒授權（profile_ok 被清掉等）→ 立刻擋下，叫出確認畫面
       if(j&&j.needProfile&&typeof openOnboarding==='function'){
         PROFILE_OK=false;lsD('espc_prof');
@@ -851,6 +831,7 @@ function gas(fn){
       return j;})
     .catch(function(e){
       clearTimeout(timer);
+      gasLog(fn,t0,false,{error:(e&&e.name==='AbortError')?'逾時':'連線失敗'});
       if(e&&e.name==='AbortError')
         throw new Error('連線逾時（'+Math.round(ms/1000)+' 秒），請檢查網路後再試');
       throw e;
@@ -1097,25 +1078,6 @@ function canManage(r){return canWrite(r);}
 /* 角色層級：數字越小權力越大；只能編層級比自己低、且同地區的帳號 */
 var ROLE_RANK={admin:0,supervisor:1,scheduler:2,pm:3,sampler:4};
 function rankOf(r){var k=normRole(r);return ROLE_RANK[k]===undefined?9:ROLE_RANK[k];}
-function myRegion(){
-  var me=null;
-  USERS.forEach(function(x){if(x.username===UNAME)me=x;});
-  return me?String(me.region||'').trim():'';
-}
-/** 這個人的直屬主管一路往上找，會不會找到我 */
-function isUnderMe(username){
-  var map={};
-  USERS.forEach(function(x){map[x.username]=mgrsOf(x);});
-  var seen={},queue=(map[String(username||'').trim()]||[]).slice(),hop=0;
-  while(queue.length&&hop++<200){
-    var cur=queue.shift();
-    if(!cur||seen[cur])continue;
-    if(cur===UNAME)return true;
-    seen[cur]=1;
-    queue=queue.concat(map[cur]||[]);
-  }
-  return false;
-}
 function canTouchUser(u){
   if(!u)return false;
   if(u.canEdit!==undefined)return !!u.canEdit;    // 後端已經判斷過
@@ -1164,21 +1126,11 @@ function cPrune(hard){
       if(k2&&k2.indexOf(CK+'today')===0)localStorage.removeItem(k2);}}
   }catch(e){}
 }
-/** 不帶參數＝讀出目前版本；帶參數＝寫入，版本變了就把行程快取全部清掉 */
+/** 不帶參數＝讀出目前版本；帶參數＝寫入目前版本。
+    以前版本一變（任何人上傳排程）就把所有月份快取刪光，大家下次開月曆都得從頭下載、一直轉圈。
+    現在舊快取留著：先用舊的畫面立刻顯示，同時向後端要新資料，回來再換掉（每份快取自帶版本，舊的一定會被更新）。 */
 function cVer(v){
   if(!v)return ls(CK+'ver');
-  var cur=ls(CK+'ver');
-  if(cur&&cur!==v){
-    MONTH_DONE={};
-    try{
-      var del=[];
-      for(var i=0;i<localStorage.length;i++){
-        var k=localStorage.key(i);
-        if(k&&(k.indexOf(CK+'m_')===0||k.indexOf(CK+'today')===0))del.push(k);
-      }
-      del.forEach(function(k){localStorage.removeItem(k);});
-    }catch(e){}
-  }
   lsS(CK+'ver',v);
   return v;
 }
@@ -1734,10 +1686,18 @@ function gateProfile(after){
   if(!needProfile()){after();return;}
   // 剛輸入帳密登入：登入回應就是後端 profile_ok 的最新狀態，直接請他確認
   if(FRESH_LOGIN){FRESH_LOGIN=false;openOnboarding();return;}
+  // 手機裡沒有授權記錄（清過資料、重新安裝）：先蓋上「確認中」畫面，
+  // 背後同時開始載入行程，不用等確認完才下載；確認通過才掀開，沒授權就進確認畫面
+  var cover=$('onb');
+  if(cover){
+    cover.innerHTML='<div class="onbw" style="padding-top:20vh">'+loader('確認授權狀態…')+'</div>';
+    cover.classList.add('open');
+  }
+  after();
   getMeOnce().then(function(r){
     if(r&&r.ok&&r.profileOk){
-      PROFILE_OK=true;lsS('espc_prof','1');   // 後端說同意過了 → 直接進去
-      after();
+      PROFILE_OK=true;lsS('espc_prof','1');   // 後端說同意過了 → 掀開，資料多半已經載好
+      if(cover){cover.classList.remove('open');cover.innerHTML='';}
     }else if(r&&r.ok){
       openOnboarding();                        // 還沒授權 → 一定要先確認
     }else{
@@ -2003,7 +1963,13 @@ function pageHTML(){
 var futOpen=false;            // 未來七天預設收起來，要看再點開
 function futToggle(){futOpen=!futOpen;render();}
 
+/** 今日頁：還在確認最新資料時，上方加提示、內容淡一點 */
 function todayPage(){
+  var b=todayBody();
+  if(!TODAY_CHK)return b;
+  return chkBar(TODAY_CHK)+(TODAY_CHK===1?'<div class="chkwrap">'+b+'</div>':b);
+}
+function todayBody(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
   var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
@@ -2117,8 +2083,10 @@ function calPage(){
 
   // 載入中：轉圈蓋在月曆正中間，資料到齊（或確定沒行程）才消失
   // MONTH_DONE 記錄哪些月份真的載完了，避免「還沒載就說沒排程」
-  var busy=calLoading||!MONTH_DONE[curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'')];
-  h='<div class="calwrap'+(busy?' busy':'')+'">'+h
+  var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
+  var busy=calLoading||!MONTH_DONE[ck];
+  var chk=!busy&&MONTH_CHK[ck];
+  h=chkBar(chk)+'<div class="calwrap'+(busy?' busy':'')+(chk===1?' chk':'')+'">'+h
     +(busy?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
     +'</div>';
   if(!busy&&!Object.keys(pmap).length)
@@ -2229,11 +2197,6 @@ function typeLabel(g){
   }).join('、');
 }
 
-/** 摘要用點位：太多就只顯示第一個並註明還有幾處 */
-function locBrief(g){
-  if(g.locs.length<=1)return g.locs[0]||'';
-  return g.locs[0]+' 等 '+g.locs.length+' 處';
-}
 
 /* ── 通訊錄 ── */
 var bookQ='',bookRg='',bookTm='',bookSf='',STAFF_READY=false;
@@ -2453,10 +2416,11 @@ function drawAppIcon(S){
 }
 function openIconTool(){
   openSheet('<div style="padding:4px 2px 8px">'
-    +'<div style="font-size:17px;font-weight:700;margin-bottom:4px">產生 App 圖示</div>'
+    +'<div style="font-size:17px;font-weight:700;margin-bottom:4px">開發工具：App 圖示</div>'
     +'<div class="hint" style="margin-bottom:12px">下載後把 PNG 上傳到 GitHub repo 根目錄，檔名不要改。'
     +'iPhone 若無法直接存檔，建議改用電腦操作。</div>'
     +'<div id="icList">'+loader('繪製中…')+'</div>'
+    +gasLogHTML()
     +'<div style="display:flex;gap:10px;margin-top:14px">'
     +'<button class="btn btn-p" style="flex:1" onclick="icDownloadAll()">全部下載</button>'
     +'<button class="btn" style="flex:1" onclick="closeSheet()">關閉</button></div></div>');
@@ -2475,6 +2439,20 @@ function openIconTool(){
   });
 }
 var ICON_CV=[];
+/** 連線紀錄：每次呼叫後端花了幾秒 */
+function gasLogHTML(){
+  if(!GAS_LOG.length)return '';
+  return '<div style="font-size:15px;font-weight:700;margin:18px 0 6px">連線紀錄（最近 '+GAS_LOG.length+' 次）</div>'
+    +'<div class="card" style="padding:6px 12px;font-size:12.5px;font-variant-numeric:tabular-nums">'
+    +GAS_LOG.map(function(g){
+      var s=(g.ms/1000).toFixed(1);
+      var slow=g.ms>=5000;
+      return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)">'
+        +'<span style="color:var(--tx3);width:58px">'+he(g.at)+'</span>'
+        +'<span style="flex:1;min-width:0">'+he(g.fn)+'<span style="color:var(--tx3)">　'+he(g.note)+'</span></span>'
+        +'<b style="color:'+(g.ok?(slow?'var(--warn)':'var(--ok)'):'var(--err)')+'">'+s+' 秒</b></div>';
+    }).join('')+'</div>';
+}
 function icDownload(i){
   var cv=ICON_CV[i],o=ICON_OUT[i];if(!cv)return;
   cv.toBlob(function(b){
@@ -2533,8 +2511,9 @@ function loadToday(force,retry){
   function mine(){return seq===TODAY_SEQ&&sk===scopeKey();}
   todayScope=sk;
   var c=force?null:cGet(ck);
-  if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
+  if(c&&c.date===t&&c.rows){TODAY_CHK=1;paintToday(t,c.rows);}
   else{
+    TODAY_CHK=0;
     if(onTab)$('page').innerHTML=loader('載入今日行程…');
     c=null;
   }
@@ -2542,10 +2521,12 @@ function loadToday(force,retry){
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
+      if(mine()&&c){TODAY_CHK='fail';if(tab==='today'&&!sub)render();}
       if(mine()&&!c&&tab==='today'&&!sub)
         $('page').innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';
       return;
     }
+    if(mine())TODAY_CHK=0;                // 後端確認過了
     cVer(r.version);
     var list;
     if(r.unchanged){
@@ -2561,6 +2542,7 @@ function loadToday(force,retry){
     paintToday(t,list);
     if(sk)prefetch('today',{dateFrom:t,dateTo:todayRange(t),date:t});   // 背景補齊全部
   }).catch(function(){
+    if(mine()&&c){TODAY_CHK='fail';if(tab==='today'&&!sub)render();}
     if(mine()&&!c&&tab==='today'&&!sub)
       $('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
   });
@@ -2577,6 +2559,14 @@ function paintToday(t,all){
    有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
    再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
 var allScope='',todayScope='',calLoading=false,MONTH_DONE={};
+/* 畫面上是「手機裡上次的資料」、還在等後端確認：1＝確認中，'fail'＝連不上 */
+var MONTH_CHK={},TODAY_CHK=0;
+function chkBar(v){
+  if(!v)return '';
+  return v==='fail'
+    ?'<div class="chkbar fail">連不到伺服器，以下是上次下載的資料，可能不是最新</div>'
+    :'<div class="chkbar"><div class="spin"></div>確認最新排程中…</div>';
+}
 function scopeKey(){return (F.en?'e:'+F.en:'')+(F.st?'s:'+F.st:'');}
 function scopeOpts(o){
   if(F.en)o.engineer=F.en;
@@ -2629,8 +2619,9 @@ function loadMonth(force,retry){
   /** 這次的結果還算不算「現在要看的」 */
   function mine(){return seq===MONTH_SEQ&&y===curY&&m===curM&&sk===scopeKey();}
   allScope=sk;
+  var dk=ym+(sk?'_'+sk:'');
   var c=force?null:cGet(key);
-  if(c&&c.rows){calLoading=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
+  if(c&&c.rows){MONTH_CHK[dk]=1;calLoading=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
   else{
     calLoading=true;
     if(onTab)render();          // 先把日期格子畫出來，行程位置放轉圈
@@ -2640,12 +2631,14 @@ function loadMonth(force,retry){
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
+      if(c)MONTH_CHK[dk]='fail';
       if(!mine())return;
       calLoading=false;
       if(!c){toast((r&&r.error)||'載入失敗','no');paintMonth([],y,m,sk);}
       else paintMonth(c.rows,y,m,sk);
       return;
     }
+    delete MONTH_CHK[dk];                  // 後端確認過了（沒變或換成新的）
     cVer(r.version);
     var list;
     if(r.unchanged){
@@ -2664,6 +2657,7 @@ function loadMonth(force,retry){
     if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
     prefetchNeighbors();                                    // 背景備好前後一個月
   }).catch(function(){
+    if(c)MONTH_CHK[dk]='fail';
     if(!mine())return;
     calLoading=false;
     if(!c&&tab==='cal'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
@@ -4431,9 +4425,6 @@ function usersHTML(){
     +userListHTML();
   return h;
 }
-var UTREE={};                       // 節點收合狀態（預設全部展開）
-function utToggle(k){UTREE[k]=!UTREE[k];paintUsers();}
-function utOpen(k){return UTREE[k]!==true;}
 function userFiltered(){
   var q=userQ.toLowerCase();
   return USERS.filter(function(u){
@@ -4489,127 +4480,6 @@ function userListHTML(){
   return h+'</div></div>';
 }
 
-/* ── 拖拉改上下關係 ── */
-var DRAG=null,DRAG_JUST=false;
-function ocCardEl(el){
-  while(el&&el!==document.body){
-    if(el.classList&&(el.classList.contains('occ')||el.classList.contains('ocip')))return el;
-    el=el.parentNode;
-  }
-  return null;
-}
-function userOf(u){
-  var out=null;
-  USERS.forEach(function(x){if(x.username===u)out=x;});
-  return out;
-}
-/** 可不可以把 u 掛到 mgr 底下（空字串＝最上層） */
-function canDropOn(u,mgr){
-  if(!u||u===mgr)return false;
-  var me=userOf(u);
-  if(!me||!canTouchUser(me))return false;
-  if(mgrsOf(me).length===1&&mgrsOf(me)[0]===mgr)return false;   // 沒有變動
-  if(!mgr)return mgrsOf(me).length>0;
-  if(!userOf(mgr))return false;
-  if(descendantsOf(u).indexOf(mgr)>=0)return false;             // 會繞成循環
-  return true;
-}
-function dragMark(el,on){
-  if(el&&el.classList)el.classList.toggle('drop',!!on);
-}
-function ocDown(e){
-  if(tab!=='admin'||sub)return;
-  var card=ocCardEl(e.target);
-  if(!card||!card.getAttribute('data-can'))return;
-  DRAG={u:card.getAttribute('data-u'),card:card,
-        x:e.clientX,y:e.clientY,on:false,over:null,ghost:null};
-}
-function ocMove(e){
-  if(!DRAG)return;
-  var dx=e.clientX-DRAG.x,dy=e.clientY-DRAG.y;
-  if(!DRAG.on){
-    if(Math.abs(dx)<8&&Math.abs(dy)<8)return;
-    DRAG.on=true;
-    DRAG.card.classList.add('drag');
-    var g=document.createElement('div');
-    g.className='occ ocghost';
-    g.innerHTML=DRAG.card.innerHTML;
-    document.body.appendChild(g);
-    DRAG.ghost=g;
-    var rz=$('ocroot');
-    if(rz)rz.classList.add('show');
-  }
-  if(e.cancelable)e.preventDefault();
-  DRAG.ghost.style.left=e.clientX+'px';
-  DRAG.ghost.style.top=e.clientY+'px';
-  var el=document.elementFromPoint(e.clientX,e.clientY);
-  var rz=$('ocroot');
-  var target=ocCardEl(el);
-  var onRoot=!!(el&&rz&&(el===rz||rz.contains(el)));
-  var next=onRoot?rz:(target&&target!==DRAG.card
-    &&canDropOn(DRAG.u,target.getAttribute('data-u'))?target:null);
-  if(next!==DRAG.over){
-    dragMark(DRAG.over,false);
-    dragMark(next,true);
-    DRAG.over=next;
-  }
-}
-function ocUp(){
-  if(!DRAG)return;
-  var d=DRAG;DRAG=null;
-  if(!d.on)return;
-  DRAG_JUST=true;
-  setTimeout(function(){DRAG_JUST=false;},300);
-  if(d.ghost&&d.ghost.remove)d.ghost.remove();
-  d.card.classList.remove('drag');
-  dragMark(d.over,false);
-  var rz=$('ocroot');
-  if(rz)rz.classList.remove('show');
-  if(!d.over)return;
-  var mgr=(d.over===rz)?'':d.over.getAttribute('data-u');
-  askDrop(d.u,mgr);
-}
-/** 放開後：已經有主管就問「搬過去」還是「加成共管」，否則直接確認 */
-function askDrop(u,mgr){
-  if(!canDropOn(u,mgr))return;
-  var me=userOf(u),to=mgr?userOf(mgr):null;
-  var nm=(me&&(me.engineerName||me.username))||u;
-  var tn=to?(to.engineerName||to.username):'最上層';
-  var cur=mgrsOf(me);
-  if(!mgr||!cur.length){                       // 沒有原主管就沒有共管的問題
-    if(confirm('把「'+nm+'」改成「'+tn+'」底下？'))applyDrop(u,mgr,'move');
-    return;
-  }
-  var curTxt=cur.map(function(m){
-    var x=userOf(m);return x?(x.engineerName||x.username):m;}).join('、');
-  openSheet('<div class="shh"><div>'
-    +'<div class="evt" style="color:var(--accT)">調整上下關係</div>'
-    +'<h3 style="margin-top:3px">'+he(nm)+' → '+he(tn)+'</h3>'
-    +'<p class="hint" style="margin-top:3px">目前的主管：'+he(curTxt)+'</p></div>'
-    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
-    +'<button class="btn btn-p btn-full" onclick="closeSheet();applyDrop(\''+esc(u)+'\',\''+esc(mgr)+'\',\'move\')">'
-    +'搬到「'+he(tn)+'」底下</button>'
-    +'<p class="hint" style="margin:6px 6px 14px">原本的主管會被取代</p>'
-    +'<button class="btn btn-full" onclick="closeSheet();applyDrop(\''+esc(u)+'\',\''+esc(mgr)+'\',\'add\')">'
-    +'加「'+he(tn)+'」為共同主管</button>'
-    +'<p class="hint" style="margin:6px 6px 0">兩位主管都能管理這個帳號，組織圖會掛在兩邊</p>');
-}
-function applyDrop(u,mgr,mode){
-  if(!canDropOn(u,mgr)&&mode!=='add')return;
-  var me=userOf(u),to=mgr?userOf(mgr):null;
-  var nm=(me&&(me.engineerName||me.username))||u;
-  var tn=to?(to.engineerName||to.username):'最上層';
-  var list;
-  if(mode==='add'){
-    list=mgrsOf(me).slice();
-    if(list.indexOf(mgr)<0)list.push(mgr);
-  }else list=mgr?[mgr]:[];
-  gas('updateUser',TOKEN,u,{manager:list.join(',')}).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'變更失敗','no',4000);return;}
-    toast(mode==='add'?('已加「'+tn+'」為共同主管'):('已改為「'+tn+'」底下'),'ok');
-    loadUsers();
-  }).catch(function(){toast('操作失敗','no');});
-}
 
 /** 直屬主管的候選名單：排除自己與自己的下屬（避免循環） */
 function mgrOptions(username,cur){
@@ -4658,7 +4528,6 @@ function paintMgr(){
 }
 
 function editUser(name){
-  if(DRAG_JUST){DRAG_JUST=false;return;}     // 剛拖完的那一下不算點擊
   var u=null;
   USERS.forEach(function(x){if(x.username===name)u=x;});
   if(!u)return;
@@ -4674,7 +4543,7 @@ function editUser(name){
     +'<p class="hint" style="margin-top:3px">'+he(u.username)
     +(me?'　·　目前帳號':'')+'</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>'
-    +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致，留空表示不自動篩選</span></p>'
+    +'<p class="lb">姓名　<span style="color:var(--tx3);font-weight:400">與排程表上的姓名一致（必填）</span></p>'
     +'<input class="fld" id="e-e" value="'+he(u.engineerName||'')+'" placeholder="例：王小明" style="margin-bottom:13px">'
     +'<p class="lb">工號　<span style="color:var(--tx3);font-weight:400">同時也是登入帳號</span></p>'
     +'<input class="fld" id="e-u" value="'+he(u.username)+'" autocapitalize="characters"'
@@ -4921,20 +4790,6 @@ function showNewAccount(u,p,eng,role){
   naQR();
 }
 
-function setRole(u,role){
-  gas('setUserRole',TOKEN,u,role).then(function(r){
-    if(r&&r.ok)toast('角色已改為「'+roleLabel(role)+'」','ok');
-    else toast((r&&r.error)||'變更失敗','no');
-    loadUsers();
-  }).catch(function(){toast('操作失敗','no');loadUsers();});
-}
-function setEng(u,cur){
-  var v=prompt('設定「'+u+'」對應的人員姓名：',cur);
-  if(v===null)return;
-  gas('updateEngineerName',TOKEN,u,v.trim()).then(function(r){
-    if(r&&r.ok){toast('已更新','ok');loadUsers();}else toast((r&&r.error)||'更新失敗','no');
-  }).catch(function(){toast('操作失敗','no');});
-}
 function resetPw(u){
   var v=prompt('重設「'+u+'」的新密碼（至少 '+PW_MIN+' 碼）：',newPin());
   if(!v)return;
