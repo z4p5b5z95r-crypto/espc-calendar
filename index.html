@@ -830,7 +830,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26m';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26n';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -839,7 +839,7 @@ var FCM_VAPID='BIz2nfyWMRth_bkPmkz-zdKvhVU39Y7RLmM29RxvFP-1Eu2r8pE0A8YV4Z_GvHHDZ
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
-var GAS_TIMEOUT={saveData:240000,clearAllData:180000};
+var GAS_TIMEOUT={saveData:240000,clearAllData:180000,groupCast:120000};
 var GAS_LOG=[];   // 最近 30 次後端呼叫花的時間（隱藏工具裡看得到，查慢的原因用）
 function gasLog(fn,t0,ok,j){
   GAS_LOG.unshift({fn:fn,ms:Date.now()-t0,ok:ok,
