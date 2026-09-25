@@ -410,6 +410,18 @@ html[data-theme="dark"] .pcast::after{background:linear-gradient(rgba(255,255,25
 .gmem .gh{font-size:12.5px;font-weight:600;display:flex;align-items:center;margin-bottom:2px;}
 .gmem .gh a{margin-left:auto;font-weight:400;color:var(--accT);}
 .ibox{margin:2px 0 12px;}
+.rcl{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--tx3);}
+.rcl b{color:var(--tx);font-weight:600;}
+.rcl .ok b{color:var(--ok,#1f8a4c);}
+.rcl svg{margin-left:auto;}
+.rca{margin-top:7px;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;color:var(--accT);
+  background:var(--gl);border:1px solid var(--glLine);}
+.rca.done{display:inline-block;color:var(--ok,#1f8a4c);font-weight:500;border-color:transparent;background:none;padding:6px 0 0;}
+.rrow{display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--line);font-size:14.5px;}
+.rrow .ph{font-size:12px;color:var(--tx3);margin-left:6px;}
+.rs{font-size:12.5px;color:var(--tx2);}
+.rs.ok{color:var(--ok,#1f8a4c);font-weight:600;}
+.rs.no{color:var(--warn);}
 .ibox .ci{background:var(--glStrong);border:1px solid var(--glLine);border-radius:14px;padding:9px 12px;margin-bottom:6px;}
 .ibox .cm{font-size:12px;color:var(--tx3);}
 .ibox .ct{font-size:14.5px;white-space:pre-wrap;margin-top:2px;}
@@ -830,7 +842,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26o';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26p';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -3547,11 +3559,11 @@ function castBox(g){
   if(!c||!c.list.length)return '';
   var mine=c.list.filter(function(x){return x.project===g.project;});
   if(!mine.length)return '';
+  seenMark(mine);
   return '<div class="cbox">'+mine.map(function(x){
     return '<div class="ci"><div class="cm">📣 '+he(x.from)+'　'+he(String(x.at).slice(11,16))
       +'　→ '+he(x.to.join('、'))+'</div><div class="ct">'+he(x.text)+'</div>'
-      +(x.noPush&&x.noPush.length?'<div class="cm" style="color:var(--warn)">'+he(x.noPush.join('、'))+' 沒開推播，只能在 App 看到</div>':'')
-      +'</div>';
+      +rcptLine(x,'case')+'</div>';
   }).join('')+'</div>';
 }
 function castGroup(p){
@@ -3646,15 +3658,67 @@ function inboxLoad(force){
 function castItem(x,mine){
   return '<div class="ci"><div class="cm">📣 '+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
     +(x.groups?'　'+he(x.groups):'')+'</div><div class="ct">'+he(x.text)+'</div>'
-    +(mine&&x.to?'<div class="cm" style="margin-top:3px">發給 '+x.to.length+' 人'
-      +(x.noPush&&x.noPush.length?'，<span style="color:var(--warn)">'+x.noPush.length+' 人沒開推播：'+he(x.noPush.join('、'))+'</span>':'')+'</div>':'')
-    +'</div>';
+    +rcptLine(x,mine?'sent':'inbox')+'</div>';
+}
+/* ── 回條：收件人按「👍 收到」；發送人看送達／已讀／收到 ── */
+var RC_ITEMS={},SEEN=null,SEEN_Q=[],SEEN_T=null;
+function rcptLine(x,from){
+  if(!x.id)return '';
+  RC_ITEMS[x.id]=x;
+  var h='';
+  if(x.rc){
+    var n=x.rc.length,d=0,r=0,a=0;
+    x.rc.forEach(function(p){if(p.d)d++;if(p.r)r++;if(p.a)a++;});
+    h+='<a href="#" class="rcl" onclick="rcptSheet(\''+x.id+'\',\''+from+'\');return false">'
+      +'<span>送達 <b>'+d+'</b>/'+n+'</span><span>已讀 <b>'+r+'</b>/'+n+'</span><span class="'+(a===n?'ok':'')+'">收到 <b>'+a+'</b>/'+n+'</span>'+ic('right',13)+'</a>';
+  }
+  if(x.toMe)h+=x.acked?'<div class="rca done">✓ 已回覆收到</div>'
+    :'<button class="rca" onclick="castAckDo(\''+x.id+'\',\''+from+'\')">👍 收到</button>';
+  return h;
+}
+/** 看到就算已讀：收件人的畫面出現這則時，背景回報一次（同一支手機只報一次） */
+function seenMark(list){
+  if(!SEEN){try{SEEN=JSON.parse(ls('espc_seen')||'[]');}catch(e){SEEN=[];}}
+  (list||[]).forEach(function(x){
+    if(x.toMe&&x.id&&SEEN.indexOf(x.id)<0&&SEEN_Q.indexOf(x.id)<0)SEEN_Q.push(x.id);
+  });
+  if(!SEEN_Q.length||SEEN_T)return;
+  SEEN_T=setTimeout(function(){
+    var q=SEEN_Q.splice(0,50);SEEN_T=null;
+    gas('castSeen',TOKEN,q).then(function(r){
+      if(!r||!r.ok)return;
+      SEEN=SEEN.concat(q).slice(-400);lsS('espc_seen',JSON.stringify(SEEN));
+    }).catch(function(){});
+  },800);
+}
+function castAckDo(id,from){
+  var x=RC_ITEMS[id];if(x)x.acked=true;
+  if(from==='case')openDay(EV_D);else if($('ov').classList.contains('open'))inboxAll();else render();
+  gas('castAck',TOKEN,id).then(function(r){
+    if(!r||!r.ok){if(x)x.acked=false;toast((r&&r.error)||'回覆失敗','no');return;}
+    toast('已回覆收到','ok',1800);
+  }).catch(function(){if(x)x.acked=false;toast('連線失敗','no');});
+}
+function rcptSheet(id,from){
+  var x=RC_ITEMS[id];if(!x||!x.rc)return;
+  var t=function(v){return v?String(v).slice(11,16):'';};
+  var list=x.rc.slice().sort(function(a,b){return (a.a?0:a.r?1:a.d?2:3)-(b.a?0:b.r?1:b.d?2:3);});
+  var h='<div class="shh"><div><h3>📣 回條</h3><p class="hint" style="margin-top:3px">'+he(String(x.text).slice(0,40))+(String(x.text).length>40?'…':'')+'</p></div>'
+    +'<button class="ib" onclick="'+(from==='case'?'openDay(EV_D)':'closeSheet()')+'">✕</button></div>'
+    +'<div class="hint" style="margin:2px 2px 8px;line-height:1.7">送達＝手機收到推播　已讀＝在 App 看過　收到＝按了「👍 收到」</div>';
+  h+=list.map(function(p){
+    var st=p.a?'<span class="rs ok">✓ 收到 '+t(p.a)+'</span>':p.r?'<span class="rs">已讀 '+t(p.r)+'</span>'
+      :p.d?'<span class="rs">送達 '+t(p.d)+'</span>':'<span class="rs no">'+((x.noPush||[]).indexOf(p.n)>=0?'沒開推播':'未送達')+'</span>';
+    return '<div class="rrow"><span>'+he(p.n)+(PHONE[p.n]?' <a class="ph" href="tel:'+he(PHONE[p.n])+'">'+he(PHONE[p.n])+'</a>':'')+'</span>'+st+'</div>';
+  }).join('');
+  openSheet(h);
 }
 /** 今日頁上方：近 3 天收到的群組廣播 */
 function inboxBox(){
   var cut=twStr(),d3=addDays(cut,-2);
   var rec=INBOX.inbox.filter(function(x){return String(x.at).slice(0,10)>=d3;});
   if(!rec.length)return '';
+  seenMark(rec.slice(0,3));
   return '<div class="sec" style="margin-top:2px;display:flex">📣 廣播<span style="flex:1"></span>'
     +(INBOX.inbox.length>rec.length||rec.length>3?'<a href="#" style="color:var(--accT)" onclick="inboxAll();return false">全部 '+INBOX.inbox.length+' 則</a>':'')+'</div>'
     +'<div class="ibox">'+rec.slice(0,3).map(function(x){return castItem(x);}).join('')+'</div>';
@@ -3662,6 +3726,7 @@ function inboxBox(){
 function inboxAll(){
   var h='<div class="shh"><div><h3>📣 收到的廣播</h3><p class="hint" style="margin-top:3px">保留 1 個月</p></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>';
+  seenMark(INBOX.inbox);
   h+=INBOX.inbox.length?'<div class="ibox">'+INBOX.inbox.map(function(x){return castItem(x);}).join('')+'</div>'
     :'<div class="empty">1 個月內沒有收到廣播</div>';
   openSheet(h);

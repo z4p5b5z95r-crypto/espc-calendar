@@ -3,7 +3,7 @@
         2) 讓網站可「加入主畫面」成為 PWA
    注意：不做離線快取，永遠走網路，避免舊版卡住 */
 
-const SW_VERSION = 'espc-v2';
+const SW_VERSION = 'espc-v3';
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
@@ -22,14 +22,20 @@ self.addEventListener('push', function (e) {
   const title = d.title || n.title || 'ESPC 監測行程';
   const body = d.body || n.body || '';
   const url = d.url || (p.fcmOptions && p.fcmOptions.link) || './';
-  e.waitUntil(self.registration.showNotification(title, {
+  const jobs = [self.registration.showNotification(title, {
     body: body,
-    tag: 'espc-' + (url.split('d=')[1] || 'push'),   // 同一天的提醒只留最新一則
+    tag: d.cid ? 'espc-cast-' + d.cid : 'espc-' + (url.split('d=')[1] || 'push'),   // 同一天的提醒只留最新一則；廣播每則分開
     renotify: true,
     icon: 'icon-192-v3.png',
     badge: 'icon-192-v3.png',
     data: { url: url }
-  }));
+  })];
+  // 廣播回條：手機收到就回報「送達」（App 關著也會跑）
+  if (d.cid && d.rurl && d.sig) {
+    const payload = JSON.stringify({ fn: 'castReceipt', args: [d.cid, d.u, 'd', d.sig] });
+    jobs.push(fetch(d.rurl + '?payload=' + encodeURIComponent(payload), { mode: 'no-cors' }).catch(function () {}));
+  }
+  e.waitUntil(Promise.all(jobs));
 });
 
 /* 點通知：已開著的 App 就切過去並跳到那一天，沒開就開新的 */
