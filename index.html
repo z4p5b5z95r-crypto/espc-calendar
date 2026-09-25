@@ -409,6 +409,33 @@ html[data-theme="dark"] .pcast::after{background:linear-gradient(rgba(255,255,25
 .gmem{margin:4px 0 8px;padding:8px 10px;border-radius:12px;background:var(--gl);border:1px solid var(--glLine);}
 .gmem .gh{font-size:12.5px;font-weight:600;display:flex;align-items:center;margin-bottom:2px;}
 .gmem .gh a{margin-left:auto;font-weight:400;color:var(--accT);}
+.gseg{display:flex;background:rgba(0,0,0,.06);border-radius:12px;padding:3px;margin:12px 0 10px;overflow-x:auto;}
+html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
+.gseg button{flex:1;min-width:56px;font-size:14px;padding:7px 8px;border-radius:9px;color:var(--tx2);background:none;white-space:nowrap;}
+.gseg button.on{background:var(--glStrong);color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.gcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glLine);border-radius:18px;overflow:hidden;margin-bottom:6px;}
+.grh{display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:15.5px;}
+.grh small{font-weight:400;color:var(--tx3);font-size:12.5px;}
+.grh a{margin-left:auto;font-size:13px;font-weight:500;color:var(--accT);}
+.grow{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line);font-size:15px;}
+.grow.open{background:var(--accBg,rgba(243,111,33,.08));}
+.grow .gt{flex:1;display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;}
+.grow .gn{margin-left:auto;color:var(--tx3);font-size:13px;}
+.gcv{color:var(--tx3);transition:transform .18s;display:flex;}.gcv.on{transform:rotate(90deg);color:var(--accT);}
+.gcard .gmem{margin:0;border:none;border-radius:0;background:var(--accBg,rgba(243,111,33,.08));padding:2px 14px 12px 48px;display:flex;flex-wrap:wrap;gap:7px;}
+.ck{width:22px;height:22px;border-radius:50%;border:1.8px solid var(--tx3);flex:0 0 22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;opacity:.9;}
+.ck.on,.ck.half{background:var(--acc);border-color:var(--acc);opacity:1;}
+.ck.on:after{content:"✓";}.ck.half:after{content:"–";}
+.gtok{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:5px 6px 5px 11px;border-radius:999px;background:var(--accBg,rgba(243,111,33,.12));color:var(--accT);}
+.gtok i{font-style:normal;width:18px;height:18px;border-radius:50%;background:rgba(243,111,33,.2);display:inline-flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;}
+.gdock{position:fixed;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:560px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:45;display:flex;align-items:center;gap:10px;
+  padding:10px 10px 10px 16px;border-radius:22px;background:var(--glStrong);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--glLine);box-shadow:0 10px 30px rgba(0,0,0,.14);}
+.gdock .gdt{flex:1;min-width:0;font-size:12.5px;color:var(--tx2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gdock .gdt b{color:var(--tx);font-size:15px;}
+.gdock .btn{flex:0 0 auto;padding:11px 22px;border-radius:999px;}
+.gpad{height:96px;}
+@media(min-width:900px){.gdock{bottom:20px;}}
 .ibox{margin:2px 0 12px;}
 .rcl{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--tx3);}
 .rcl b{color:var(--tx);font-weight:600;}
@@ -842,7 +869,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26p';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26q';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -3731,76 +3758,93 @@ function inboxAll(){
     :'<div class="empty">1 個月內沒有收到廣播</div>';
   openSheet(h);
 }
-/* 組別清單：地區 → 組別 → 人員（來自通訊錄） */
-var RG_ORDER=['台北','台中','高雄'];
+/* 組別清單：分類（組別名稱開頭，例如 EIA／FE／SP）→ 組別 → 人員（來自通訊錄，不分地區，同名組別合併） */
+var GC_DEP='';
+function gcDepOf(tm){
+  if(!tm||tm==='未分組')return '其他';
+  var m=String(tm).match(/^([A-Za-z]+)/);
+  return m?m[1].toUpperCase():'其他';
+}
 function gcGroups(){
   var m={},me=String(ENGNAME||'').trim();
   STAFF.forEach(function(s){
     var n=String(s.name||'').trim();if(!n||n===me)return;
-    var rg=String(s.region||'').trim()||'未分地區',tm=String(s.team||'').trim()||'未分組';
-    var k=rg+'・'+tm;
-    (m[k]=m[k]||{key:k,rg:rg,tm:tm,ppl:[]}).ppl.push(n);
+    var tm=String(s.team||'').trim()||'未分組';
+    (m[tm]=m[tm]||{key:tm,tm:tm,dep:gcDepOf(tm),ppl:[]}).ppl.push(n);
   });
-  return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){
-    var ra=RG_ORDER.indexOf(a.rg),rb=RG_ORDER.indexOf(b.rg);ra=ra<0?9:ra;rb=rb<0?9:rb;
-    return ra-rb||a.tm.localeCompare(b.tm,'zh-Hant');
-  });
+  return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return b.ppl.length-a.ppl.length||a.tm.localeCompare(b.tm);});
+}
+function gcDeps(gs){
+  var d={};gs.forEach(function(g){d[g.dep]=(d[g.dep]||0)+g.ppl.length;});
+  return Object.keys(d).sort(function(a,b){return (a==='其他')-(b==='其他')||d[b]-d[a];}).map(function(k){return {k:k,n:d[k]};});
 }
 function gcCount(g){return g.ppl.filter(function(n){return GC.ppl[n];}).length;}
 function gcNames(){return Object.keys(GC.ppl).filter(function(n){return GC.ppl[n];});}
+function gcCk(c,n){return '<span class="ck'+(c&&c===n?' on':c?' half':'')+'"></span>';}
 function gcastPage(){
   if(!STAFF_READY)return loader('載入通訊錄…');
-  var gs=gcGroups(),sel=gcNames(),tpl=CAST_TPL||[];
-  var h='<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7">選組別就會發給整組；點「選人」可以只勾組裡的個別人員。收到的人手機會跳通知，App「今日」頁上方也看得到，內容保留 1 個月。</div>';
-  h+='<input class="fld" placeholder="搜尋姓名直接加人" value="'+he(GC.q)+'" oninput="GC.q=this.value;gcSearch()" style="margin:10px 0 0">'
+  var gs=gcGroups(),deps=gcDeps(gs),sel=gcNames(),tpl=CAST_TPL||[];
+  if(!GC_DEP||!deps.some(function(d){return d.k===GC_DEP;}))GC_DEP=deps.length?deps[0].k:'';
+  var h='<input class="fld" placeholder="搜尋姓名或組別" value="'+he(GC.q)+'" oninput="GC.q=this.value;gcSearch()" style="margin:4px 0 0">'
     +'<div class="cchips" id="gc-q"></div>';
-  var lastRg='';
-  gs.forEach(function(g){
-    if(g.rg!==lastRg){if(lastRg)h+='</div>';h+='<div class="gsec">'+he(g.rg)+'</div><div class="cchips">';lastRg=g.rg;}
-    var c=gcCount(g),all=c===g.ppl.length;
-    h+='<button class="cchip'+(all?' on':'')+'" onclick="gcTeam(\''+esc(g.key)+'\')">'+he(g.tm)
-      +'<small>'+(c&&!all?c+'/':'')+g.ppl.length+'</small></button>';
+  // 分類切換
+  h+='<div class="gseg">'+deps.map(function(d){
+    return '<button class="'+(d.k===GC_DEP?'on':'')+'" onclick="GC_DEP=\''+esc(d.k)+'\';render()">'+he(d.k)+'</button>';
+  }).join('')+'</div>';
+  var mine=gs.filter(function(g){return g.dep===GC_DEP;});
+  var dn=mine.reduce(function(a,g){return a+g.ppl.length;},0),dc=mine.reduce(function(a,g){return a+gcCount(g);},0);
+  h+='<div class="gcard"><div class="grh">'+he(GC_DEP)+' <small>'+mine.length+' 組・'+dn+' 人</small>'
+    +'<a href="#" onclick="gcDep('+(dc===dn?'false':'true')+');return false">'+(dc===dn&&dn?'全不選':'全選')+'</a></div>';
+  mine.forEach(function(g){
+    var c=gcCount(g),n=g.ppl.length,op=!!GC.open[g.key];
+    h+='<div class="grow'+(op?' open':'')+'"><span onclick="gcTeam(\''+esc(g.key)+'\')" style="display:flex;padding:4px;margin:-4px">'+gcCk(c,n)+'</span>'
+      +'<span class="gt" onclick="GC.open[\''+esc(g.key)+'\']=!GC.open[\''+esc(g.key)+'\'];render()">'+he(g.tm)
+      +'<span class="gn">'+(c&&c<n?c+'/':'')+n+' 人</span><span class="gcv'+(op?' on':'')+'">'+ic('right',14)+'</span></span></div>';
+    if(op)h+='<div class="gmem">'+g.ppl.map(function(p){
+      return '<button class="cchip'+(GC.ppl[p]?' on':'')+'" onclick="gcPerson(\''+esc(p)+'\')">'+he(p)+'</button>';}).join('')+'</div>';
   });
-  if(lastRg)h+='</div>';
-  // 展開中的組：可勾個別人員
-  gs.forEach(function(g){
-    if(!GC.open[g.key])return;
-    h+='<div class="gmem"><div class="gh">'+he(g.key)+'<a href="#" onclick="gcAll(\''+esc(g.key)+'\',true);return false">全選</a>'
-      +'<a href="#" style="margin-left:12px" onclick="gcAll(\''+esc(g.key)+'\',false);return false">全不選</a>'
-      +'<a href="#" style="margin-left:12px" onclick="GC.open[\''+esc(g.key)+'\']=false;render();return false">收起</a></div><div class="cchips">'
-      +g.ppl.map(function(n){return '<button class="cchip'+(GC.ppl[n]?' on':'')+'" onclick="gcPerson(\''+esc(n)+'\')">'+he(n)+'</button>';}).join('')
-      +'</div></div>';
-  });
-  var closed=gs.filter(function(g){return !GC.open[g.key];});
-  if(closed.length)h+='<div class="gsec">選人（只發給組裡某幾位）</div><div class="cchips">'
-    +closed.map(function(g){return '<button class="cchip" onclick="GC.open[\''+esc(g.key)+'\']=true;render()">'+he(g.key)+' ›</button>';}).join('')+'</div>';
-  h+='<div class="sec" style="display:flex;align-items:center">內容<span style="flex:1"></span><span class="hint">已選 <b style="color:var(--accT)">'+sel.length+'</b> 人'
-    +(sel.length?'　<a href="#" style="color:var(--accT)" onclick="GC.ppl={};render();return false">清除</a>':'')+'</span></div>';
+  h+='</div>';
+  // 已選
+  var picked=gs.filter(function(g){return gcCount(g);});
+  h+='<div class="sec" style="display:flex">已選<span style="flex:1"></span>'
+    +(sel.length?'<a href="#" style="color:var(--accT)" onclick="GC.ppl={};render();return false">全部清除</a>':'')+'</div>'
+    +'<div class="gcard" style="padding:10px 12px">'+(picked.length?'<div class="cchips" style="margin:0">'+picked.map(function(g){
+      return '<span class="gtok">'+he(g.tm)+'・'+gcCount(g)+(gcCount(g)<g.ppl.length?'/'+g.ppl.length:'')
+        +'<i onclick="gcAll(\''+esc(g.key)+'\',false)">✕</i></span>';}).join('')+'</div>'
+      :'<span class="hint">還沒選人：點組別前的圓圈選整組，點組名挑個人</span>')+'</div>';
+  // 內容
+  h+='<div class="sec">內容</div>';
   if(tpl.length)h+='<div class="cchips">'+tpl.map(function(t,i){return '<button class="cchip" onclick="gcTpl('+i+')">'+he(t)+'</button>';}).join('')+'</div>';
   h+='<textarea class="fld" id="gc-t" rows="4" maxlength="300" placeholder="輸入要廣播的內容…" style="margin-top:8px;resize:vertical;border-radius:16px;line-height:1.5"'
     +' oninput="GC.text=this.value;$(\'gc-n\').textContent=this.value.length">'+he(GC.text)+'</textarea>'
     +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="gcTplAdd();return false">＋ 存成常用語</a>'
-    +'<span style="flex:1"></span><span class="hint"><span id="gc-n">'+GC.text.length+'</span>/300</span></div>'
-    +'<button class="btn btn-p btn-full" style="margin-top:12px"'+(GC.busy?' disabled':'')+' onclick="gcSend()">'
-    +(GC.busy?'送出中…':'送出廣播'+(sel.length?'（'+sel.length+' 人）':''))+'</button>';
+    +'<span style="flex:1"></span><span class="hint"><span id="gc-n">'+GC.text.length+'</span>/300</span></div>';
   h+='<div class="sec">我發出的（1 個月內）</div>'
     +(INBOX.sent.length?'<div class="ibox">'+INBOX.sent.map(function(x){return castItem(x,true);}).join('')+'</div>'
       :'<div class="empty" style="padding:14px">還沒有發過群組廣播</div>');
+  // 底部固定：已選人數＋送出（留一段空白，最後一則紀錄不會被蓋住）
+  h+='<div class="gpad"></div><div class="gdock"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'
+    +he(picked.map(function(g){var c=gcCount(g);return g.tm+(c<g.ppl.length?'（'+c+' 人）':'');}).join('、')||'尚未選擇')+'</div>'
+    +'<button class="btn btn-p"'+(GC.busy||!sel.length?' disabled':'')+' onclick="gcSend()">'+(GC.busy?'送出中…':'送出')+'</button></div>';
   setTimeout(gcSearch,0);
   return h;
 }
+function gcDep(on){gcGroups().forEach(function(g){if(g.dep===GC_DEP)g.ppl.forEach(function(n){GC.ppl[n]=on;});});render();}
 function gcFind(k){var gs=gcGroups();for(var i=0;i<gs.length;i++)if(gs[i].key===k)return gs[i];return null;}
 function gcTeam(k){var g=gcFind(k);if(!g)return;var all=gcCount(g)===g.ppl.length;g.ppl.forEach(function(n){GC.ppl[n]=!all;});render();}
 function gcAll(k,on){var g=gcFind(k);if(!g)return;g.ppl.forEach(function(n){GC.ppl[n]=on;});render();}
 function gcPerson(n){GC.ppl[n]=!GC.ppl[n];render();}
 function gcSearch(){
   var el=$('gc-q');if(!el)return;
-  var q=String(GC.q||'').trim(),me=String(ENGNAME||'').trim();
+  var q=String(GC.q||'').trim().toLowerCase(),me=String(ENGNAME||'').trim();
   if(!q){el.innerHTML='';return;}
-  var hit=STAFF.filter(function(s){var n=String(s.name||'');return n&&n!==me&&n.indexOf(q)>=0;}).slice(0,12);
-  el.innerHTML=hit.length?hit.map(function(s){
-    return '<button class="cchip'+(GC.ppl[s.name]?' on':'')+'" onclick="gcPerson(\''+esc(s.name)+'\')">'+he(s.name)
-      +'<small>'+he((s.team||'').trim())+'</small></button>';}).join(''):'<span class="hint">找不到</span>';
+  var teams=gcGroups().filter(function(g){return g.tm.toLowerCase().indexOf(q)>=0;}).slice(0,6);
+  var hit=STAFF.filter(function(s){var n=String(s.name||'');return n&&n!==me&&n.toLowerCase().indexOf(q)>=0;}).slice(0,12);
+  el.innerHTML=(teams.map(function(g){var c=gcCount(g);
+      return '<button class="cchip'+(c===g.ppl.length?' on':'')+'" onclick="gcTeam(\''+esc(g.key)+'\')">'+he(g.tm)+'<small>'+g.ppl.length+' 人</small></button>';}).join('')
+    +hit.map(function(s){
+      return '<button class="cchip'+(GC.ppl[s.name]?' on':'')+'" onclick="gcPerson(\''+esc(s.name)+'\')">'+he(s.name)
+        +'<small>'+he((s.team||'').trim())+'</small></button>';}).join(''))||'<span class="hint">找不到</span>';
 }
 function gcTpl(i){var t=(CAST_TPL||[])[i];if(!t)return;GC.text=GC.text.trim()?GC.text.replace(/\s+$/,'')+'\n'+t:t;render();}
 function gcTplAdd(){
@@ -3816,7 +3860,7 @@ function gcSend(){
   if(!names.length){toast('請選擇組別或人員','no');return;}
   if(!t){toast('請輸入內容','no');return;}
   // 記錄涉及的組別：全選的寫組名，只選部分的寫「組名（n 人）」
-  var groups=gcGroups().map(function(g){var c=gcCount(g);return !c?'':(c===g.ppl.length?g.key:g.key+'（'+c+' 人）');}).filter(String);
+  var groups=gcGroups().map(function(g){var c=gcCount(g);return !c?'':(c===g.ppl.length?g.tm:g.tm+'（'+c+' 人）');}).filter(String);
   if(!confirm('確定發給 '+names.length+' 人？'))return;
   GC.busy=true;render();
   gas('groupCast',TOKEN,names,groups,t).then(function(r){
