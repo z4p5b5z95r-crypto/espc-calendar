@@ -798,7 +798,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-26d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-26f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2502,8 +2502,11 @@ function morePage(){
   var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>';
   h+='<div class="sec">偏好</div>'
-    +'<button class="link" onclick="go(\'more\',\'ics\')">行程提醒'
-    +'<span class="hint" style="margin-left:6px">推播通知</span><span style="flex:1"></span>'+ic('bell',19)+'</button>'
+    +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
+      +'<div>行程提醒推播通知</div>'
+      +'<div class="hint" style="margin-top:2px">'+(pushIsOn()?'已開啟，點這裡設定提醒時間':'App 關著也能收到隔天行程提醒')+'</div></div>'
+      +'<span style="flex:1"></span>'
+      +'<button class="sw'+(pushIsOn()?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="event.stopPropagation();pushSwitch()"></button></div>'
 
     +(selfName()?'<div class="link" style="cursor:default"><div>'
       +'<div>開啟時先篩選自己的行程</div>'
@@ -4967,11 +4970,11 @@ function pushHTML(){
     return h+'<div class="note">iPhone 要先把本站「加入主畫面」才能收推播：Safari 下方「分享」→「加入主畫面」，'
       +'之後從主畫面的圖示開啟，再回到這裡開啟推播。（需 iOS 16.4 以上）</div>';
   if(!pushSupported())return h+'<div class="note bad">這個瀏覽器不支援推播通知。</div>';
-  var on=!!ls('espc_push')&&Notification.permission==='granted';
+  var on=pushIsOn();
   if(Notification.permission==='denied')
     h+='<div class="note bad">通知權限已被封鎖，請到手機「設定 → 通知」找到本 App 允許通知後再試。</div>';
   h+='<div class="card"><div class="row"><div><div style="font-size:15px">在這支手機收推播</div>'
-    +'<div class="hint" style="margin-top:2px">App 關著也收得到；時間到只跳一則當天的彙整（可能延遲至多 15 分鐘）</div></div>'
+    +'<div class="hint" style="margin-top:2px">App 關著也收得到；時間到只跳一則當天的彙整（可能延遲至多 5 分鐘）</div></div>'
     +'<button class="sw'+(on?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="'+(on?'pushOff()':'pushOn()')+'"></button></div></div>';
   if(on){
     h+='<div class="card"><div style="font-size:15px;margin-bottom:2px">測試通知</div>'
@@ -4980,7 +4983,7 @@ function pushHTML(){
     /* ▼▼ 暫時測試功能：排定時間的測試通知（確認推播正常後可整段刪除，連同 pushDemo()、PUSH.demo/demoAt） ▼▼ */
     var nt=new Date(Date.now()+5*60000),dflt=p2(nt.getHours())+':'+p2(nt.getMinutes());
     h+='<div class="card"><div style="font-size:15px;margin-bottom:2px">排定測試通知（暫時）</div>'
-      +'<div class="hint" style="margin-bottom:10px">選一個時間，到時會跳一則假行程通知。可能延遲至多 15 分鐘，'
+      +'<div class="hint" style="margin-bottom:10px">選一個時間，到時會跳一則假行程通知。可能延遲至多 5 分鐘，'
       +'<b>排定後請把 App 關掉或鎖上手機</b>，才看得出來「App 關著也收得到」。</div>'
       +'<div class="row" style="gap:8px">'
       +'<input type="time" class="fld" id="pt-t" style="flex:1;min-width:0;margin:0" value="'+(PUSH.demo||dflt)+'">'
@@ -4990,6 +4993,15 @@ function pushHTML(){
     /* ▲▲ 暫時測試功能結束 ▲▲ */
   }
   return h;
+}
+function pushIsOn(){
+  return !!ls('espc_push')&&('Notification' in window)&&Notification.permission==='granted';
+}
+/* 更多→偏好的開關：這支手機能開就直接開關；不能開（iPhone 未加入主畫面、不支援、未設定）就帶到行程提醒頁看說明 */
+function pushSwitch(){
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(!FCM_VAPID||(isIOS&&!isStandalone())||!pushSupported()||Notification.permission==='denied'){go('more','ics');return;}
+  if(pushIsOn())pushOff();else pushOn();
 }
 function loadJS(src){
   return new Promise(function(ok,no){
