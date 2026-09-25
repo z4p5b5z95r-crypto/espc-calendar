@@ -798,7 +798,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zu';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zw';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1182,7 +1182,7 @@ function daysBetween(a,b){
 function certOf(c){
   var y=ecYears(c);
   var o={type:c.type||'',cert:c.cert||'',train:c.train||'',years:y,
-         remind:(c.remind!==false),          // 預設開啟提醒
+         remind:true,                         // 到期提醒一律開啟，不能關閉
          expire:'',days:null,state:'nodate'};
   if(!y){o.state='forever';return o;}          // 無期限，不會進提醒
   if(o.train){
@@ -1222,7 +1222,6 @@ function safetyDue(){
   var out=[];
   STAFF.forEach(function(x){
     safetyList(x.name).forEach(function(o){
-      if(!o.remind)return;                   // 這張證照關掉提醒了
       if(o.state==='warn'||o.state==='expired')out.push({name:x.name,o:o});
     });
   });
@@ -1354,7 +1353,6 @@ function showSafety(n){
     else if(o.state==='ok'){st='有效，剩 '+o.days+' 天';col='var(--ok)';}
     else if(o.state==='forever'){st='無期限，不需回訓';col='var(--ok)';}
     else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
-    if(!o.remind)st+='（已關閉提醒）';
     h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'><div class="kv">'
       +kr('shield','證照',he(o.type||'未填'))
       +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
@@ -1618,7 +1616,7 @@ function boot(u,r,eng){
   lsS('espc_sync',t);
   if(fresh)cPrune(false);
 
-  ntInit();
+  appInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
   if(takeDeep()){back={t:'cal',s:''};}   // 從行事曆提醒點進來 → 直接開那一天
   // 等通訊錄載好才決定要篩哪一欄（需要組別資料），再開始抓行程
@@ -1909,7 +1907,6 @@ function titleText(){
   if(tab==='upload'||sub==='upload')return '上傳排程';
   if(tab==='admin'||sub==='admin')return '帳號管理';
   if(tab==='dl')return '下載行程';
-  if(sub==='notify')return '提醒設定';   // BETA 標示在頁面內
   if(sub==='ics')return '行事曆訂閱提醒';
   if(sub==='pw')return '修改密碼';
   if(tab==='today')return '今日';
@@ -1979,7 +1976,6 @@ function loader(txt){
 function pageHTML(){
   if(tab==='upload'||sub==='upload')return uploadPage();
   if(tab==='admin'||sub==='admin')return '<div id="users">'+loader('載入帳號…')+'</div>';
-  if(sub==='notify')return notifyPage();
   if(sub==='ics')return icsPage();
   if(sub==='pw')return pwPage();
   if(tab==='dl')return dlPage();
@@ -2494,8 +2490,7 @@ function morePage(){
   h+='<div class="sec">偏好</div>'
     +'<button class="link" onclick="go(\'more\',\'ics\')">行事曆訂閱提醒'
     +'<span class="hint" style="margin-left:6px">iPhone 行事曆／Google 日曆</span><span style="flex:1"></span>'+ic('cal',19)+'</button>'
-    +'<button class="link" onclick="go(\'more\',\'notify\')">每日行程提醒'
-    +'<span class="beta">BETA</span><span style="flex:1"></span>'+ic('bell',19)+'</button>'
+
     +(selfName()?'<div class="link" style="cursor:default"><div>'
       +'<div>開啟時先篩選自己的行程</div>'
       +'<div class="hint" style="margin-top:2px">關閉後每次開啟都顯示全部</div></div>'
@@ -3794,7 +3789,7 @@ function saveProfile(){
   }
   ecSync();
   var certs=EC.map(function(c){
-    return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
+    return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:true};})
     .filter(function(o){return o.t||o.c||o.d;});
 
   // 地區與組別不給使用者改，沿用原本的值送回去
@@ -3875,10 +3870,6 @@ function certsHTML(){
         return '<option value="'+y+'"'+(ecYears(c)===y?' selected':'')+'>'+yearLabel(y)+'</option>';}).join('')
       +'</select></div></div>'
       +'<p class="hint" id="c-e'+i+'" style="margin:4px 0 2px 10px">'+expText(c.train,ecYears(c))+'</p>'
-      +'<div class="row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">'
-      +'<div><div style="font-size:14px">到期提醒</div>'
-      +'<div class="hint" style="margin-top:2px">關閉後不會進回訓名單</div></div>'
-      +'<button class="sw'+(c.remind===false?'':' on')+'" onclick="ecRemind('+i+')"></button></div>'
       +'</div>';
   });
   return h+'<button class="addc"'+(EC.length?' style="margin-top:9px"':'')
@@ -3915,11 +3906,6 @@ function paintCerts(){
   var el=$('certs');
   if(el){el.innerHTML=certsHTML();EC.forEach(function(c,i){ecExp(i);});}
 }
-function ecRemind(i){
-  ecSync();
-  EC[i].remind=(EC[i].remind===false);
-  paintCerts();
-}
 function ecAdd(){
   ecSync();
   if(EC.length>=10){toast('最多 10 張證照','no');return;}
@@ -3943,7 +3929,7 @@ function saveStaff(){
   if(!extOK()){toast('請填分機，沒有分機請點旁邊的「無分機」','no',3500);return;}
   ecSync();
   var certs=EC.map(function(c){
-                return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:c.remind!==false};})
+                return {t:c.type||'',c:c.cert||'',d:c.train||'',y:ecYears(c),n:true};})
               .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
       JSON.stringify(certs),
@@ -4895,69 +4881,6 @@ function changePw(){
   }).catch(function(){e.textContent='操作失敗，請稍後再試';});
 }
 
-/* ══ 每日提醒 ══ */
-var NT='espc_notify',SWREG=null,ntBusy=false;
-function ntCfg(){
-  var c=jGet(NT,{})||{};
-  if(c.on===undefined)c.on=false;
-  if(!c.time)c.time='08:30';
-  if(c.skipWeekend===undefined)c.skipWeekend=true;
-  if(c.notifyEmpty===undefined)c.notifyEmpty=false;
-  if(!c.last)c.last='';
-  return c;
-}
-function ntSup(){return 'Notification' in window;}
-function regSW(){
-  if(!('serviceWorker' in navigator))return;
-  navigator.serviceWorker.register('sw.js').then(function(r){SWREG=r;}).catch(function(){});
-}
-function showVer(){
-  var e=$('lver');
-  if(e)e.textContent='版本 '+APP_VER;
-}
-function ntInit(){
-  initSwipe();
-  regSW();ntTick();
-  setInterval(ntTick,30000);
-  document.addEventListener('visibilitychange',function(){
-    if(document.hidden)return;
-    ntTick();
-    var t=twStr();
-    if(ls('espc_sync')!==t){lsS('espc_sync',t);cPrune(false);todayFor='';allRows=[];
-      loadStaff(null,true);loadToday(true);}
-  });
-}
-function notifyPage(){
-  var c=ntCfg();
-  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  var perm=ntSup()?Notification.permission:'不支援';
-  var h='';
-  if(!ntSup())h+='<div class="note bad">這個瀏覽器不支援系統通知。</div>';
-  else if(perm==='denied')h+='<div class="note bad">通知權限已被封鎖，請到瀏覽器或系統設定允許本網站傳送通知。</div>';
-  else if(isIOS&&!standalone)h+='<div class="note">iPhone 需先「加入主畫面」才能收到通知：Safari 下方「分享」→「加入主畫面」，之後從主畫面圖示開啟本站。</div>';
-
-  h+='<div class="note">每日行程提醒目前是 <b>BETA</b> 功能：需要 App 保持在背景才會準時跳出，'
-    +'手機系統可能會為了省電把它延後或略過，請勿當成唯一的提醒來源。</div>'
-    +'<div class="card"><div class="row"><div><div style="font-size:15px">開啟提醒'
-    +'<span class="beta">BETA</span></div>'
-    +'<div class="hint" style="margin-top:2px">時間一到跳出系統通知，只顯示你自己的行程</div></div>'
-    +'<button class="sw'+(c.on?' on':'')+'" onclick="ntToggle()"></button></div></div>'
-    +'<div class="card"><div class="row"><div style="font-size:15px">提醒時間</div>'
-    +'<input type="time" value="'+he(c.time)+'" onchange="ntSet(\'time\',this.value)"'
-    +' style="background:var(--card2);border:none;border-radius:999px;padding:9px 14px;font-size:15px;color:var(--tx)"></div></div>'
-    +'<div class="card"><div class="row"><div style="font-size:15px">六日不提醒</div>'
-    +'<button class="sw'+(c.skipWeekend?' on':'')+'" onclick="ntSet(\'skipWeekend\',!'+c.skipWeekend+')"></button></div></div>'
-    +'<div class="card"><div class="row"><div><div style="font-size:15px">沒有行程時仍提醒</div>'
-    +'<div class="hint" style="margin-top:2px">關閉時，當天沒排程就不跳通知</div></div>'
-    +'<button class="sw'+(c.notifyEmpty?' on':'')+'" onclick="ntSet(\'notifyEmpty\',!'+c.notifyEmpty+')"></button></div></div>';
-
-  if(c.on)h+='<div class="note">手機系統會在 App 切到背景後數秒內凍結程式，因此只有在<b>該時刻 App 正開著</b>時才會即時跳通知。其餘情況會在下次開啟時補提醒。</div>';
-
-  h+='<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-sm" onclick="ntTest()">發送測試通知</button>'
-    +'<button class="btn btn-sm" onclick="ntDiag()">檢查設定</button></div><div id="diag"></div>';
-  return h;
-}
 /* ══ 行事曆訂閱提醒 ══════════════════════════════════
    後端依個人產生訂閱網址（只有自己的行程），iPhone 行事曆／Google 日曆訂閱後，
    由它們依這裡設定的時間跳提醒；點事件裡的網址會回到這個 App 的那一天。 */
@@ -5001,10 +4924,14 @@ function icsPage(){
 
   h+='<div class="sec">訂閱</div>'
     +'<a class="btn btn-p btn-full" style="margin-bottom:8px" href="'+he(url.replace(/^https:/,'webcal:'))+'">加入 iPhone 行事曆</a>'
-    +'<button class="btn btn-full" style="margin-bottom:8px" onclick="icsCopy()">複製訂閱網址（Google 日曆用）</button>'
+    // Google 日曆：calendar.google.com/calendar/r?cid=<webcal 網址> 會直接跳出「新增這個日曆」
+    +'<a class="btn btn-full" style="margin-bottom:8px" target="_blank" rel="noopener" href="'
+    +he('https://calendar.google.com/calendar/r?cid='+encodeURIComponent(url.replace(/^https:/,'webcal:')))+'">加入 Google 日曆</a>'
+    +'<button class="btn btn-full" style="margin-bottom:8px" onclick="icsCopy()">複製訂閱網址</button>'
     +'<div class="note"><b>iPhone 必做設定</b>：訂閱後到「設定 → App → 行事曆 → 行事曆帳號 → 已訂閱的行事曆」點這個行事曆，'
     +'把<b>「移除提醒」關閉</b>（預設會把提醒拿掉），並把更新頻率設為每 15 分鐘或每小時。</div>'
-    +'<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7"><b>Google 日曆</b>：電腦版「其他日曆 ＋ → 加入日曆網址」貼上網址。Google 大約每幾小時到一天才更新一次，'
+    +'<div class="card" style="font-size:13px;color:var(--tx2);line-height:1.7"><b>Google 日曆</b>：按「加入 Google 日曆」後，在跳出的頁面按「新增」即可（手機會開瀏覽器版）。'
+    +'若沒跳出，改用電腦版「其他日曆 ＋ → 加入日曆網址」貼上複製的網址。Google 大約每幾小時到一天才更新一次，'
     +'也不會照這裡的時間跳提醒，建議只用來查看。</div>'
     +'<div class="note bad">這個網址等於你的行程鑰匙，請勿分享。不小心外流時按下面重設，舊網址會立即失效，'
     +'之後要重新訂閱一次。</div>'
@@ -5039,122 +4966,27 @@ function icsReset(){
     ICS.tok=r.icsToken;toast('已重設，請重新訂閱','ok');render();
   }).catch(function(){toast('連線失敗','no');});
 }
-function ntSet(k,v){var c=ntCfg();c[k]=v;jSet(NT,c);render();}
-function ntToggle(){
-  var c=ntCfg();
-  if(c.on){c.on=false;jSet(NT,c);render();return;}
-  if(!ntSup()){toast('此瀏覽器不支援通知','no');return;}
-  Notification.requestPermission().then(function(p){
-    if(p==='granted'){c.on=true;c.last='';jSet(NT,c);regSW();toast('已開啟每日提醒','ok');}
-    else toast('未取得通知權限','no');
-    render();
-  }).catch(function(){render();});
+/* ══ 啟動時的共用設定 ══
+   舊的「每日行程提醒 BETA」（App 自己跳通知）已移除，改用「行事曆訂閱提醒」。
+   sw.js 仍然註冊，讓網站可以「加入主畫面」。 */
+function regSW(){
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.register('sw.js').catch(function(){});
 }
-function showNotif(title,body){
-  var o={body:body,tag:'espc-daily',icon:'icon.png',badge:'icon.png',renotify:true};
-  if(SWREG&&SWREG.showNotification){try{SWREG.showNotification(title,o);return true;}catch(e){}}
-  if(navigator.serviceWorker&&navigator.serviceWorker.ready){
-    navigator.serviceWorker.ready.then(function(r){SWREG=r;
-      try{r.showNotification(title,o);}catch(e){try{new Notification(title,o);}catch(e2){}}
-    }).catch(function(){try{new Notification(title,o);}catch(e){}});
-    return true;
-  }
-  try{new Notification(title,o);return true;}catch(e){return false;}
+function showVer(){
+  var e=$('lver');
+  if(e)e.textContent='版本 '+APP_VER;
 }
-function ntText(t,list){
-  var dd=t.split('-'),head=parseInt(dd[1])+'/'+parseInt(dd[2])+'（'+DW[dowOf(t)]+'）';
-  if(!list.length)return {title:head+' 今日無排程',body:'今日沒有安排監測行程。'};
-  var lines=groupBy(list).map(function(g){
-    return '• '+g.project+(g.types.length?'（'+g.types.join('、')+'）':'')
-      +(g.locs[0]?'\n　'+g.locs[0]:'')+(g.samp?'　'+g.samp:'');
+function appInit(){
+  initSwipe();
+  regSW();
+  lsD('espc_notify');                       // 清掉舊提醒功能留下的設定
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden)return;
+    var t=twStr();
+    if(ls('espc_sync')!==t){lsS('espc_sync',t);cPrune(false);todayFor='';allRows=[];
+      loadStaff(null,true);loadToday(true);}
   });
-  return {title:head+' 今日 '+lines.length+' 項行程',body:lines.join('\n')};
-}
-function ntFire(t,done){
-  function go(list,fresh){
-    var eng=ENGNAME.trim();
-    var mine=eng?list.filter(function(r){return String(r.engineer||'').trim()===eng;}):list;
-    var c=ntCfg();
-    if(!mine.length&&!c.notifyEmpty){if(done)done(!!fresh);return;}
-    var m=ntText(t,mine);
-    if(done)done(showNotif(m.title,m.body));
-  }
-  if(TOKEN){
-    gas('getData',TOKEN,{dateFrom:t,dateTo:t}).then(function(r){
-      if(r&&r.ok&&!r.unchanged){jSet(NTC,{date:t,rows:r.rows||[]});go(r.rows||[],true);}
-      else{var c=jGet(NTC,null);if(c&&c.date===t)go(c.rows,true);else if(done)done(false);}
-    }).catch(function(){var c=jGet(NTC,null);if(c&&c.date===t)go(c.rows,false);else if(done)done(false);});
-  }else{var c=jGet(NTC,null);if(c&&c.date===t)go(c.rows,false);else if(done)done(false);}
-}
-function ntTick(){
-  if(ntBusy)return;
-  var c=ntCfg();
-  if(!c.on||!ntSup()||Notification.permission!=='granted')return;
-  var now=twDate(),t=twStr();
-  if(c.last===t)return;
-  var dw=now.getDay();
-  if(c.skipWeekend&&(dw===0||dw===6))return;
-  var hm=(c.time||'08:30').split(':');
-  var target=new Date(now);
-  target.setHours(parseInt(hm[0],10)||0,parseInt(hm[1],10)||0,0,0);
-  if(now<target)return;
-  ntBusy=true;
-  ntFire(t,function(ok){ntBusy=false;if(!ok)return;
-    var cc=ntCfg();cc.last=t;jSet(NT,cc);});
-}
-function ntTest(){
-  if(!ntSup()){toast('此瀏覽器不支援通知','no');return;}
-  if(Notification.permission!=='granted'){
-    Notification.requestPermission().then(function(p){
-      if(p==='granted')ntTest();else toast('未取得通知權限','no');});
-    return;
-  }
-  var t=twStr();
-  var c=jGet(NTC,null);
-  var list=(c&&c.date===t)?c.rows:todayRows.filter(function(r){return r.date===t;});
-  var eng=ENGNAME.trim();
-  if(eng)list=list.filter(function(r){return String(r.engineer||'').trim()===eng;});
-  var m=ntText(t,list);
-  if(showNotif(m.title,m.body))toast('已發送測試通知','ok');
-  else toast('無法發送通知','no');
-}
-function ntDiag(){
-  var el=$('diag');if(!el)return;
-  if(el.innerHTML){el.innerHTML='';return;}
-  var c=ntCfg();
-  var standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  var perm=ntSup()?Notification.permission:'不支援';
-  var t=twStr();
-  var cc=jGet(NTC,null);
-  var n=(cc&&cc.date===t)?cc.rows.length:0;
-  function r(l,v,ok){
-    return '<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:13px">'
-      +'<span style="color:var(--tx3)">'+l+'</span><b style="color:'
-      +(ok===true?'var(--accT)':ok===false?'var(--err)':'var(--tx)')+'">'+he(v)+'</b></div>';
-  }
-  var why=!c.on?'提醒開關沒開。'
-    :perm!=='granted'?'沒有通知權限，請重新開啟開關授權。'
-    :(isIOS&&!standalone)?'iPhone 必須從主畫面圖示開啟才會跳通知。'
-    :(n===0&&!c.notifyEmpty)?'今日沒有你的行程，而「沒有行程時仍提醒」是關閉的，所以不會跳。'
-    :(c.last===t)?'今日已經提醒過了（同一天只提醒一次）。'
-    :'設定正常。若時間已過卻沒跳，多半是當時 App 已完全關閉。';
-  el.innerHTML='<div class="card" style="margin-top:10px">'
-    +r('提醒開關',c.on?'已開啟':'未開啟',!!c.on)
-    +r('通知權限',perm==='granted'?'已允許':perm==='denied'?'已封鎖':'尚未詢問',perm==='granted')
-    +(isIOS?r('加入主畫面',standalone?'是':'否（必須）',standalone):'')
-    +r('Service Worker',SWREG?'已就緒':'載入中／不支援',!!SWREG)
-    +r('提醒時間',c.time+(c.skipWeekend?'（六日不提醒）':''))
-    +r('上次提醒',c.last||'尚未提醒過')
-    +r('今日行程',n+' 筆',n>0||c.notifyEmpty)
-    +r('目前時間',stamp(new Date()))
-    +'<p class="hint" style="margin-top:10px">'+he(why)+'</p>'
-    +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="ntReset()">清除「今日已提醒」重測</button></div>';
-}
-function ntReset(){
-  var c=ntCfg();c.last='';jSet(NT,c);
-  toast('已清除，若已過提醒時間，30 秒內會跳通知','ok',4000);
-  ntTick();ntDiag();ntDiag();
 }
 </script>
 </body>
