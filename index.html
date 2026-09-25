@@ -285,12 +285,7 @@ html[data-theme="dark"] .glass::after{
 .calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   gap:10px;color:var(--tx3);font-size:13px;pointer-events:none;}
 .calwrap.busy .cgrid{opacity:.3;}
-/* 先顯示手機裡上次的資料、正在向後端確認：畫面淡一點並標示，避免被舊資料誤導 */
-.calwrap.chk .cgrid,.chkwrap{opacity:.5;transition:opacity .2s;}
-.chkbar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 8px;
-  padding:6px 12px;border-radius:999px;font-size:12.5px;color:var(--tx2);background:var(--card2);}
-.chkbar.fail{color:var(--warn);background:var(--warnBg);}
-.chkbar .spin{width:13px;height:13px;border-width:2px;}
+
 
 /* ── 年月選擇 ── */
 .pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
@@ -418,6 +413,16 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .tyg{display:flex;align-items:center;justify-content:space-between;width:100%;
   margin:13px 0 7px;padding:0 6px;font-size:11.5px;color:var(--tx3);background:none;}
 .tyg:active{opacity:.6;}
+/* 類別分組：標題上方加明顯的分隔線 */
+:root{--sep:rgba(0,0,0,.16);}
+html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
+.tyg{border-top:1px solid var(--sep);padding-top:11px;margin-top:14px;}
+.tyg b{font-size:12.5px;color:var(--tx2);font-weight:600;}
+.tysrch{margin:2px 0 10px;}
+.tymore{display:flex;justify-content:space-between;align-items:center;width:100%;
+  margin-top:12px;padding:11px 6px 2px;border-top:1px solid var(--sep);
+  font-size:13.5px;color:var(--accT);background:none;}
+.tyempty{font-size:13px;color:var(--tx3);padding:8px 6px;}
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
 .pcell{background:var(--glStrong);border:1px solid var(--line);border-radius:11px;
   padding:10px 4px;font-size:12.5px;text-align:center;line-height:1.35;
@@ -793,7 +798,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zr';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zt';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -1963,13 +1968,7 @@ function pageHTML(){
 var futOpen=false;            // 未來七天預設收起來，要看再點開
 function futToggle(){futOpen=!futOpen;render();}
 
-/** 今日頁：還在確認最新資料時，上方加提示、內容淡一點 */
 function todayPage(){
-  var b=todayBody();
-  if(!TODAY_CHK)return b;
-  return chkBar(TODAY_CHK)+(TODAY_CHK===1?'<div class="chkwrap">'+b+'</div>':b);
-}
-function todayBody(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
   var h='<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
@@ -2085,8 +2084,7 @@ function calPage(){
   // MONTH_DONE 記錄哪些月份真的載完了，避免「還沒載就說沒排程」
   var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
   var busy=calLoading||!MONTH_DONE[ck];
-  var chk=!busy&&MONTH_CHK[ck];
-  h=chkBar(chk)+'<div class="calwrap'+(busy?' busy':'')+(chk===1?' chk':'')+'">'+h
+  h='<div class="calwrap'+(busy?' busy':'')+'">'+h
     +(busy?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
     +'</div>';
   if(!busy&&!Object.keys(pmap).length)
@@ -2511,9 +2509,8 @@ function loadToday(force,retry){
   function mine(){return seq===TODAY_SEQ&&sk===scopeKey();}
   todayScope=sk;
   var c=force?null:cGet(ck);
-  if(c&&c.date===t&&c.rows){TODAY_CHK=1;paintToday(t,c.rows);}
+  if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
   else{
-    TODAY_CHK=0;
     if(onTab)$('page').innerHTML=loader('載入今日行程…');
     c=null;
   }
@@ -2521,12 +2518,10 @@ function loadToday(force,retry){
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
-      if(mine()&&c){TODAY_CHK='fail';if(tab==='today'&&!sub)render();}
       if(mine()&&!c&&tab==='today'&&!sub)
         $('page').innerHTML='<div class="empty">'+he((r&&r.error)||'載入失敗')+'</div>';
       return;
     }
-    if(mine())TODAY_CHK=0;                // 後端確認過了
     cVer(r.version);
     var list;
     if(r.unchanged){
@@ -2542,7 +2537,6 @@ function loadToday(force,retry){
     paintToday(t,list);
     if(sk)prefetch('today',{dateFrom:t,dateTo:todayRange(t),date:t});   // 背景補齊全部
   }).catch(function(){
-    if(mine()&&c){TODAY_CHK='fail';if(tab==='today'&&!sub)render();}
     if(mine()&&!c&&tab==='today'&&!sub)
       $('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
   });
@@ -2559,14 +2553,6 @@ function paintToday(t,all){
    有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
    再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
 var allScope='',todayScope='',calLoading=false,MONTH_DONE={};
-/* 畫面上是「手機裡上次的資料」、還在等後端確認：1＝確認中，'fail'＝連不上 */
-var MONTH_CHK={},TODAY_CHK=0;
-function chkBar(v){
-  if(!v)return '';
-  return v==='fail'
-    ?'<div class="chkbar fail">連不到伺服器，以下是上次下載的資料，可能不是最新</div>'
-    :'<div class="chkbar"><div class="spin"></div>確認最新排程中…</div>';
-}
 function scopeKey(){return (F.en?'e:'+F.en:'')+(F.st?'s:'+F.st:'');}
 function scopeOpts(o){
   if(F.en)o.engineer=F.en;
@@ -2619,9 +2605,8 @@ function loadMonth(force,retry){
   /** 這次的結果還算不算「現在要看的」 */
   function mine(){return seq===MONTH_SEQ&&y===curY&&m===curM&&sk===scopeKey();}
   allScope=sk;
-  var dk=ym+(sk?'_'+sk:'');
   var c=force?null:cGet(key);
-  if(c&&c.rows){MONTH_CHK[dk]=1;calLoading=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
+  if(c&&c.rows){calLoading=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
   else{
     calLoading=true;
     if(onTab)render();          // 先把日期格子畫出來，行程位置放轉圈
@@ -2631,14 +2616,12 @@ function loadMonth(force,retry){
   if(c&&c.version)o.version=c.version;
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
-      if(c)MONTH_CHK[dk]='fail';
       if(!mine())return;
       calLoading=false;
       if(!c){toast((r&&r.error)||'載入失敗','no');paintMonth([],y,m,sk);}
       else paintMonth(c.rows,y,m,sk);
       return;
     }
-    delete MONTH_CHK[dk];                  // 後端確認過了（沒變或換成新的）
     cVer(r.version);
     var list;
     if(r.unchanged){
@@ -2657,7 +2640,6 @@ function loadMonth(force,retry){
     if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
     prefetchNeighbors();                                    // 背景備好前後一個月
   }).catch(function(){
-    if(c)MONTH_CHK[dk]='fail';
     if(!mine())return;
     calLoading=false;
     if(!c&&tab==='cal'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
@@ -2805,14 +2787,14 @@ var FT={rg:'',en:'',ty:[],q:'',st:''};   // 面板上的暫存條件，按「篩
 
 /* 篩選面板的類別選項：以前只從「目前畫面上載入的行程」收集，
    開了「只看我的」或只載了這個月，就會漏掉其他類別。改成向後端要排程裡出現過的全部類別。 */
-var ALL_TYPES=[];
-(function(){var c=jGet(CK+'types');if(c&&c.types)ALL_TYPES=c.types;})();
+var ALL_TYPES=[],TYPE_CNT={};
+(function(){var c=jGet(CK+'types');if(c&&c.types){ALL_TYPES=c.types;TYPE_CNT=c.counts||{};}})();
 function loadTypes(){
   var c=jGet(CK+'types');
   gas('getTypes',TOKEN,(c&&c.version)||'').then(function(r){
     if(!r||!r.ok||r.unchanged)return;
-    ALL_TYPES=r.types||[];
-    jSet(CK+'types',{version:r.version||'',types:ALL_TYPES});
+    ALL_TYPES=r.types||[];TYPE_CNT=r.counts||{};
+    jSet(CK+'types',{version:r.version||'',types:ALL_TYPES,counts:TYPE_CNT});
     var sh=$('ov');
     if(sh&&sh.classList.contains('open')&&$('f-q'))paintFilter();   // 面板開著就補上新選項
   }).catch(function(){});
@@ -2868,15 +2850,13 @@ function paintFilter(){
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
     +'<div class="opts" style="margin-bottom:4px">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
-    +tyGroupsHTML(tys,s2)
-    +(selfName()?'<div class="link" style="cursor:default;margin-top:14px"><div>'
-      +'<div>下次開啟先篩選我的行程</div>'
-      +'<div class="hint" style="margin-top:2px">關閉後每次開啟都顯示全部</div></div>'
-      +'<span style="flex:1"></span>'
-      +'<button class="sw'+(selfAuto()?' on':'')+'" onclick="toggleSelfAuto(1)"></button></div>':'')
+    +'<input class="fld tysrch" id="f-tq" placeholder="搜尋類別，例如：水、噪音" value="'+he(TYQ)+'">'
+    +'<div id="tyarea">'+tyAreaHTML(tys,s2)+'</div>'   // 「開啟時先篩選自己」的開關只留在「更多」頁
     +'<div style="height:8px"></div>';
   $('sheetin').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
+  var tq=$('f-tq');
+  if(tq)tq.oninput=function(){TYQ=this.value;$('tyarea').innerHTML=tyAreaHTML(TY_LAST.tys,TY_LAST.raw);};
 
   var q=$('f-q');
   if(q){
@@ -2902,16 +2882,19 @@ function liveFilter(ms){
 }
 /* ══ 測項分類 ══════════════════════════════════
    用關鍵字判斷，之後 Excel 出現新測項也會自動歸類 */
-var TY_GROUPS=['空氣','水質','噪音振動','交通','土壤廢棄物','其他'];
+var TY_GROUPS=['空品','水質','噪音振動','交通','土壤廢棄物','生態','其他'];
 /* 監測項目歸併：Excel 裡同一種監測有好幾種寫法（地下水／地下水質／地下水質(水位)…），
    篩選時合成一個項目。每組由上往下比對，先中先用（具體的放前面）；
    都對不到就保留原寫法自成一項，不會漏掉。新寫法要歸到哪，加在這裡就好。 */
 var TY_ITEMS={
-  '空氣':[['空品車',/空品/],['TSP 含鹽類',/TSP.*鹽/i],['落塵量',/落塵/],
+  '空品':[['空品車',/空品/],['TSP 含鹽類',/TSP.*鹽/i],['落塵量',/落塵/],
           ['粒狀物',/TSP|PM\s*10|PM\s*2\.?5|懸浮微粒|粉塵/i],['惡臭',/臭/],['戴奧辛',/戴奧辛/],
-          ['揮發性有機物',/VOC|揮發/i],['氣象',/風速|氣象/],['排放管道',/排放|燃燒|煙道/]],
-  '水質':[['地下水',/地下水/],['飲用水',/飲用水/],['放流水',/放流/],['海域水質',/海域/],
-          ['納管水質',/納管/],['地面水',/地面水|河川|逕流/],['水位',/水位/]],
+          ['揮發性有機物',/VOC|揮發/i],['氣象',/風速|氣象/],['排放管道',/排放|燃燒|煙道/],
+          ['空氣品質',/空氣/]],
+  '水質':[['地下水',/地下水/],['飲用水',/飲用水/],['自來水',/自來水/],['放流水',/放流/],
+          ['海域水質',/海域|海水/],['納管水質',/納管/],['地面水',/地面水|河川|逕流/],
+          ['山泉水',/山泉/],['冷卻水塔',/冷卻水/],['雨水',/雨水/],['除礦水',/除礦/],
+          ['廢水',/廢水/],['水位',/水位/]],
   '噪音振動':[['營建低頻',/營建.*低頻|低頻.*營建/],['營建噪音',/營建/],['低頻噪音',/低頻/],
           ['噪音振動',/噪音|振動/]],
   '交通':[['交通流量',/流量|車流/],['行駛速率',/速率|延滯|旅行時間/],['交通錄影',/錄影/],['路況',/路況/]],
@@ -2940,9 +2923,10 @@ function typeGroup(t){
   t=String(t||'');
   if(/交通|行駛速率|車流|路況/.test(t))return '交通';
   if(/噪音|振動|低頻/.test(t))return '噪音振動';
-  if(/水質|地下水|地面水|海域|放流|納管|飲用水|水位|逕流/.test(t))return '水質';
   if(/土壤|底泥|廢棄物|毒化物|事業廢/.test(t))return '土壤廢棄物';
-  if(/空品|PM|TSP|落塵|惡臭|戴奧辛|粉塵|VOC|揮發|臭氧|風速|氣象|排放|燃燒/i.test(t))return '空氣';
+  if(/水|pH/i.test(t))return '水質';      // 自來水、冷卻水塔、雨水 pH、除礦水、廢水…名稱有「水」都算水質
+  if(/空品|空氣|特殊項|PM|TSP|落塵|惡臭|戴奧辛|粉塵|VOC|揮發|臭氧|風速|氣象|排放|燃燒/i.test(t))return '空品';   // 特殊項歸空品
+  if(/植物|動物|生態|鳥|魚|昆蟲|底棲/.test(t))return '生態';
   return '其他';
 }
 
@@ -3109,6 +3093,45 @@ function tyPickGroup(g){
 }
 
 /** 依分類把測項排成一段一段 */
+/* 類別區（樣式 C）：搜尋框＋最常用 8 項，其他收在「全部類別」 */
+var TYQ='',TY_ALL=false,TY_LAST={tys:[],raw:{}};
+var TY_COMMON_N=8;
+/** 每個項目的排程筆數（後端統計；沒有就用手上載入的行程估） */
+function tyCounts(raw){
+  var c={};
+  Object.keys(TYPE_CNT).forEach(function(t){var it=tyItem(t);c[it]=(c[it]||0)+TYPE_CNT[t];});
+  if(!Object.keys(c).length)
+    FSRC.forEach(function(r){if(r.type){var it=tyItem(r.type);c[it]=(c[it]||0)+1;}});
+  return c;
+}
+function tyChip(t,raw){
+  var on=FT.ty.indexOf(t)>=0;
+  var rw=Object.keys((raw||{})[t]||{});
+  var tip=rw.length>1?' title="'+he(rw.join('、'))+'"':'';   // 桌機滑過可看包含哪些寫法
+  return '<button class="ob'+(on?' on':'')+'"'+tip
+    +' onclick="tyPick(\''+he(esc(t))+'\')">'+(on?ic('check',15):'')+he(t)+'</button>';
+}
+function tyAreaHTML(tys,raw){
+  TY_LAST={tys:tys,raw:raw};
+  var q=String(TYQ||'').trim().toLowerCase();
+  if(q){                                   // 搜尋：比對項目名稱、大類、原始寫法
+    var hit=tys.filter(function(t){
+      var s=(t+' '+itemGroup(t)+' '+Object.keys(raw[t]||{}).join(' ')).toLowerCase();
+      return s.indexOf(q)>=0;
+    });
+    return hit.length?'<div class="opts">'+hit.map(function(t){return tyChip(t,raw);}).join('')+'</div>'
+      :'<div class="tyempty">找不到「'+he(TYQ)+'」</div>';
+  }
+  var cnt=tyCounts(raw);
+  var common=tys.slice().sort(function(a,b){return (cnt[b]||0)-(cnt[a]||0);}).slice(0,TY_COMMON_N);
+  FT.ty.forEach(function(t){if(common.indexOf(t)<0&&tys.indexOf(t)>=0)common.push(t);});   // 已選的一定看得到
+  var h='<div class="lb tyg" style="cursor:default"><b>最常用</b></div>'
+    +'<div class="opts">'+common.map(function(t){return tyChip(t,raw);}).join('')+'</div>'
+    +'<button class="tymore" onclick="TY_ALL=!TY_ALL;$(\'tyarea\').innerHTML=tyAreaHTML(TY_LAST.tys,TY_LAST.raw)">'
+    +'<span>'+(TY_ALL?'收起全部類別':'全部類別（'+tys.length+' 項）')+'</span><span>'+(TY_ALL?'▲':'▼')+'</span></button>';
+  if(TY_ALL)h+=tyGroupsHTML(tys,raw);
+  return h;
+}
 function tyGroupsHTML(tys,raw){
   raw=raw||{};
   var m={};
@@ -3118,18 +3141,13 @@ function tyGroupsHTML(tys,raw){
     var list=m[g];
     if(!list||!list.length)return;
     var n=list.filter(function(t){return FT.ty.indexOf(t)>=0;}).length;
-    h+='<button class="lb tyg" onclick="tyPickGroup(\''+esc(g)+'\')">'+g
+    h+='<button class="lb tyg" onclick="tyPickGroup(\''+esc(g)+'\')"><b>'+g+'</b>'
       +(n?'　<span style="color:var(--accT)">已選 '+n+' / '+list.length+'</span>'
          :'　<span style="color:var(--tx3)">'+list.length+' 項</span>')
       +'<span style="color:var(--tx3);font-size:11px">'+(n===list.length?'取消整組':'整組選取')+'</span>'
       +'</button>'
       +'<div class="opts">'
-      +list.map(function(t){
-        var on=FT.ty.indexOf(t)>=0;
-        var rw=Object.keys(raw[t]||{});
-        var tip=rw.length>1?' title="'+he(rw.join('、'))+'"':'';   // 桌機滑過可看包含哪些寫法
-        return '<button class="ob'+(on?' on':'')+'"'+tip
-          +' onclick="tyPick(\''+he(esc(t))+'\')">'+(on?ic('check',15):'')+he(t)+'</button>';}).join('')
+      +list.map(function(t){return tyChip(t,raw);}).join('')
       +'</div>';
   });
   return h;
