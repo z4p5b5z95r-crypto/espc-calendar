@@ -340,7 +340,13 @@ html[data-theme="dark"] .ov{background:rgba(0,0,0,.4);}
   animation:up .22s ease;}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
 /* 鍵盤彈出時多留出鍵盤高度的空間，讓輸入框捲得到鍵盤上方（--kb 由 JS 設定） */
-body.kb #login{min-height:calc(100vh + var(--kb,0px));padding-bottom:calc(26px + var(--kb,0px));}
+/* 登入頁：鍵盤一出來就把整塊內容貼到上方，輸入框本來就在鍵盤上方，iOS 不用捲、畫面不會跳 */
+body.kbl #login{align-items:flex-start;padding-top:calc(14px + env(safe-area-inset-top));}
+body.kbl .lhead{margin-bottom:14px;}
+body.kbl .lhead .glass{width:64px;height:64px;margin-bottom:10px;border-radius:16px;}
+body.kbl .lhead .glass::after{border-radius:16px;}
+body.kbl .lhead .logo svg{width:36px;height:36px;}
+body.kbl .lhead h1{font-size:21px;}
 body.kb .sheet{padding-bottom:calc(26px + var(--kb,0px));}
 body.kb #app{padding-bottom:var(--kb,0px);}
 .strack{position:relative;}
@@ -815,7 +821,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-25zg';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-25zh';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
@@ -986,6 +992,10 @@ var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','
   document.addEventListener('focusin',function(e){
     if(!touch||!isField(e.target))return;
     clearTimeout(out);
+    if(e.target.closest&&e.target.closest('#login')){       // 登入頁：改排版，不捲動
+      document.body.classList.add('kbl');
+      return;
+    }
     if(!document.body.classList.contains('kb'))
       setPad(lastKb||Math.round(baseH()*0.42));          // 先留空間，iOS 第一次就捲得動
     later(450);                                          // 換下一格時鍵盤不會 resize，也檢查一次
@@ -993,7 +1003,9 @@ var MO=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','
   document.addEventListener('focusout',function(){
     clearTimeout(out);
     out=setTimeout(function(){
-      if(!isField(document.activeElement))setPad(0);       // 換到下一格不收，真的離開才收
+      if(!isField(document.activeElement)){                 // 換到下一格不收，真的離開才收
+        setPad(0);document.body.classList.remove('kbl');
+      }
     },250);
   });
 })();
