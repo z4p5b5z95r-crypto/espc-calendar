@@ -439,6 +439,44 @@ html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
 .ibox{margin:2px 0 12px;}
 .ibox.hist .ci{padding:7px 12px;opacity:.85;}
 .ibox.hist .ct{font-size:13.5px;}
+.tpl{margin-top:6px;}
+.tpr{display:flex;align-items:center;gap:4px;padding:8px 2px;border-bottom:1px solid var(--line);}
+.tpt{flex:1;min-width:0;font-size:14.5px;line-height:1.45;cursor:pointer;word-break:break-word;}
+.tpb,.tpb0{width:34px;height:34px;flex:0 0 34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--tx2);background:var(--gl);border:1px solid var(--glLine);}
+.tpb0{visibility:hidden;}
+.tpb.del{color:#d33b2f;}
+.tpr.ed{display:block;}
+.tpr.ed .fld{border-radius:12px;resize:vertical;line-height:1.5;margin:0;}
+.tpa{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
+.tpa .btn{padding:8px 16px;}
+.tpn{display:flex;gap:8px;align-items:flex-end;margin-top:12px;}
+.tpn .fld{flex:1;margin:0;border-radius:12px;resize:vertical;line-height:1.5;}
+.tpn .btn{display:inline-flex;align-items:center;gap:4px;padding:10px 14px;white-space:nowrap;}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media(min-width:760px){.kpis{grid-template-columns:repeat(4,1fr);}}
+.kpi{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glLine);border-radius:18px;padding:12px 14px;}
+.kl{font-size:12.5px;color:var(--tx3);}
+.kv{font-size:28px;font-weight:700;margin-top:2px;letter-spacing:-.5px;}
+.kv small{font-size:14px;font-weight:500;color:var(--tx3);margin-left:2px;}
+.ks{font-size:12px;color:var(--tx2);margin-top:1px;}
+.scard{padding:12px 14px;}
+.shd{font-size:13px;color:var(--tx2);margin-bottom:8px;}.shd b{color:var(--tx);}
+.sbar{width:100%;height:auto;display:block;overflow:visible;}
+.sb{fill:var(--acc);opacity:.85;}.sb.on{opacity:1;fill:var(--accT);}
+.sgl{stroke:var(--line);stroke-width:1;stroke-dasharray:2 3;}
+.sax{stroke:var(--line);stroke-width:1;}
+.stx{font-size:10px;fill:var(--tx3);text-anchor:middle;}
+.pbr{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:13px;}
+.pbl{width:32px;color:var(--tx2);}
+.pbt{flex:1;height:8px;border-radius:9px;background:var(--gl);border:1px solid var(--glLine);overflow:hidden;}
+.pbt i{display:block;height:100%;background:var(--acc);border-radius:9px;}
+.pbv{width:38px;text-align:right;font-weight:600;}
+.spr{display:flex;gap:10px;padding:10px 14px;border-top:1px solid var(--line);align-items:flex-start;}
+.spr:first-child{border-top:none;}
+.spn{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.spn b{font-size:15px;}
+.spm{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:13.5px;text-align:right;}
+.spm .nv{color:var(--tx3);}
 .rcl{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--tx3);}
 .rcl b{color:var(--tx);font-weight:600;}
 .rcl .ok b{color:var(--ok,#1f8a4c);}
@@ -857,6 +895,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
+    <button class="nb" id="nb-stat" data-t="stat" style="display:none"><span data-ic="chart"></span><em>統計</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
@@ -882,7 +921,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-27h';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-27i';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -935,6 +974,11 @@ function gas(fn){
 
 /* ── 內嵌 SVG 圖示（不依賴外部字型，離線也正常）── */
 var ICON={
+ chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+ trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+ up:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
  cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
  book:'<path d="M20 3v18H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M5 8H3M5 12H3M5 16H3"/><circle cx="13" cy="10" r="2"/><path d="M10 16a3 3 0 0 1 6 0"/>',
@@ -1712,7 +1756,8 @@ function boot(u,r,eng){
   $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
   $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
   $('nb-cast').style.display=(r==='admin'||r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：管理員、主管、排程
-  $('nb-dl').style.display=(r==='admin')?'':'none'; // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
+  $('nb-dl').style.display=(r==='admin')?'':'none';
+  $('nb-stat').style.display=(r==='admin')?'':'none';   // 使用統計只有管理員 // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -1896,7 +1941,8 @@ function restoreTab(){
   try{v=JSON.parse(ls(TAB_KEY)||'null');}catch(e){v=null;}
   if(!v||!v.t)return null;
   if(!v.at||Date.now()-v.at>TAB_KEEP_MS)return null;   // 超過 3 小時（或舊資料沒記時間）→ 開今日
-  var okTab=['today','cal','book','upload','dl','admin','more'];
+  var okTab=['today','cal','book','upload','dl','admin','more','stat'];
+  if(v.t==='stat'&&ROLE!=='admin')return null;
   if(v.t==='dl'&&(!isDesk()||ROLE!=='admin'))return null;
   if(okTab.indexOf(v.t)<0)return null;
   if(v.t==='upload'&&!canWrite(ROLE))return null;
@@ -1983,6 +2029,7 @@ function go(t,s){
   else if(t==='cal'){if(needMonth)loadMonth();loadRegionUpdates();}
   else if(t==='today'&&!todayFor)loadToday();
   else if(t==='book')loadStaff(null);
+  else if(t==='stat')statLoad(!STAT);
   else if(t==='cast'){loadStaff(function(){if(tab==='cast'&&!sub)render();});inboxLoad(true);}
 }
 
@@ -2020,6 +2067,7 @@ function titleText(){
   if(tab==='cal')return curY+' 年 '+MO[curM];
   if(tab==='book')return '通訊錄';
   if(tab==='cast')return '廣播';
+  if(tab==='stat')return '使用統計';
   return '更多';
 }
 
@@ -2051,6 +2099,8 @@ function rightButtons(){
     return '<button class="ib" onclick="dlLoad(true)" title="重新讀取">↻</button>';
   if(tab==='cast')
     return '<button class="ib" onclick="inboxLoad(true)" title="重新整理">↻</button>';
+  if(tab==='stat')
+    return '<button class="ib" onclick="statLoad(true)" title="重新整理">↻</button>';
   return '';
 }
 function filterBtn(){
@@ -2094,6 +2144,7 @@ function pageHTML(){
   if(tab==='cal')return calPage();
   if(tab==='book')return bookPage();
   if(tab==='cast')return gcastPage();
+  if(tab==='stat')return statPage();
   return morePage();
 }
 
@@ -3636,11 +3687,9 @@ function castPaint(){
       return '<button class="cchip'+(CAST.sel[n]?' on':'')+'" onclick="castSel(\''+esc(n)+'\')">'+he(n)+'</button>';
     }).join('')+'</div>';
   h+='<p class="lb" style="margin-top:12px;display:flex;align-items:center">常用語<span style="flex:1"></span>'
-    +'<a href="#" style="font-weight:400;color:var(--accT);font-size:13px" onclick="CAST.edit=!CAST.edit;castPaint();return false">'
-    +(CAST.edit?'完成':'編輯')+'</a></p><div class="cchips">'
+    +'<a href="#" style="font-weight:400;color:var(--accT);font-size:13px" onclick="tplOpen(\'cast\');return false">編輯</a></p><div class="cchips">'
     +(tpl.length?tpl.map(function(t,i){
-      return '<button class="cchip" onclick="'+(CAST.edit?'castTplDel('+i+')':'castTplUse('+i+')')+'">'+he(t)
-        +(CAST.edit?'<span class="x">✕</span>':'')+'</button>';
+      return '<button class="cchip" onclick="castTplUse('+i+')">'+he(t)+'</button>';
     }).join(''):'<span class="hint">還沒有常用語</span>')+'</div>';
   h+='<textarea class="fld" id="cast-t" rows="4" maxlength="300" placeholder="輸入要提醒的內容…" style="margin-top:10px;resize:vertical;border-radius:16px;line-height:1.5"'
     +' oninput="CAST.text=this.value;$(\'cast-n\').textContent=this.value.length">'+he(CAST.text)+'</textarea>'
@@ -3663,7 +3712,7 @@ function castTplAdd(){
   if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
   CAST_TPL=CAST_TPL||[];
   if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
-  if(CAST_TPL.length>=12){toast('常用語最多 12 則，請先刪掉幾則','no',3000);return;}
+  if(CAST_TPL.length>=TPL_MAX){toast('常用語最多 '+TPL_MAX+' 則，請先刪掉幾則','no',3000);return;}
   CAST_TPL.push(t.slice(0,100));castTplSave();castPaint();toast('已存成常用語','ok');
 }
 function castSend(){
@@ -3915,7 +3964,7 @@ function gcastPage(){
         +'<i onclick="gcAll(\''+esc(g.key)+'\',false)">✕</i></span>';}).join('')+'</div>'
       :'<span class="hint">還沒選人：點組別前的圓圈選整組，點組名挑個人</span>')+'</div>';
   // 內容
-  h+='<div class="sec">內容</div>';
+  h+='<div class="sec" style="display:flex">內容<span style="flex:1"></span><a href="#" style="color:var(--accT)" onclick="tplOpen(\'gc\');return false">編輯常用語</a></div>';
   if(tpl.length)h+='<div class="cchips">'+tpl.map(function(t,i){return '<button class="cchip" onclick="gcTpl('+i+')">'+he(t)+'</button>';}).join('')+'</div>';
   h+='<textarea class="fld" id="gc-t" rows="4" maxlength="300" placeholder="輸入要廣播的內容…" style="margin-top:8px;resize:vertical;border-radius:16px;line-height:1.5"'
     +' oninput="GC.text=this.value;$(\'gc-n\').textContent=this.value.length">'+he(GC.text)+'</textarea>'
@@ -3957,8 +4006,149 @@ function gcTplAdd(){
   if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
   CAST_TPL=CAST_TPL||[];
   if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
-  if(CAST_TPL.length>=12){toast('常用語最多 12 則','no',3000);return;}
+  if(CAST_TPL.length>=TPL_MAX){toast('常用語最多 '+TPL_MAX+' 則','no',3000);return;}
   CAST_TPL.push(t.slice(0,100));castTplSave();render();toast('已存成常用語','ok');
+}
+/* ══ 常用語管理（個案廣播、群組廣播共用；每人各自一份） ══ */
+var TPL_MAX=20, TPL={from:'',edit:-1};
+function tplOpen(from){TPL.from=from;TPL.edit=-1;tplPaint();}
+function tplPaint(){
+  var tpl=CAST_TPL||[];
+  var h='<div class="shh"><div><h3>常用語</h3><p class="hint" style="margin-top:3px">'+tpl.length+'/'+TPL_MAX+'　只有你自己看得到</p></div>'
+    +'<button class="ib" onclick="tplDone()">✕</button></div>';
+  h+='<div class="tpl">'+(tpl.length?tpl.map(function(t,i){
+    if(TPL.edit===i)return '<div class="tpr ed"><textarea class="fld" id="tpl-e" rows="3" maxlength="100">'+he(t)+'</textarea>'
+      +'<div class="tpa"><button class="btn" onclick="TPL.edit=-1;tplPaint()">取消</button><button class="btn btn-p" onclick="tplSaveEdit('+i+')">儲存</button></div></div>';
+    return '<div class="tpr"><span class="tpt" onclick="TPL.edit='+i+';tplPaint()">'+he(t)+'</span>'
+      +(i?'<button class="tpb" title="往上移" onclick="tplMove('+i+')">'+ic('up',16)+'</button>':'<span class="tpb0"></span>')
+      +'<button class="tpb" title="修改" onclick="TPL.edit='+i+';tplPaint()">'+ic('edit',16)+'</button>'
+      +'<button class="tpb del" title="刪除" onclick="tplDel('+i+')">'+ic('trash',16)+'</button></div>';
+  }).join(''):'<div class="hint" style="padding:14px 4px">還沒有常用語，在下面新增一則</div>')+'</div>';
+  if(tpl.length<TPL_MAX)h+='<div class="tpn"><textarea class="fld" id="tpl-n" rows="2" maxlength="100" placeholder="新增常用語…"></textarea>'
+    +'<button class="btn btn-p" onclick="tplAdd()">'+ic('plus',16)+'新增</button></div>';
+  h+='<button class="btn btn-full" style="margin-top:14px" onclick="tplDone()">完成</button>';
+  openSheet(h);
+  if(TPL.edit>=0)setTimeout(function(){var e=$('tpl-e');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},50);
+}
+function tplDone(){TPL.edit=-1;if(TPL.from==='cast')castPaint();else{closeSheet();render();}}
+function tplAdd(){
+  var e=$('tpl-n'),t=String(e&&e.value||'').trim();
+  if(!t){toast('請輸入內容','',1800);return;}
+  CAST_TPL=CAST_TPL||[];
+  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
+  CAST_TPL.push(t.slice(0,100));castTplSave();tplPaint();
+}
+function tplSaveEdit(i){
+  var t=String(($('tpl-e')||{}).value||'').trim();
+  if(!t){tplDel(i);return;}
+  if(CAST_TPL.indexOf(t)>=0&&CAST_TPL.indexOf(t)!==i){toast('已經有這則常用語','',2000);return;}
+  CAST_TPL[i]=t.slice(0,100);TPL.edit=-1;castTplSave();tplPaint();
+}
+function tplDel(i){CAST_TPL.splice(i,1);TPL.edit=-1;castTplSave();tplPaint();}
+function tplMove(i){var a=CAST_TPL;var x=a[i];a[i]=a[i-1];a[i-1]=x;castTplSave();tplPaint();}
+
+/* ══ 使用統計（只有管理員） ══ */
+var STAT=null, STAT_BUSY=false, STAT_SORT='last', STAT_Q='', STAT_PICK=-1;
+function statLoad(force){
+  if(STAT_BUSY||(!force&&STAT))return;
+  STAT_BUSY=true;if(tab==='stat')render();
+  gas('getUsage',TOKEN).then(function(r){
+    STAT_BUSY=false;
+    if(!r||!r.ok){toast((r&&r.error)||'讀取失敗','no');if(tab==='stat')render();return;}
+    STAT=r;if(tab==='stat')render();
+  }).catch(function(){STAT_BUSY=false;toast('連線失敗','no');if(tab==='stat')render();});
+}
+function statAgo(t){
+  if(!t)return '從未使用';
+  var ms=Date.now()-Date.parse(t.replace(' ','T')+'+08:00'),d=Math.floor(ms/86400000),today=twStr();
+  if(t.slice(0,10)===today)return '今天 '+t.slice(11,16);
+  if(d<1)return '昨天 '+t.slice(11,16);
+  if(d<30)return d+' 天前';
+  return t.slice(0,10).replace(/-/g,'/');
+}
+function statBars(vals,labels,opt){
+  // 單一數列長條圖：圓頭 4px、柱間 2px 空隙、淡格線；點柱子在標題顯示數值
+  var W=opt.w||320,H=opt.h||120,n=vals.length,max=Math.max(1,Math.max.apply(null,vals));
+  var step=W/n,bw=Math.max(2,step-2),top=Math.ceil(max/ (max>4?4:1))*(max>4?4:1);
+  var svg='<svg class="sbar" viewBox="0 0 '+W+' '+(H+18)+'" preserveAspectRatio="none">';
+  [0.5,1].forEach(function(f){var y=H-H*f;svg+='<line x1="0" x2="'+W+'" y1="'+y+'" y2="'+y+'" class="sgl"/>';});
+  vals.forEach(function(v,i){
+    var h=v?Math.max(3,H*v/top):0,x=i*step+1,pick=(opt.pick===i);
+    if(h)svg+='<path class="sb'+(pick?' on':'')+'" d="M'+x+' '+H+'V'+(H-h+Math.min(4,h/2))+'q0 -'+Math.min(4,h/2)+' '+Math.min(4,bw/2)+' -'+Math.min(4,h/2)+'H'+(x+bw-Math.min(4,bw/2))+'q'+Math.min(4,bw/2)+' 0 '+Math.min(4,bw/2)+' '+Math.min(4,h/2)+'V'+H+'z"/>';
+    svg+='<rect x="'+(i*step)+'" y="0" width="'+step+'" height="'+H+'" fill="transparent" onclick="'+opt.click+'('+i+')"/>';
+    if(labels[i])svg+='<text x="'+(i*step+step/2)+'" y="'+(H+14)+'" class="stx">'+labels[i]+'</text>';
+  });
+  return svg+'<line x1="0" x2="'+W+'" y1="'+H+'" y2="'+H+'" class="sax"/></svg>';
+}
+function statPick(i){STAT_PICK=STAT_PICK===i?-1:i;render();}
+var STAT_HPICK=-1;
+function statHPick(i){STAT_HPICK=STAT_HPICK===i?-1:i;render();}
+function statPage(){
+  if(!STAT)return STAT_BUSY?loader('讀取使用統計…'):'<div class="card"><div class="empty">讀不到資料，按右上角 ↻ 再試一次</div></div>';
+  var S=STAT,m=S.sum,h='';
+  function kpi(lb,v,tot,sub){return '<div class="kpi"><div class="kl">'+lb+'</div><div class="kv">'+v+(tot!=null?'<small>/'+tot+'</small>':'')+'</div>'+(sub?'<div class="ks">'+sub+'</div>':'')+'</div>';}
+  var pct=function(a,b){return b?Math.round(a*100/b):0;};
+  h+='<div class="kpis">'+kpi('今日使用',m.today,m.total,pct(m.today,m.total)+'%')+kpi('近 7 天',m.d7,m.total,pct(m.d7,m.total)+'%')
+    +kpi('近 30 天',m.d30,m.total,pct(m.d30,m.total)+'%')+kpi('開啟通知',m.pushOn,m.total,pct(m.pushOn,m.total)+'%')+'</div>';
+  if(m.never)h+='<div class="hint" style="margin:8px 6px 0">'+m.never+' 人從未使用'+(m.off?'，另有 '+m.off+' 個停用帳號未列入':'')+'</div>';
+  // 每日趨勢
+  var tr=S.trend,vals=tr.map(function(x){return x.u;});
+  var avg=Math.round(vals.reduce(function(a,b){return a+b;},0)/Math.max(1,vals.filter(Boolean).length||1));
+  var pk=STAT_PICK>=0&&tr[STAT_PICK];
+  h+='<div class="sec">每日使用人數（近 30 天）</div><div class="card scard"><div class="shd">'
+    +(pk?'<b>'+parseInt(pk.d.slice(5,7))+'/'+parseInt(pk.d.slice(8))+'</b>　'+pk.u+' 人・'+pk.o+' 次'
+       :'有使用的日子平均 <b>'+avg+'</b> 人／天')+'</div>'
+    +statBars(vals,tr.map(function(x,i){return (i%7===1||i===29)?parseInt(x.d.slice(5,7))+'/'+parseInt(x.d.slice(8)):'';}),{w:330,h:110,click:'statPick',pick:STAT_PICK})
+    +'<div class="hint" style="margin-top:4px">點長條看當天數字</div></div>';
+  // 時段
+  var hp=STAT_HPICK;
+  h+='<div class="sec">使用時段（近 7 天）</div><div class="card scard"><div class="shd">'
+    +(hp>=0?'<b>'+hp+':00–'+(hp+1)+':00</b>　'+S.hours[hp]+' 次':'最常用 <b>'+(function(){var b=0;S.hours.forEach(function(v,i){if(v>S.hours[b])b=i;});return b+':00–'+(b+1)+':00';})()+'</b>')+'</div>'
+    +statBars(S.hours,S.hours.map(function(v,i){return i%6===0?i+'時':'';}),{w:330,h:80,click:'statHPick',pick:hp})+'</div>';
+  // 廣播
+  var c=S.cast;
+  function bar(lb,a,b){var p=pct(a,b);return '<div class="pbr"><span class="pbl">'+lb+'</span><span class="pbt"><i style="width:'+p+'%"></i></span><span class="pbv">'+p+'%</span></div>';}
+  h+='<div class="sec">廣播（近 7 天）</div><div class="card scard">'
+    +'<div class="shd">案件廣播 <b>'+c.caseN+'</b> 則・群組廣播 <b>'+c.groupN+'</b> 則・共發給 <b>'+c.to+'</b> 人次</div>'
+    +(c.to?bar('送達',c.d,c.to)+bar('已讀',c.r,c.to)+bar('收到',c.a,c.to):'<div class="hint">這 7 天沒有廣播</div>')
+    +(Object.keys(c.senders).length?'<div class="hint" style="margin-top:8px">發送：'+Object.keys(c.senders).sort(function(a,b){return c.senders[b]-c.senders[a];}).map(function(k){return he(k)+' '+c.senders[k];}).join('、')+'</div>':'')
+    +'</div>';
+  // 通知裝置
+  var dv=Object.keys(S.devices||{});
+  if(dv.length)h+='<div class="sec">收通知的裝置</div><div class="card scard"><div class="cchips" style="margin:0">'
+    +dv.sort(function(a,b){return S.devices[b]-S.devices[a];}).map(function(k){return '<span class="gtok">'+he(k)+'・'+S.devices[k]+'</span>';}).join('')+'</div></div>';
+  // 每個人
+  var q=STAT_Q.trim().toLowerCase();
+  var ppl=S.people.filter(function(p){return !p.off;}).filter(function(p){
+    if(STAT_SORT==='never'&&p.last)return false;
+    return !q||(p.n+' '+p.u+' '+p.team+' '+p.region).toLowerCase().indexOf(q)>=0;});
+  if(STAT_SORT==='last')ppl.sort(function(a,b){return a.last<b.last?1:a.last>b.last?-1:0;});
+  if(STAT_SORT==='most')ppl.sort(function(a,b){return b.opens-a.opens||b.days-a.days;});
+  if(STAT_SORT==='never')ppl.sort(function(a,b){return (a.team+a.n).localeCompare(b.team+b.n);});
+  h+='<div class="sec">每個人</div><div class="gseg" style="margin-top:0">'
+    +[['last','最近使用'],['most','最常用'],['never','從未使用']].map(function(o){
+      return '<button class="'+(STAT_SORT===o[0]?'on':'')+'" onclick="STAT_SORT=\''+o[0]+'\';render()">'+o[1]+'</button>';}).join('')+'</div>'
+    +'<input class="fld" id="stat-q" placeholder="搜尋姓名、工號、組別" value="'+he(STAT_Q)+'" oninput="STAT_Q=this.value;statList()" style="margin-bottom:8px">'
+    +'<div id="stat-l">'+statListHTML(ppl)+'</div>';
+  h+='<div class="hint" style="margin:12px 6px 0">更新於 '+he(String(S.at).slice(5,16).replace('-','/'))+'　管理員帳號不列入統計；同一人 30 分鐘內重複開啟只算一次</div>';
+  return h;
+}
+function statListHTML(ppl){
+  if(!ppl.length)return '<div class="card"><div class="empty" style="padding:18px">沒有符合的人</div></div>';
+  return '<div class="gcard">'+ppl.map(function(p){
+    return '<div class="spr"><div class="spn"><b>'+he(p.n||p.u)+'</b><span class="hint">'+he(p.u)+(p.team?'・'+he(p.team):'')+'・'+he(roleLabel(p.role))+'</span></div>'
+      +'<div class="spm"><span class="'+(p.last?'':'nv')+'">'+statAgo(p.last)+'</span>'
+      +(p.opens?'<span class="hint">累計 '+p.opens+' 次・'+p.days+' 天'+(p.w?'・本週 '+p.w+' 次':'')+'</span>':'')
+      +'<span class="hint">'+(p.dev.length?ic('bell',11).replace('display:block','display:inline-block;vertical-align:-1px')+' '+he(p.dev.join('、')):'未開通知')+'</span></div></div>';
+  }).join('')+'</div>';
+}
+function statList(){
+  var el=$('stat-l');if(!el)return;
+  var q=STAT_Q.trim().toLowerCase();
+  // 只重畫清單，輸入框不會失去焦點
+  var keep=STAT_Q;STAT_Q=keep;
+  var tmp=document.createElement('div');tmp.innerHTML=statPage();
+  var nl=tmp.querySelector('#stat-l');if(nl)el.innerHTML=nl.innerHTML;
 }
 function gcSend(){
   var names=gcNames(),t=String(GC.text||'').trim();
