@@ -881,7 +881,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-27d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-27e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -5465,7 +5465,27 @@ function icsSave(){
   }).catch(function(){toast('連線失敗','no');});
 }
 /* ══ 推播通知（Firebase） ══ */
-var PUSH={busy:false,demo:'',demoAt:''};   // demo/demoAt 屬暫時測試功能
+var PUSH={busy:false,demo:'',demoAt:''};
+/* 這個帳號登記的裝置清單：一眼看出哪台會收到通知 */
+var DEVS=null,DEVS_BUSY=false;
+function devLoad(){
+  if(DEVS_BUSY)return;DEVS_BUSY=true;
+  gas('getPushDevices',TOKEN,ls('espc_push')||'').then(function(r){
+    DEVS_BUSY=false;DEVS=(r&&r.ok)?r.devices:[];if(sub==='ics')render();
+  }).catch(function(){DEVS_BUSY=false;});
+}
+function devListHTML(){
+  if(DEVS===null){devLoad();return '';}
+  var h='<div class="card" style="padding:10px 14px"><div class="hint" style="margin-bottom:4px">這個帳號會收到通知的裝置（最多 5 台）</div>';
+  if(!DEVS.length)h+='<div style="font-size:14px;color:var(--warn)">目前沒有任何裝置，通知不會送到任何地方</div>';
+  DEVS.forEach(function(x){
+    h+='<div class="row" style="padding:5px 0;font-size:14.5px"><span>'+he(x.d)+(x.me?' <b style="color:var(--accT);font-size:12px">這支</b>':'')+'</span>'
+      +'<span class="hint">登記於 '+he(String(x.at).slice(5,16).replace('-','/'))+'</span></div>';
+  });
+  var meIn=DEVS.some(function(x){return x.me;});
+  if(!meIn)h+='<div style="font-size:13px;color:var(--warn);margin-top:4px">這支手機不在清單上，收不到通知。請把上面的開關關掉再打開。</div>';
+  return h+'</div>';
+}   // demo/demoAt 屬暫時測試功能
 function pushSupported(){
   return ('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
 }
@@ -5486,6 +5506,7 @@ function pushHTML(){
   h+='<div class="card"><div class="row"><div><div style="font-size:15px">在這支手機接收通知</div>'
     +'<div class="hint" style="margin-top:2px">廣播、證照到期、行程提醒都靠它；App 關著也收得到</div></div>'
     +'<button class="sw'+(on?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="'+(on?'pushOff()':'pushOn()')+'"></button></div></div>';
+  h+=devListHTML();
   if(on){
     h+='<div class="card"><div style="font-size:15px;margin-bottom:2px">測試通知</div>'
       +'<div class="hint" style="margin-bottom:10px">按下後幾秒內會跳出一則範例通知（假行程），確認這支手機收得到。</div>'
@@ -5625,6 +5646,7 @@ function fbMessaging(){
 }
 function deviceName(){
   var u=navigator.userAgent;
+  if(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)return 'iPad';   // iPadOS 會假裝成 Mac
   return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'其他';
 }
 function pushOn(silent){
@@ -5643,6 +5665,7 @@ function pushOn(silent){
     });
   }).then(function(){
     PUSH.busy=false;
+    DEVS=null;
     if(!silent){toast('已開啟推播，可以按「發送測試通知」試試看','ok',3500);render();}
   }).catch(function(e){
     PUSH.busy=false;
@@ -5652,9 +5675,9 @@ function pushOn(silent){
 function pushOff(){
   if(!confirm('關閉後這支手機將收不到任何通知（廣播、證照到期、行程提醒），確定關閉？'))return;
   var tok=ls('espc_push');
-  lsD('espc_push');lsD('espc_push_want');render();
+  lsD('espc_push');lsD('espc_push_want');DEVS=null;render();
   if(!tok)return;
-  gas('savePush',TOKEN,tok,false).catch(function(){});
+  gas('savePush',TOKEN,tok,false).then(function(){DEVS=null;if(sub==='ics')render();}).catch(function(){});
   fbMessaging().then(function(m){return m.deleteToken();}).catch(function(){});
   toast('已關閉這支手機的推播','ok');
 }
