@@ -881,7 +881,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-27e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-27f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -5562,13 +5562,9 @@ function pushAsk(){
     if(Date.now()-last<PUSH_ASK_MS)return;
   }catch(e){return;}
   lsS(PUSH_ASK_KEY,String(Date.now()));
-  openSheet('<div class="shh"><div><h3>開啟通知</h3>'
-    +'<p class="hint" style="margin-top:3px">按「允許通知」後手機會詢問，請選「允許」</p></div>'
+  openSheet('<div class="shh"><div><h3>開啟通知</h3></div>'
     +'<button class="ib" onclick="closeSheet()">✕</button></div>'
-    +'<div class="note" style="margin-top:10px">📣 <b>廣播</b>：PM、主管、排程發給你的提醒事項</div>'
-    +'<div class="note" style="margin-top:8px">'+'<span style="display:inline-block;vertical-align:-3px">'+ic('shield',15)+'</span> <b>證照到期</b>：你（和底下人員）的證照快到期時通知</div>'
-    +'<div class="note" style="margin-top:8px">📋 <b>行程提醒</b>：排到你的行程時提醒（可在「更多」關掉）</div>'
-    +'<button class="btn btn-p btn-full" style="margin-top:16px" onclick="closeSheet();pushOn()">允許通知</button>'
+    +'<button class="btn btn-p btn-full" style="margin-top:12px" onclick="closeSheet();pushOn()">允許通知</button>'
     +'<button class="btn btn-full" style="margin-top:8px" onclick="closeSheet()">稍後再說</button>');
 }
 /* 第一次登入：同意資料使用、改好密碼後，接著請使用者開啟通知（iPhone 要先加入主畫面） */
@@ -5580,11 +5576,7 @@ function openPushOnb(){
     +'<button class="btn btn-p btn-full" onclick="pushOnbClose()">我知道了</button>';
   else if(!pushSupported()||Notification.permission==='denied')body='<p class="onbs">這個瀏覽器目前不能收通知'+(Notification&&Notification.permission==='denied'?'（通知權限被封鎖，請到手機設定允許）':'')+'，之後可在「更多 → 行程提醒」開啟。</p>'
     +'<button class="btn btn-p btn-full" onclick="pushOnbClose()">我知道了</button>';
-  else body='<p class="onbs">請允許通知，才收得到：</p>'
-    +'<div class="note" style="margin-top:10px">📣 <b>廣播</b>：PM、主管、排程發給你的提醒事項</div>'
-    +'<div class="note" style="margin-top:8px">'+'<span style="display:inline-block;vertical-align:-3px">'+ic('shield',15)+'</span> <b>證照到期</b>：證照快到期時通知</div>'
-    +'<div class="note" style="margin-top:8px;margin-bottom:18px">📋 <b>行程提醒</b>：排到你的行程時提醒（之後可在「更多」關掉）</div>'
-    +'<button class="btn btn-p btn-full" onclick="pushOnbClose();pushOn()">允許通知</button>'
+  else body='<button class="btn btn-p btn-full" style="margin-top:16px" onclick="pushOnbClose();pushOn()">允許通知</button>'
     +'<button class="btn btn-full" style="margin-top:8px" onclick="pushOnbClose()">稍後再說</button>';
   $('onb').innerHTML='<div class="onbw"><div class="onbh">開啟通知</div>'+body+'</div>';
   $('onb').classList.add('open');
