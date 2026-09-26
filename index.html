@@ -881,7 +881,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-27c';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-27d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -5569,6 +5569,43 @@ function openPushOnb(){
   $('onb').classList.add('open');
 }
 function pushOnbClose(){lsS(PUSH_ASK_KEY,String(Date.now()));$('onb').classList.remove('open');$('onb').innerHTML='';}
+/* ══ 推播連線自我檢查 ══
+   iPhone 會在背景把推播訂閱換掉或弄丟（例如 App 更新、隔夜、系統清理），
+   舊代碼後台送出時仍顯示成功，但手機收不到。所以每次開 App（最多每小時一次）：
+   1) 訂閱還在 → 重新取代碼，變了就換掉後台舊的；同一天也順便再登記一次，確保後台有
+   2) 訂閱不見了 → iPhone 規定要使用者點一下才能重新訂閱，跳出「重新開啟通知」 */
+var PUSH_CHK_AT=0;
+function pushRefresh(){
+  try{
+    if(!TOKEN||!FCM_VAPID||!pushSupported()||Notification.permission!=='granted')return;
+    if(!ls('espc_push')&&ls('espc_push_want')!=='1')return;
+    if(Date.now()-PUSH_CHK_AT<3600000)return;
+    PUSH_CHK_AT=Date.now();
+  }catch(e){return;}
+  navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready;}).then(function(reg){
+    return reg.pushManager.getSubscription().then(function(sub){
+      if(!sub){pushLost();return;}
+      return fbMessaging().then(function(m){return m.getToken({vapidKey:FCM_VAPID,serviceWorkerRegistration:reg});}).then(function(tok){
+        if(!tok){pushLost();return;}
+        var old=ls('espc_push'),day=twStr();
+        if(tok!==old||ls('espc_push_day')!==day){
+          gas('savePush',TOKEN,tok,true,deviceName()).then(function(r){
+            if(r&&r.ok){lsS('espc_push',tok);lsS('espc_push_want','1');lsS('espc_push_day',day);}
+          }).catch(function(){});
+          if(old&&old!==tok)gas('savePush',TOKEN,old,false).catch(function(){});
+        }
+      });
+    });
+  }).catch(function(){});
+}
+function pushLost(){
+  lsD('espc_push');
+  if($('ov').classList.contains('open')||$('onb').classList.contains('open'))return;
+  openSheet('<div class="shh"><div><h3>通知連線中斷</h3>'
+    +'<p class="hint" style="margin-top:3px">iPhone 有時會把 App 的通知連線清掉，需要你點一下才能重新接上，否則收不到廣播與提醒。</p></div>'
+    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<button class="btn btn-p btn-full" style="margin-top:14px" onclick="closeSheet();pushOn()">重新開啟通知</button>');
+}
 function loadJS(src){
   return new Promise(function(ok,no){
     var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=function(){no(new Error('載入失敗'));};
@@ -5602,7 +5639,7 @@ function pushOn(silent){
     if(!tok)throw new Error('取不到推播代碼');
     return gas('savePush',TOKEN,tok,true,deviceName()).then(function(r){
       if(!r||!r.ok)throw new Error((r&&r.error)||'儲存失敗');
-      lsS('espc_push',tok);lsS('espc_push_want','1');
+      lsS('espc_push',tok);lsS('espc_push_want','1');lsS('espc_push_day',twStr());
     });
   }).then(function(){
     PUSH.busy=false;
@@ -5669,6 +5706,7 @@ function appInit(){
     if(!d.recall)toast('🔔 '+(d.title||'收到新通知'),'ok',4000);   // App 開著時 iPhone 常不跳橫幅，畫面上也提示一次
   });
   // 同一支手機換帳號登入後，推播要重新綁到新帳號（之前開過、權限還在就自動重綁，不再問）
+  setTimeout(pushRefresh,4000);        // 開 App 就檢查推播連線
   setTimeout(function(){
     try{
       if(TOKEN&&!ls('espc_push')&&ls('espc_push_want')==='1'&&FCM_VAPID&&pushSupported()&&Notification.permission==='granted'
@@ -5678,6 +5716,7 @@ function appInit(){
   document.addEventListener('visibilitychange',function(){
     if(document.hidden)return;
     inboxLoad(false);if(EV_D)castLoad(EV_D);      // 從背景切回來就看有沒有新廣播
+    pushRefresh();                                 // 順便檢查推播連線（每小時最多一次）
     var t=twStr();
     if(ls('espc_sync')!==t){lsS('espc_sync',t);cPrune(false);todayFor='';allRows=[];
       loadStaff(null,true);loadToday(true);}
