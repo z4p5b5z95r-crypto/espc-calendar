@@ -474,6 +474,7 @@ html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
 .pvn{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pvb{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 8px calc(env(safe-area-inset-bottom) + 16px);text-align:center;}
 .pvb canvas{display:block;margin:0 auto 8px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);}
+.cell.oc .evc{opacity:.55;}
 .tpl{margin-top:6px;}
 .tpr{display:flex;align-items:center;gap:4px;padding:8px 2px;border-bottom:1px solid var(--line);}
 .tpt{flex:1;min-width:0;font-size:14.5px;line-height:1.45;cursor:pointer;word-break:break-word;}
@@ -956,7 +957,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-27j';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-30a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2294,8 +2295,8 @@ function calPage(){
     else if(i>=first+dim){day=i-first-dim+1;out=true;
       var nm=curM===11?1:curM+2,ny=curM===11?curY+1:curY;ds=ny+'-'+p2(nm)+'-'+p2(day);}
     else{day=i-first+1;ds=curY+'-'+p2(curM+1)+'-'+p2(day);}
-    var gs=out?[]:(groups[ds]||[]);
-    h+='<div class="cell'+(ds===today?' tdy':'')+'" data-d="'+ds+'"'
+    var gs=groups[ds]||[];                 // 前後月份露出的日子也顯示行程
+    h+='<div class="cell'+(ds===today?' tdy':'')+(out?' oc':'')+'" data-d="'+ds+'"'
       +' onpointerdown="cellDown(event,\''+ds+'\')" onpointerup="cellUp(event)"'
       +' onpointermove="cellMove(event)" onpointercancel="cellUp(event)"'
       +' onpointerleave="cellUp(event)" oncontextmenu="return false">'
@@ -2810,13 +2811,20 @@ function prefetch(key,o,useScope){
   }).catch(function(){});
 }
 
+/** 月曆版面（固定 6 週）涵蓋的日期範圍：含前後月份露出的日子 */
+function gridRange(y,m){
+  var f=new Date(y,m,1);f.setDate(1-f.getDay());
+  var t=new Date(f);t.setDate(f.getDate()+41);
+  var ds=function(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
+  return {from:ds(f),to:ds(t)};
+}
 /** 把某年某月抓進快取（含目前的篩選範圍），滑過去就不用等 */
 function prefetchMonth(y,m){
   if(m<0){m=11;y--;}else if(m>11){m=0;y++;}
   var ym=y+'-'+p2(m+1);
   var sk=scopeKey();
-  prefetch('m_'+ym+(sk?'_'+sk:''),
-    {dateFrom:ym+'-01',dateTo:ym+'-'+p2(new Date(y,m+1,0).getDate())},true);
+  var gr=gridRange(y,m);
+  prefetch('g_'+ym+(sk?'_'+sk:''),{dateFrom:gr.from,dateTo:gr.to},true);
 }
 /** 停在某個月時，順手把前後一個月備好 */
 function prefetchNeighbors(){
@@ -2832,9 +2840,8 @@ function loadMonth(force,retry){
   var y=curY,m=curM;
   var ym=y+'-'+p2(m+1);
   var sk=scopeKey();
-  var key='m_'+ym+(sk?'_'+sk:'');
-  var first=ym+'-01';
-  var last=ym+'-'+p2(new Date(y,m+1,0).getDate());
+  var key='g_'+ym+(sk?'_'+sk:'');           // 整個月曆版面（含前後月份露出的日子）
+  var gr=gridRange(y,m),first=gr.from,last=gr.to;
   var onTab=(tab==='cal'&&!sub);        // 在別的頁籤時只默默更新，不動版面
   var seq=++MONTH_SEQ;
   /** 這次的結果還算不算「現在要看的」 */
@@ -2872,7 +2879,7 @@ function loadMonth(force,retry){
     if(!mine())return;            // 已經換月或改篩選了，只留快取不動畫面
     calLoading=false;
     paintMonth(list,y,m,sk);
-    if(sk)prefetch('m_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
+    if(sk)prefetch('g_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
     prefetchNeighbors();                                    // 背景備好前後一個月
   }).catch(function(){
     if(!mine())return;
@@ -3789,9 +3796,9 @@ function inboxLoad(force){
   gas('getInbox',TOKEN).then(function(r){
     INBOX.busy=false;
     if(!r||!r.ok)return;
-    INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.at=Date.now();
+    INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.sentCase=r.sentCase||[];INBOX.at=Date.now();
     if(r.tpl)CAST_TPL=r.tpl;
-    if(!$('ov').classList.contains('open')&&(tab==='today'||tab==='cast')&&!sub)render();
+    if(!$('ov').classList.contains('open')&&(((tab==='today'||tab==='cast')&&!sub)||sub==='hist'))render();
     if(INBOX_DEEP){INBOX_DEEP=false;setTimeout(inboxAll,400);}
   }).catch(function(){INBOX.busy=false;});
 }
@@ -3935,18 +3942,29 @@ function inboxHist(){
     +'<a href="#" style="display:block;text-align:center;color:var(--accT);font-size:13px;margin:4px 0 10px" onclick="go(\'more\',\'hist\');return false">更早的在「更多 → 歷史廣播」›</a></div>';
 }
 /** 更多 → 歷史廣播：今天以前、7 天內已收到／已收回的廣播（超過 7 天自動刪除） */
+var HIST_TAB='in';
 function histPage(){
   if(!INBOX.at){inboxLoad(true);return loader('讀取廣播…');}
   var t=twStr(),old=INBOX.inbox.filter(function(x){return !inboxActive(x)&&String(x.at).slice(0,10)<t;});
-  var h='<div class="hint" style="margin:2px 4px 10px">保留 7 天，之後自動刪除；還沒按「收到」的廣播在「今日」頁上方。</div>';
-  if(!old.length)return h+'<div class="empty">7 天內沒有更早的廣播</div>';
+  var sent=(INBOX.sent||[]).concat(INBOX.sentCase||[]).sort(function(a,b){return a.at<b.at?1:-1;});
+  var h='<div class="gseg" style="margin-top:2px">'
+    +'<button class="'+(HIST_TAB==='in'?'on':'')+'" onclick="HIST_TAB=\'in\';render()">收到的</button>'
+    +'<button class="'+(HIST_TAB==='out'?'on':'')+'" onclick="HIST_TAB=\'out\';render()">我發送的'+(sent.length?' '+sent.length:'')+'</button></div>';
+  h+='<div class="hint" style="margin:2px 4px 10px">保留 7 天，之後自動刪除'+(HIST_TAB==='in'?'；還沒按「收到」的廣播在「今日」頁上方。':'。')+'</div>';
+  var list=HIST_TAB==='in'?old:sent;
+  if(!list.length)return h+'<div class="empty">'+(HIST_TAB==='in'?'7 天內沒有更早的廣播':'7 天內沒有發送過廣播')+'</div>';
   var last='';
-  old.forEach(function(x){
+  list.forEach(function(x){
     var d=String(x.at).slice(0,10);
-    if(d!==last){h+=(last?'</div>':'')+'<div class="sec">'+parseInt(d.slice(5,7))+'月'+parseInt(d.slice(8,10))+'日　週'+DW[dowOf(d)]+'</div><div class="ibox hist">';last=d;}
-    h+=histItem(x);
+    if(d!==last){h+=(last?'</div>':'')+'<div class="sec">'+parseInt(d.slice(5,7))+'月'+parseInt(d.slice(8,10))+'日　週'+DW[dowOf(d)]+'</div><div class="ibox'+(HIST_TAB==='in'?' hist':'')+'">';last=d;}
+    h+=HIST_TAB==='in'?histItem(x):sentItem(x);
   });
   return h+'</div>';
+}
+/** 我發送的：群組廣播顯示組別，個案廣播顯示案名與日期；含回條統計、收回 */
+function sentItem(x){
+  var tag=x.project?he(x.project)+'（'+parseInt(String(x.date).slice(5,7))+'/'+parseInt(String(x.date).slice(8,10))+' 行程）':he(x.groups||'群組廣播');
+  return '<div class="ci"><div class="cm">'+icI('mega',13)+he(String(x.at).slice(11,16))+'　'+tag+'</div>'+castText(x)+rcptLine(x,'sent')+'</div>';
 }
 function inboxAll(){
   var h='<div class="shh"><div><h3>收到的廣播</h3><p class="hint" style="margin-top:3px">保留 7 天</p></div>'
@@ -5144,7 +5162,8 @@ function paintParse(uploading){
   if(uploading){
     h+='<div style="display:flex;align-items:center;gap:10px"><div class="spin"></div>'
       +'<div><div style="font-size:14px">地區「'+he(det)+'」，上傳中…</div>'
-      +'<div class="hint" style="margin-top:2px">'+ok.length+' 筆資料寫入試算表，可能需要 1～2 分鐘，請不要關閉頁面</div></div></div>';
+      +'<div class="hint" style="margin-top:2px">'+ok.length+' 筆資料寫入試算表，可能需要 1～2 分鐘，請不要關閉頁面'
+      +(PSTRUCK?'<br>已略過 '+PSTRUCK+' 筆畫刪除線（已取消）的行程':'')+'</div></div></div>';
   }else{
     h+='<p class="lb" style="margin-left:0">地區</p><select class="fld" onchange="setRegion(this.value)">'
       +'<option value=""'+(det?'':' selected')+'>請選擇…</option>'
@@ -5319,12 +5338,72 @@ function clearAll(){
 }
 
 /* ══ Excel 解析 ══ */
+var PSTRUCK=0;   // 這次上傳略過的刪除線行程筆數
+/* 找出 Excel 裡「整列（或案名）被加上刪除線」的列：回傳 {列索引(0 起算): true} */
+function xlsxStruck(u8,sheetName){
+  var out={};
+  try{
+    var zip=XLSX.CFB.read(u8,{type:'array'});
+    var dec=new TextDecoder('utf-8');
+    var get=function(p){var f=XLSX.CFB.find(zip,p)||XLSX.CFB.find(zip,'/'+p);return f&&f.content?dec.decode(f.content instanceof Uint8Array?f.content:new Uint8Array(f.content)):'';};
+    var isStrike=function(x){var m=x.match(/<(?:\w+:)?strike\b([^>]*)\/?>/);return !!m&&!/val\s*=\s*"(0|false)"/.test(m[1]);};
+    var unesc=function(s){return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");};
+    // 哪個工作表檔
+    var wbx=get('xl/workbook.xml'),rels=get('xl/_rels/workbook.xml.rels'),rid='',path='';
+    (wbx.match(/<(?:\w+:)?sheet\b[^>]*>/g)||[]).forEach(function(t){
+      var n=(t.match(/\bname="([^"]*)"/)||[])[1];if(n!=null&&unesc(n)===sheetName)rid=(t.match(/\br:id="([^"]*)"/)||t.match(/:id="([^"]*)"/)||[])[1]||'';
+    });
+    (rels.match(/<Relationship\b[^>]*>/g)||[]).forEach(function(t){
+      if((t.match(/\bId="([^"]*)"/)||[])[1]===rid){var tg=(t.match(/\bTarget="([^"]*)"/)||[])[1]||'';path=tg.charAt(0)==='/'?tg.slice(1):'xl/'+tg;}
+    });
+    if(!path)return out;
+    // 樣式：字型有刪除線 → 哪些儲存格格式（s 編號）有刪除線
+    var st=get('xl/styles.xml');
+    var fontsX=(st.match(/<(?:\w+:)?fonts\b[\s\S]*?<\/(?:\w+:)?fonts>/)||[''])[0];
+    var fonts=(fontsX.match(/<(?:\w+:)?font\b(?:\/>|[\s\S]*?<\/(?:\w+:)?font>)/g)||[]).map(isStrike);
+    var xfsX=(st.match(/<(?:\w+:)?cellXfs\b[\s\S]*?<\/(?:\w+:)?cellXfs>/)||[''])[0];
+    var xfs=(xfsX.match(/<(?:\w+:)?xf\b[^>]*>/g)||[]).map(function(t){var f=(t.match(/\bfontId="(\d+)"/)||[])[1];return !!fonts[+f||0];});
+    // 共用字串：整段文字都是刪除線的
+    var rich=function(x){
+      var runs=x.match(/<(?:\w+:)?r>[\s\S]*?<\/(?:\w+:)?r>/g);
+      if(!runs)return false;
+      var any=false,all=true;
+      runs.forEach(function(r){var t=(r.match(/<(?:\w+:)?t\b[^>]*>([\s\S]*?)<\/(?:\w+:)?t>/)||[])[1]||'';if(!t.trim())return;any=true;if(!isStrike(r))all=false;});
+      return any&&all;
+    };
+    var ss=(get('xl/sharedStrings.xml').match(/<(?:\w+:)?si>[\s\S]*?<\/(?:\w+:)?si>/g)||[]).map(rich);
+    var colIdx=function(ref){var m=ref.match(/^([A-Z]+)/),n=0;if(!m)return -1;for(var i=0;i<m[1].length;i++)n=n*26+m[1].charCodeAt(i)-64;return n-1;};
+    var sx=get(path);
+    (sx.match(/<(?:\w+:)?row\b[^>]*>[\s\S]*?<\/(?:\w+:)?row>/g)||[]).forEach(function(rw){
+      var r=+((rw.match(/^<(?:\w+:)?row\b[^>]*\br="(\d+)"/)||[])[1]||0);if(!r)return;
+      var cells=rw.match(/<(?:\w+:)?c\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:\w+:)?c>)/g)||[];
+      var full=0,struck=0,projStruck=false;
+      cells.forEach(function(c){
+        var ref=(c.match(/\br="([A-Z]+\d+)"/)||[])[1]||'',ci=colIdx(ref);
+        if(ci<3||ci>14)return;                              // 只看工程師～公務車這幾欄
+        var v=(c.match(/<(?:\w+:)?v>([\s\S]*?)<\/(?:\w+:)?v>/)||[])[1],is=(c.match(/<(?:\w+:)?is>[\s\S]*?<\/(?:\w+:)?is>/)||[])[0];
+        var t=(c.match(/\bt="(\w+)"/)||[])[1]||'';
+        var text=is?(is.replace(/<[^>]+>/g,'')):(v||'');
+        if(t==='s'&&v!=null)text='x';
+        if(!String(text).trim())return;
+        full++;
+        var s=+((c.match(/\bs="(\d+)"/)||[])[1]||0);
+        var k=!!xfs[s]||(t==='s'&&v!=null&&ss[+v])||(is&&rich(is));
+        if(k){struck++;if(ci===5)projStruck=true;}
+      });
+      if(full&&(projStruck||struck*2>=full))out[r-1]=true;
+    });
+  }catch(e){console&&console.warn&&console.warn('刪除線判斷失敗',e);}
+  return out;
+}
+
 function readXlsx(file){
   return new Promise(function(res,rej){
     var fr=new FileReader();
     fr.onload=function(e){
       try{
-        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
+        var u8=new Uint8Array(e.target.result);
+        var wb=XLSX.read(u8,{type:'array',raw:true});
         var name=null;
         if(wb.SheetNames.indexOf('採樣行程')>=0)name='採樣行程';
         else if(wb.SheetNames.indexOf('工作表1')>=0)name='工作表1';
@@ -5332,7 +5411,8 @@ function readXlsx(file){
         if(!name){res([]);return;}
         var raw=XLSX.utils.sheet_to_json(wb.Sheets[name],
           {header:1,raw:true,defval:null,range:{s:{r:0,c:0},e:{r:9999,c:21}}});
-        res(parseSheet(raw,name,file.name));
+        var struck=xlsxStruck(u8,name);          // 被畫刪除線的行程＝已取消，不匯入
+        res(parseSheet(raw,name,file.name,struck));
       }catch(ex){rej(ex);}
     };
     fr.onerror=function(){rej(new Error('檔案讀取失敗'));};
@@ -5363,7 +5443,8 @@ function parseDate(v){
 }
 /* 欄位對照：C 執行日期 / D 工程師 / E 專案編號 / F 專案簡稱 / G 行程類型
    H 點位 / I 數量 / J 申報採樣時間 / K 採樣儀器 / L 申報人員 / M 報告編號 / N 備註 / O 公務車 */
-function parseSheet(raw,sheet,fname){
+function parseSheet(raw,sheet,fname,struck){
+  struck=struck||{};PSTRUCK=0;
   if(!raw||raw.length<2)return [];
   var region=detectRegion(fname||'',sheet);
   var out=[];
@@ -5379,6 +5460,7 @@ function parseSheet(raw,sheet,fname){
       var kstaff=[16,17,18,19,20].map(function(c){return sv(row[c]);}).filter(Boolean);
       if(kstaff.length)kst=kstaff;else kstaff=kst;
       var kc=sv(row[15]);if(kc)kcar=kc;else kc=kcar;
+      if(struck[i]){PSTRUCK++;continue;}      // 刪除線＝已取消
       out.push({date:ds,engineer:eng,project:proj,projectNo:svNo(row[4]),type:type,
         location:sv(row[8]),qty:sv(row[9]),
         sampTime:sv(row[10]),equipment:sv(row[11]),applicant:sv(row[12]),
@@ -5407,6 +5489,7 @@ function parseSheet(raw,sheet,fname){
       // 人員欄空白＝跟上一筆同一組；專案換了也繼續沿用，只有換日期才重來
       var st=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
       if(st.length)lst=st;else st=lst;
+      if(struck[i]){PSTRUCK++;continue;}      // 刪除線＝已取消
       out.push({date:last,engineer:eng,project:proj,projectNo:no,type:type,
         location:sv(row[7]),qty:sv(row[8]),
         sampTime:samp,equipment:sv(row[10]),applicant:sv(row[11]),
@@ -5947,6 +6030,11 @@ function devListHTML(){
 function pushSupported(){
   return ('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
 }
+/** 手機或平板（電腦版不主動要求開通知） */
+function isMobileDev(){
+  var u=navigator.userAgent||'';
+  return /iPhone|iPad|iPod|Android/i.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1);
+}
 function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 }
@@ -5965,23 +6053,6 @@ function pushHTML(){
     +'<div class="hint" style="margin-top:2px">廣播、證照到期、行程提醒都靠它；App 關著也收得到</div></div>'
     +'<button class="sw'+(on?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="'+(on?'pushOff()':'pushOn()')+'"></button></div></div>';
   h+=devListHTML();
-  if(on){
-    h+='<div class="card"><div style="font-size:15px;margin-bottom:2px">測試通知</div>'
-      +'<div class="hint" style="margin-bottom:10px">按下後幾秒內會跳出一則範例通知（假行程），確認這支手機收得到。</div>'
-      +'<button class="btn btn-sm btn-full" onclick="pushTest()">'+ic('bell',16)+'發送測試通知</button></div>';
-    /* ▼▼ 暫時測試功能：排定時間的測試通知（確認推播正常後可整段刪除，連同 pushDemo()、PUSH.demo/demoAt） ▼▼ */
-    var nt=new Date(Date.now()+5*60000),dflt=p2(nt.getHours())+':'+p2(nt.getMinutes());
-    h+='<div class="card"><div style="font-size:15px;margin-bottom:2px">排定測試通知（暫時）</div>'
-      +'<div class="hint" style="margin-bottom:10px">選一個時間，到時會跳一則假行程通知。可能延遲至多 5 分鐘，'
-      +'<b>排定後請把 App 關掉或鎖上手機</b>，才看得出來「App 關著也收得到」。</div>'
-      +'<div class="row" style="gap:8px">'
-      +'<input type="time" class="fld" id="pt-t" style="flex:1;min-width:0;margin:0" value="'+(PUSH.demo||dflt)+'">'
-      +'<button class="btn btn-sm" style="flex:0 0 auto" onclick="pushDemo()">排定</button></div>'
-      +(PUSH.demoAt?'<div class="hint" style="margin-top:8px;color:var(--accT)">已排定：今天 '+he(PUSH.demoAt)+' 左右跳出</div>':'')
-      +'<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="pushTest(\'cert\')">'+ic('shield',16)+'發送證照到期提醒範例</button>'
-      +'</div>';
-    /* ▲▲ 暫時測試功能結束 ▲▲ */
-  }
   return h;
 }
 function pushIsOn(){
@@ -6013,26 +6084,21 @@ function pushAskLater(){setTimeout(pushAsk,1200);}
 function pushAsk(){
   try{
     if(!TOKEN||!FCM_VAPID||!pushSupported()||pushIsOn())return;
+    if(!isMobileDev())return;                     // 電腦版不要求開通知
     if(Notification.permission==='denied')return;
     if(/iPad|iPhone|iPod/.test(navigator.userAgent)&&!isStandalone())return;
     if($('ov').classList.contains('open')||$('onb').classList.contains('open'))return;   // 已經有其他視窗開著
-    if(!ls('espc_push_off')){
-      // 沒自己關過：已授權就直接幫他打開「在這支手機接收通知」；這支裝置第一次開 App 就全螢幕請他允許
-      if(Notification.permission==='granted'){pushOn(true);return;}
-      if(!ls('espc_push_first')){lsS('espc_push_first','1');openPushOnb();return;}
-    }
-    var last=+ls(PUSH_ASK_KEY)||0;
-    if(Date.now()-last<PUSH_ASK_MS)return;
+    // 手機版預設開啟：已授權就直接幫他打開；還沒授權就每次開 App 都請他允許，直到開啟為止
+    if(Notification.permission==='granted'){pushOn(true);return;}
+    if(PUSH_ASKED)return;                         // 這次開 App 已經問過
   }catch(e){return;}
-  lsS(PUSH_ASK_KEY,String(Date.now()));
-  openSheet('<div class="shh"><div><h3>開啟通知</h3></div>'
-    +'<button class="ib" onclick="closeSheet()">✕</button></div>'
-    +'<button class="btn btn-p btn-full" style="margin-top:12px" onclick="closeSheet();pushOn()">允許通知</button>'
-    +'<button class="btn btn-full" style="margin-top:8px" onclick="closeSheet()">稍後再說</button>');
+  PUSH_ASKED=true;
+  openPushOnb();
 }
+var PUSH_ASKED=false;
 /* 第一次登入：同意資料使用、改好密碼後，接著請使用者開啟通知（iPhone 要先加入主畫面） */
 function openPushOnb(){
-  try{if(!FCM_VAPID||pushIsOn())return;lsS('espc_push_first','1');}catch(e){return;}
+  try{if(!FCM_VAPID||pushIsOn()||!isMobileDev())return;lsS('espc_push_first','1');PUSH_ASKED=true;}catch(e){return;}
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   var body;
   if(isIOS&&!isStandalone())body='<p class="onbs">iPhone 要先把本站「加入主畫面」才能收通知：Safari 下方「分享」→「加入主畫面」，之後從主畫面的圖示開啟，App 會再請你開啟通知。</p>'
@@ -6121,7 +6187,7 @@ function pushOn(silent){
   }).then(function(){
     PUSH.busy=false;
     DEVS=null;
-    if(!silent){toast('已開啟推播，可以按「發送測試通知」試試看','ok',3500);render();}
+    if(!silent){toast('已開啟通知','ok',2500);render();}
   }).catch(function(e){
     PUSH.busy=false;
     if(!silent){toast((e&&e.message)||'開啟失敗','no',4000);render();}
