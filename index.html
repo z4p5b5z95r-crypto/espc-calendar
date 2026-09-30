@@ -957,7 +957,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-30a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-30b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2696,6 +2696,7 @@ function icDownloadAll(){
 function morePage(){
   var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>'
+    +((ENGNAME||canWrite(ROLE))?'<button class="link" onclick="location.href=\'allowance.html\'">採樣津貼<span style="flex:1"></span>'+ic('file',19)+'</button>':'')
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>'
     +'<button class="link" onclick="go(\'more\',\'hist\')">歷史廣播<span class="hint" style="margin-left:6px">7 天內</span><span style="flex:1"></span>'+ic('mega',19)+'</button>';
   h+='<div class="sec">偏好</div>'
