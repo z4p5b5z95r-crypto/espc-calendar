@@ -244,6 +244,8 @@ function meView(){
   if(S.busy)return '<div class="spin"></div>';
   if(d.canAll)h+='<div class="row" style="margin:8px 0 4px"><input class="fld" id="who" list="wl" placeholder="查看某位人員（輸入姓名）" value="'+he(S.who||'')+'" onchange="S.who=this.value.trim();load()"><datalist id="wl">'
     +((S.sum||[]).map(function(p){return '<option value="'+he(p.name)+'">';}).join(''))+'</datalist></div>';
+  if(d.notEligible)return h+'<div class="card"><div class="empty">'+(d.who===d.me?'':he(d.who)+'　')+'採樣津貼只適用 EIA-T、EIA-C 組別'
+    +(d.team?'<br><span style="font-size:12.5px">目前組別：'+he(d.team)+'</span>':'<br><span style="font-size:12.5px">帳號沒有填組別，請主管在帳號管理補上</span>')+'</div></div>';
   if(d.noName)return h+'<div class="card"><div class="empty">這個帳號沒有對應姓名'+(d.canAll?'，請在上方輸入要查看的人員':'')+'</div></div>';
   var who=d.who,self=(who===d.me),tot=0,days={};
   var rows=d.recs.map(function(r){var c=calc(r,who);tot+=c.tot;days[r.date]=1;return {r:r,c:c};});
@@ -384,7 +386,7 @@ function qualView(){
   if(!S.qual)return '<div class="spin"></div>';
   var q=S.qq.trim().toLowerCase();
   var list=S.qual.list.filter(function(x){return !q||(x.n+' '+x.u+' '+x.team).toLowerCase().indexOf(q)>=0;});
-  var h='<p class="hint" style="margin:8px 6px">點一下切換，馬上儲存。沒有資格的類別不計津貼；「空品」分空品車、特殊項、戴奧辛。</p>'
+  var h='<p class="hint" style="margin:8px 6px">只列 EIA-T、EIA-C 組別的人員。'+(S.qual.canEdit?'點一下切換，馬上儲存。':'只有主管可以設定，這裡只能查看。')+'沒有資格的類別不計津貼；「空品」分空品車、特殊項、戴奧辛。</p>'
     +'<input class="fld" placeholder="搜尋姓名、工號、組別" value="'+he(S.qq)+'" oninput="S.qq=this.value;qualList()" style="margin-bottom:10px">'
     +'<div class="list" id="ql">'+qualRows(list)+'</div>';
   return h;
@@ -397,7 +399,7 @@ function qualRows(list){
       +(x.q==null?'<span class="chip warn">未設定</span>':'')+'</div><div class="qg">'
       +QGROUP.map(function(g,gi){return g.map(function(k){
         var on=x.q!=null&&x.q.indexOf(k)>=0;
-        return '<button class="cp'+(on?' on':'')+'" onclick="qualTap('+i+',\''+k+'\')">'+(g.length>1?'空品・':'')+k+'</button>';}).join('');}).join('')
+        return '<button class="cp'+(on?' on':'')+'"'+(S.qual.canEdit?' onclick="qualTap('+i+',\''+k+'\')"':' disabled')+'>'+(g.length>1?'空品・':'')+k+'</button>';}).join('');}).join('')
       +'</div></div>';
   }).join('');
 }
