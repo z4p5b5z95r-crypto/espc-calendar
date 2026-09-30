@@ -146,6 +146,41 @@ button.chip{cursor:pointer}
 .wk.on.up i{background:#e74c3c;border-color:#e74c3c}
 .gseg button.on.up{color:#c0392b;box-shadow:0 0 0 1.5px #e74c3c inset}
 .it.upl .l b::after{content:" ▲";color:#e74c3c;font-size:11px}
+.clist{margin-top:8px;background:var(--gl);border:1px solid var(--glL);border-radius:14px;overflow:hidden}
+.ci{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 12px;border-top:1px solid var(--line);font-size:13.5px}
+.clist>.ci:first-child{border-top:none}
+.ci.op{background:var(--accS)}
+.ci.nq .cia{color:var(--tx3);text-decoration:line-through}
+.ci.un{background:rgba(245,166,35,.08)}
+.cin{flex:1;min-width:0}.cin b{font-weight:600}.cin small{display:block;color:var(--tx3);font-size:11.5px;margin-top:2px;line-height:1.45}
+.upm{font-style:normal;color:#e74c3c;font-size:11px}
+.upt{color:#d9432f;font-weight:600}
+.ciq{color:var(--tx3);font-size:12.5px;white-space:nowrap}.cia{min-width:46px;text-align:right;font-weight:700}
+.cie{width:16px;color:var(--accT);font-size:13px;text-align:center}
+.cl{border-top:1px solid var(--line);background:rgba(243,111,33,.04)}
+.cr{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-top:1px solid var(--line)}
+.cl .cr:first-child{border-top:none}
+.cr.allr{background:var(--accS)}
+.pname{flex:1;min-width:0;font-size:13.5px;line-height:1.3;cursor:pointer}
+.pname small{display:block;color:var(--tx3);font-size:11px}
+.sel{position:relative;display:inline-flex;align-items:center}
+.sel select{appearance:none;-webkit-appearance:none;background:var(--glS);border:1px solid var(--glL);border-radius:10px;padding:7px 26px 7px 10px;font-size:13.5px;font-weight:600;color:var(--tx);max-width:180px;font-family:inherit}
+.sel::after{content:"▾";position:absolute;right:9px;font-size:11px;color:var(--tx3);pointer-events:none}
+.sel.up select{color:#d9432f;border-color:rgba(217,67,47,.45)}
+.mc{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:240px}
+.mc button{font-size:12px;padding:5px 8px;border-radius:8px;background:var(--glS);border:1px solid var(--glL);color:var(--tx2);display:inline-flex;gap:3px;align-items:baseline}
+.mc button small{font-size:10.5px;opacity:.75}
+.mc button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.mc button.on.up{background:#e74c3c;border-color:#e74c3c}
+.cr.mrow{flex-wrap:wrap}
+.cr.mrow .mc{order:3;flex:0 0 100%;max-width:none;justify-content:flex-start;margin-top:2px}
+.cr.mrow .pname{display:flex;align-items:baseline;gap:8px}
+.cr.mrow .pname small{display:inline}
+.rmx{width:26px;height:26px;border-radius:50%;color:var(--tx3);font-size:12px;flex:0 0 26px}
+.cft{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 14px 10px;border-top:1px solid var(--line)}
+.cft .addp{margin:0}
+.addp{font-size:13px;color:var(--accT);font-weight:600}
+.edit{font-size:13px;color:var(--accT);font-weight:700}
 details.fx{margin-top:10px}details.fx summary{font-size:13px;color:var(--accT);cursor:pointer;list-style:none}
 details.fx p{font-size:12.5px;color:var(--tx2);line-height:1.7;margin-top:6px}
 </style>
@@ -350,110 +385,110 @@ function meView(){
       +(x.up&&x.up.amt>0&&!x.up.added?'<div class="updiff">'+x.up.diff.map(function(q){var cc=colMap()[q.c];return '<span class="'+(q.up?'u':'dn')+'">'+(q.up?'＋':'－')+he(W_LBL[q.c]||cc.s)+' ×'+Math.abs(q.d)+'</span>';}).join('')
         +(x.up.staff?'<span class="dn">人數 '+x.up.staff+'</span>':'')+'</div>':'')
       +(x.up&&x.up.added?'<div class="updiff"><span class="u">行程裡沒有這筆，是手動新增的</span></div>':'')+'<div style="margin-top:6px">';
-    if(r.items.some(function(x){return BLK_CODES.indexOf(x.c)>=0;}))h+=blkHTML(r,c,can);
-    c.lines.forEach(function(l){
-      if(l.c&&WATER.indexOf(l.c.c)>=0)return;        // 水質項目改在上面的勾選區顯示
-      if(l.un){h+='<div class="it un"><div class="l"><b>'+he(l.it.t||'未分類')+'</b><div class="f">行程類型對不到津貼項目，請點 ✎ 選擇</div></div><div class="r">—</div></div>';return;}
-      h+='<div class="it'+(l.ok?'':' nq')+(upCodes(r)[l.c.c]?' upl':'')+'"><div class="l"><b>'+he(l.c.g+'・'+l.c.s)+'</b><div class="f">'+l.n+' × '+l.c.r+' = '+money(l.amt)+(l.it.t?'　（'+he(l.it.t)+'）':'')+'</div></div>'
-        +'<div class="r">'+(l.ok?(l.c.pp?money(l.mine)+'<small>每人計</small>':money(l.mine*100/100)+'<small>÷'+l.k+' 人</small>'):'0<small>無「'+he(l.c.q)+'」資格</small>')+'</div></div>';
-    });
+    h+=recList(r,c,can);
     h+='</div><div class="rf"><span class="fm">'+he(c.fm)+'</span><span class="am">NT$ '+money(c.tot)+'</span></div></div>';
   });
   return h+addBtn();
 }
-/* ── 分項勾選區：有細分類的大類每個點位各自選。只有「水質・一般」可複選（金額累加），其餘都是單選 ── */
+/* ── 分項明細（C 款：項目清單＋逐點下拉）。只有「水質・一般」可複選（金額累加），其餘都是單選 ── */
 var BLK=[
   {id:'wg',g:'水質',name:'水質・一般',codes:['D','E','F','G'],multi:true,unit:'點'},
-  {id:'wf',g:'水質',name:'',codes:['N','O','P'],multi:false,unit:'處',sub:true},
-  {id:'gw',g:'水質',name:'地下水',codes:['K','L','M'],multi:false,unit:'點'},
+  {id:'wf',g:'水質',name:'水量（斷面）',codes:['N','O','P'],multi:false,unit:'處'},
+  {id:'gw',g:'水質',name:'地下水',codes:['K','L','M'],multi:false,unit:'口'},
+  {id:'car',g:'空氣',name:'空氣・監測車',codes:['V','W'],multi:false,unit:'台'},
   {id:'ws',g:'廢棄物',name:'廢棄物',codes:['Y','Z','AA','AB'],multi:false,unit:'點'},
   {id:'so',g:'土壤',name:'土壤',codes:['AC','AD','AE'],multi:false,unit:'點'},
   {id:'se',g:'底泥',name:'底泥',codes:['AF','AG','AH'],multi:false,unit:'點'}];
 var BLK_CODES=[];BLK.forEach(function(b){BLK_CODES=BLK_CODES.concat(b.codes);});
-var WATER=BLK_CODES;   // 這些代號不在一般明細列出
-var W_LBL={D:'不混樣',E:'混樣',F:'混樣（河川斷面>40m）',G:'須出動橡皮艇',N:'100m以下',O:'100m以上',P:'使用M9',
-  K:'不洗井',L:'洗井<50m',M:'洗井>50m',Y:'單一廢棄物',Z:'混樣廢棄物',AA:'防護設備（不混樣）',AB:'防護設備（混樣）',
-  AC:'不混樣',AD:'混樣',AE:'九宮格混樣',AF:'岩心',AG:'抓取/拖拉式',AH:'採樣鏟'};
-var W_SHORT={N:'100m以下',O:'100m以上',P:'M9',K:'不洗井',L:'洗井<50m',M:'洗井>50m',Y:'單一',Z:'混樣',AA:'防護不混',AB:'防護混樣',
-  AC:'不混樣',AD:'混樣',AE:'九宮格',AF:'岩心',AG:'抓取/拖拉',AH:'採樣鏟'};
+var WATER=BLK_CODES;
+var W_LBL={D:'不混樣',E:'混樣',F:'混樣(河川>40m)',G:'須出動橡皮艇',N:'100m以下',O:'100m以上',P:'使用M9',
+  K:'不洗井',L:'洗井<50m',M:'洗井>50m',Y:'單一廢棄物',Z:'混樣廢棄物',AA:'防護設備(不混樣)',AB:'防護設備(混樣)',
+  AC:'不混樣',AD:'混樣',AE:'九宮格混樣',AF:'岩心',AG:'抓取/拖拉式',AH:'採樣鏟',V:'無發電機',W:'含發電機'};
 var WS={},WSAVE={},WOPEN={};
 function blkOf(id){for(var i=0;i<BLK.length;i++)if(BLK[i].id===id)return BLK[i];}
-/** 新點位的預設：單選＝最便宜那項；水質一般＝不混樣 */
+/** 新點位的預設：最便宜那項 */
 function wDef(b){var cm=colMap();return [b.codes.slice().sort(function(x,y){return (cm[x]?cm[x].r:0)-(cm[y]?cm[y].r:0);})[0]];}
-/** 由項目（每個代號幾點）還原成「每個點位勾了哪些」 */
+/** 由項目（每個代號幾點＋點位名稱）還原成「每個點位選了哪些」 */
 function wsOf(r){
   if(WS[r.key])return WS[r.key];
-  var st={t:'',tt:{},flowOn:false,b:{}};
+  var st={tt:{},b:{},nm:{}};
   BLK.forEach(function(b){
-    var cnt={},p=0,has=false;
+    var cnt={},p=0,has=false,names=null;
     r.items.forEach(function(it){
       if(b.codes.indexOf(it.c)<0)return;
       has=true;var n=Math.max(0,Math.round(+it.n||0));cnt[it.c]=(cnt[it.c]||0)+n;p=Math.max(p,+it.p||0);
-      if(it.t&&!st.tt[b.id])st.tt[b.id]=it.t;if(it.t&&!st.t)st.t=it.t;
+      if(it.t&&!st.tt[b.id])st.tt[b.id]=it.t;
+      if(it.pn&&it.pn.length&&!names)names=it.pn.slice();
     });
     if(!has)return;
-    var pts=Math.max(p,Math.max.apply(null,b.codes.map(function(c){return cnt[c]||0;}))),rows=[];
-    if(!b.multi)pts=Math.max(p,b.codes.reduce(function(s,c){return s+(cnt[c]||0);},0));
+    var pts=b.multi?Math.max(p,Math.max.apply(null,b.codes.map(function(c){return cnt[c]||0;})))
+      :Math.max(p,b.codes.reduce(function(s,c){return s+(cnt[c]||0);},0)),rows=[];
     for(var i=0;i<pts;i++)rows.push([]);
     if(b.multi)b.codes.forEach(function(c){for(var i=0;i<(cnt[c]||0);i++)rows[i].push(c);});
     else{var i=0;b.codes.forEach(function(c){for(var j=0;j<(cnt[c]||0);j++)rows[i++]=[c];});}
     st.b[b.id]=rows;
-    if(b.id==='wf')st.flowOn=true;
+    st.nm[b.id]=rows.map(function(x,i){return (names&&names[i])||'';});
   });
   return (WS[r.key]=st);
 }
-function blkHTML(r,c,can){
-  var st=wsOf(r),cm=colMap(),k=esc(r.key),dis=can?'':' disabled',h='',upc=upCodes(r);
-  var mineOf=function(codes){var s=0,n=0;c.lines.forEach(function(l){if(l.c&&codes.indexOf(l.c.c)>=0){s+=l.mine;if(!l.c.pp)n=l.k;}});return [s,n];};
-  var step=function(b,v){return '<span class="stp">'+(can?'<button onclick="wPts(\''+k+'\',\''+b.id+'\',-1)">−</button>':'')+'<b>'+v+'</b> '+b.unit+(can?'<button onclick="wPts(\''+k+'\',\''+b.id+'\',1)">＋</button>':'')+'</span>';};
-  var chips=function(b,sel,i){   // i=-1 代表「全部點位」
-    if(!b.multi)return '<div class="gseg">'+b.codes.map(function(x){   // 單選：一列分段按鈕
-      return '<button class="'+(sel.indexOf(x)>=0?'on':'')+(sel.indexOf(x)>=0&&upc[x]&&i>=0?' up':'')+'"'+dis+' onclick="wSet(\''+k+'\',\''+b.id+'\','+i+',\''+x+'\')">'+W_SHORT[x]+'<small>'+cm[x].r+'</small></button>';}).join('')+'</div>';
-    return b.codes.map(function(x){
-      var on=sel.indexOf(x)>=0;
-      return '<button class="wk'+(on?' on':'')+(on&&upc[x]&&i>=0?' up':'')+(b.multi?'':' rd')+'"'+dis+' onclick="wSet(\''+k+'\',\''+b.id+'\','+i+',\''+x+'\')"><i>'+(on?'✓':'')+'</i>'+W_LBL[x]+'<small>'+cm[x].r+'</small></button>';}).join('');
-  };
-  var one=function(b){
-    var rows=st.b[b.id]||[];
-    var all=b.codes.filter(function(x){return rows.length&&rows.every(function(r){return r.indexOf(x)>=0;});});
-    var o='<div class="'+(b.sub?'wsub':'wbk')+'"><div class="wh"><b>'+b.name+'</b>'+(st.tt[b.id]?'<span class="hint">（'+he(st.tt[b.id])+'）</span>':'')+step(b,rows.length)+'</div>';
-    if(rows.length===1){o+='<div class="wrow"><span></span><div class="wc">'+chips(b,rows[0],0)+'</div></div>';return o+'</div>';}
-    var same=rows.every(function(r){return r.slice().sort().join()===rows[0].slice().sort().join();});
-    var op=WOPEN[r.key+b.id]||!same;
-    o+='<div class="wrow all"><span>全部</span><div class="wc">'+chips(b,all,-1)+'</div></div>';
-    if(!same&&!op)op=true;
-    o+='<button class="wfold" onclick="WOPEN[\''+k+b.id+'\']='+(op&&same?'false':'true')+';render()"'+(!same?' disabled':'')+'>'
-      +(same?(op?'收起個別點位 ▴':'每個'+b.unit+'個別設定 ▾'):'各'+b.unit+'不同，已展開')+'</button>';
-    if(op)rows.forEach(function(sel,i){o+='<div class="wrow"><span>第 '+(i+1)+' '+b.unit+'</span><div class="wc">'+chips(b,sel,i)+'</div></div>';});
-    return o+'</div>';
-  };
-  var groups=[];BLK.forEach(function(b){if(st.b[b.id]&&groups.indexOf(b.g)<0)groups.push(b.g);});
-  groups.forEach(function(g){
-    var bs=BLK.filter(function(b){return b.g===g;}),codes=[];bs.forEach(function(b){codes=codes.concat(b.codes);});
-    h+='<div class="wb">';
-    bs.forEach(function(b){
-      if(b.id==='wf'){
-        if(st.b.wg||st.b.wf)h+='<div class="wc" style="margin:10px 0 0"><button class="wk'+(st.flowOn?' on':'')+'"'+dis+' onclick="wFlow(\''+k+'\')"><i>'+(st.flowOn?'✓':'')+'</i>水量（斷面）</button></div>';
-        if(st.flowOn&&st.b.wf)h+=one(b);
-        return;
-      }
-      if(st.b[b.id])h+=one(b);
+function wSumTxt(rows,upc){
+  var c={},o=[];rows.forEach(function(s){s.forEach(function(x){c[x]=(c[x]||0)+1;});});
+  Object.keys(c).forEach(function(x){o.push('<span'+(upc[x]?' class="upt"':'')+'>'+W_LBL[x]+' '+c[x]+'</span>');});
+  return o.join('・')||'尚未選擇';
+}
+/** 整筆的「項目｜數量｜金額」清單 */
+function recList(r,c,can){
+  var st=wsOf(r),cm=colMap(),k=esc(r.key),upc=upCodes(r),dis=can?'':' disabled',h='<div class="clist">';
+  BLK.forEach(function(b){
+    var rows=st.b[b.id];if(!rows)return;
+    var sub=0,ok=true,nq='';
+    c.lines.forEach(function(l){if(l.c&&b.codes.indexOf(l.c.c)>=0){sub+=l.amt;if(!l.ok){ok=false;nq=l.c.q;}}});
+    var op=!!WOPEN[r.key+b.id],anyUp=b.codes.some(function(x){return upc[x];});
+    h+='<button class="ci'+(op?' op':'')+(ok?'':' nq')+'" onclick="WOPEN[\''+k+b.id+'\']='+(!op)+';render()">'
+      +'<div class="cin"><b>'+b.name+(anyUp?' <i class="upm">▲</i>':'')+'</b><small>'+wSumTxt(rows,upc)+(st.tt[b.id]?'　（'+he(st.tt[b.id])+'）':'')+(ok?'':'　無「'+he(nq)+'」資格不計')+'</small></div>'
+      +'<span class="ciq">'+rows.length+' '+b.unit+'</span><span class="cia">'+money(sub)+'</span><span class="cie">'+(op?'▴':(can?'✎':'›'))+'</span></button>';
+    if(!op)return;
+    h+='<div class="cl">';
+    var ctl=function(i,sel){
+      if(!b.multi){var v=sel[0]||'';
+        return '<span class="sel'+(v&&upc[v]&&i>=0?' up':'')+'"><select'+dis+' onchange="wSet(\''+k+'\',\''+b.id+'\','+i+',this.value)">'
+          +(i<0?'<option value="">選擇…</option>':'')+b.codes.map(function(x){return '<option value="'+x+'"'+(x===v?' selected':'')+'>'+W_LBL[x]+'　'+cm[x].r+'</option>';}).join('')+'</select></span>';}
+      return '<span class="mc">'+b.codes.map(function(x){var on=sel.indexOf(x)>=0;
+        return '<button class="'+(on?'on':'')+(on&&upc[x]&&i>=0?' up':'')+'"'+dis+' onclick="wSet(\''+k+'\',\''+b.id+'\','+i+',\''+x+'\')">'+W_LBL[x]+'<small>'+cm[x].r+'</small></button>';}).join('')+'</span>';
+    };
+    if(rows.length>2&&can){
+      var all=b.codes.filter(function(x){return rows.every(function(s){return s.indexOf(x)>=0;});});
+      h+='<div class="cr allr'+(b.multi?' mrow':'')+'"><span class="pname" style="color:var(--accT);font-weight:600">全部設為<small>一次套用 '+rows.length+' '+b.unit+'</small></span>'+ctl(-1,b.multi?all:[])+'</div>';
+    }
+    rows.forEach(function(sel,i){
+      var nm=st.nm[b.id][i];
+      h+='<div class="cr'+(b.multi?' mrow':'')+'"><span class="pname"'+(can?' onclick="wName(\''+k+'\',\''+b.id+'\','+i+')"':'')+'>'+(nm?he(nm):'第 '+(i+1)+' '+b.unit)+'<small>'+(nm?'第 '+(i+1)+' '+b.unit:(can?'點這裡填點位名稱':''))+'</small></span>'
+        +ctl(i,sel)+(can&&rows.length>1?'<button class="rmx" title="刪除這'+b.unit+'" onclick="wDel(\''+k+'\',\''+b.id+'\','+i+')">✕</button>':'')+'</div>';
     });
-    if(g==='水質'&&!st.b.gw&&can)h+='<button class="wadd" onclick="wAdd(\''+k+'\',\'gw\')">＋ 地下水</button>';
-    var m=mineOf(codes);
-    h+='<div class="wtot">'+g+'小計'+(m[1]?' ÷'+m[1]+' 人':'')+'<b>'+money(m[0])+'</b></div></div>';
+    if(can){
+      h+='<div class="cft"><button class="addp" onclick="wPts(\''+k+'\',\''+b.id+'\',1)">＋ 加一'+b.unit+'</button>';
+      if(b.id==='wg'){if(!st.b.wf)h+='<button class="addp" onclick="wAdd(\''+k+'\',\'wf\')">＋ 水量（斷面）</button>';if(!st.b.gw)h+='<button class="addp" onclick="wAdd(\''+k+'\',\'gw\')">＋ 地下水</button>';}
+      if(b.id==='wf'||b.id==='gw')h+='<button class="addp" style="color:var(--tx3)" onclick="wRm(\''+k+'\',\''+b.id+'\')">移除'+b.name+'</button>';
+      h+='<span style="flex:1"></span><button class="edit" onclick="WOPEN[\''+k+b.id+'\']=false;render()">完成 ✓</button></div>';
+    }
+    h+='</div>';
   });
-  return h;
+  c.lines.forEach(function(l){
+    if(l.c&&BLK_CODES.indexOf(l.c.c)>=0)return;
+    if(l.un){h+='<div class="ci un"><div class="cin"><b>'+he(l.it.t||'未分類')+'</b><small>行程類型對不到津貼項目，請點右上 ✎ 選擇</small></div><span class="ciq"></span><span class="cia">—</span><span class="cie"></span></div>';return;}
+    h+='<div class="ci'+(l.ok?'':' nq')+'"><div class="cin"><b>'+he(l.c.g+'・'+l.c.s)+(upc[l.c.c]?' <i class="upm">▲</i>':'')+'</b><small>'+(l.it.t?he(l.it.t):'')+(l.ok?'':'　無「'+he(l.c.q)+'」資格不計')+(l.c.pp?'　每人計':'')+'</small></div>'
+      +'<span class="ciq">'+l.n+' × '+l.c.r+'</span><span class="cia">'+money(l.amt)+'</span><span class="cie"></span></div>';
+  });
+  return h+'</div>';
 }
 function wItems(st){
   var out=[];
   BLK.forEach(function(b){
-    var rows=st.b[b.id];if(!rows)return;
-    if(b.id==='wf'&&!st.flowOn)return;
+    var rows=st.b[b.id];if(!rows||!rows.length)return;
     var cnt={};rows.forEach(function(sel){sel.forEach(function(c){cnt[c]=(cnt[c]||0)+1;});});
-    var any=false;
-    b.codes.forEach(function(c){if(cnt[c]){any=true;out.push({c:c,n:cnt[c],t:st.tt[b.id]||'',p:rows.length});}});
-    if(!any&&rows.length)out.push({c:b.codes[0],n:0,t:st.tt[b.id]||'',p:rows.length,keep:1});   // 點位都沒勾：只記點數
+    var pn=st.nm[b.id].slice(0,rows.length),any=false;
+    b.codes.forEach(function(c){if(cnt[c]){any=true;out.push({c:c,n:cnt[c],t:st.tt[b.id]||'',p:rows.length,pn:pn});}});
+    if(!any)out.push({c:b.codes[0],n:0,t:st.tt[b.id]||'',p:rows.length,pn:pn,keep:1});   // 點位都沒勾：只記點數
   });
   return out;
 }
@@ -473,20 +508,18 @@ function wApply(key){
   },700);
 }
 function wSet(key,bid,i,code){
+  if(!code)return;
   var b=blkOf(bid),rows=WS[key].b[bid];
-  var tog=function(sel,on){var j=sel.indexOf(code);if(b.multi){if(on&&j<0)sel.push(code);if(!on&&j>=0)sel.splice(j,1);}else{sel.length=0;if(on)sel.push(code);}};
-  if(i<0){var all=rows.every(function(s){return s.indexOf(code)>=0;});rows.forEach(function(s){tog(s,!all);});}
-  else tog(rows[i],rows[i].indexOf(code)<0);
+  var tog=function(sel,on){var j=sel.indexOf(code);if(b.multi){if(on&&j<0)sel.push(code);if(!on&&j>=0)sel.splice(j,1);}else{sel.length=0;sel.push(code);}};
+  if(i<0){var all=rows.every(function(s){return s.indexOf(code)>=0;});rows.forEach(function(s){tog(s,b.multi?!all:true);});}
+  else tog(rows[i],b.multi?rows[i].indexOf(code)<0:true);
   wApply(key);
 }
-function wPts(key,bid,d){
-  var rows=WS[key].b[bid];
-  if(d>0)rows.push(wDef(blkOf(bid)));   // 新點位先帶最便宜的那項
-  else if(rows.length>1)rows.pop();
-  wApply(key);
-}
-function wFlow(key){var st=WS[key];st.flowOn=!st.flowOn;if(st.flowOn&&!st.b.wf)st.b.wf=[wDef(blkOf('wf'))];wApply(key);}
-function wAdd(key,bid){WS[key].b[bid]=[wDef(blkOf(bid))];wApply(key);}
+function wPts(key,bid,d){var st=WS[key];st.b[bid].push(wDef(blkOf(bid)));st.nm[bid].push('');wApply(key);}
+function wDel(key,bid,i){var st=WS[key];st.b[bid].splice(i,1);st.nm[bid].splice(i,1);wApply(key);}
+function wAdd(key,bid){var st=WS[key];st.b[bid]=[wDef(blkOf(bid))];st.nm[bid]=[''];WOPEN[key+bid]=true;wApply(key);}
+function wRm(key,bid){var st=WS[key];delete st.b[bid];delete st.nm[bid];wApply(key);}
+function wName(key,bid,i){var st=WS[key],v=prompt('點位名稱',st.nm[bid][i]||'');if(v===null)return;st.nm[bid][i]=v.trim().slice(0,30);wApply(key);}
 function addBtn(){
   var d=S.data;if(!d||(!d.canAll&&d.who!==d.me))return '';
   return '<button class="btn btn-full" style="margin-top:6px" onclick="editRec(\'\')">＋ 補一筆行程沒有的</button>';
