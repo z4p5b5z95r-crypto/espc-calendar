@@ -153,6 +153,9 @@ button.chip{cursor:pointer}
 .ci.nq .cia{color:var(--tx3);text-decoration:line-through}
 .ci.un{background:rgba(245,166,35,.08)}
 .cin{flex:1;min-width:0}.cin b{font-weight:600}.cin small{display:block;color:var(--tx3);font-size:11.5px;margin-top:2px;line-height:1.45}
+.nqt{display:block;font-size:11.5px;color:#b7791f;margin-top:2px}
+.nqn{color:var(--tx2)}
+.nqn i{font-style:normal;text-decoration:none;display:inline-block;margin-left:3px;font-size:10.5px;color:#b7791f;background:rgba(245,166,35,.14);border-radius:5px;padding:0 4px}
 .upm{font-style:normal;color:#e74c3c;font-size:11px}
 .upt{color:#d9432f;font-weight:600}
 .ciq{color:var(--tx3);font-size:12.5px;white-space:nowrap}.cia{min-width:46px;text-align:right;font-weight:700}
@@ -380,7 +383,10 @@ function meView(){
     h+='<div class="card"><div class="rh"><div class="pn">'+he(r.project)+'</div>'
       +(r.auto?'<span class="chip">行程帶入</span>':(x.up&&x.up.amt>0?'<span class="chip up">▲ '+(x.up.added?'手動新增':'調高')+' +'+money(x.up.amt)+'</span>':'<span class="chip acc">已修正</span>'))
       +(can?'<button class="ed" title="修正" onclick="editRec(\''+esc(r.key)+'\')">✎</button>':'')+'</div>'
-      +'<div class="rs">'+r.staff.length+' 人：'+r.staff.map(function(n){return n===who?'<b style="color:var(--tx)">'+he(n)+'</b>':he(n);}).join('、')
+      +'<div class="rs">'+r.staff.length+' 人：'+r.staff.map(function(n){
+        var cmm=colMap(),miss=[];r.items.forEach(function(it){var q=cmm[it.c]&&cmm[it.c].q;if(q&&!hasQ(n,q)&&miss.indexOf(q)<0)miss.push(q);});
+        var t=n===who?'<b style="color:var(--tx)">'+he(n)+'</b>':he(n);
+        return miss.length?'<span class="nqn" title="無資格：'+he(miss.join('、'))+'">'+t+'<i>無'+he(miss.join('、'))+'</i></span>':t;}).join('、')
       +(r.auto?'':'　'+he(r.by||'')+' 修正')+(r.note?'<br>備註：'+he(r.note):'')+'</div>'
       +(x.up&&x.up.amt>0&&!x.up.added?'<div class="updiff">'+x.up.diff.map(function(q){var cc=colMap()[q.c];return '<span class="'+(q.up?'u':'dn')+'">'+(q.up?'＋':'－')+he(W_LBL[q.c]||cc.s)+' ×'+Math.abs(q.d)+'</span>';}).join('')
         +(x.up.staff?'<span class="dn">人數 '+x.up.staff+'</span>':'')+'</div>':'')
@@ -392,8 +398,7 @@ function meView(){
 }
 /* ── 分項明細（C 款：項目清單＋逐點下拉）。只有「水質・一般」可複選（金額累加），其餘都是單選 ── */
 var BLK=[
-  {id:'wg',g:'水質',name:'水質・一般',codes:['D','E','F','G'],multi:true,unit:'點'},
-  {id:'wf',g:'水質',name:'水量（斷面）',codes:['N','O','P'],multi:false,unit:'處'},
+  {id:'wg',g:'水質',name:'水質・一般',codes:['D','E','F','G','N','O','P'],multi:true,excl:['N','O','P'],unit:'點'},   // 水量三選一，其他可複選
   {id:'gw',g:'水質',name:'地下水',codes:['K','L','M'],multi:false,unit:'口'},
   {id:'car',g:'空氣',name:'空氣・監測車',codes:['V','W'],multi:false,unit:'台'},
   {id:'ws',g:'廢棄物',name:'廢棄物',codes:['Y','Z','AA','AB'],multi:false,unit:'點'},
@@ -401,7 +406,7 @@ var BLK=[
   {id:'se',g:'底泥',name:'底泥',codes:['AF','AG','AH'],multi:false,unit:'點'}];
 var BLK_CODES=[];BLK.forEach(function(b){BLK_CODES=BLK_CODES.concat(b.codes);});
 var WATER=BLK_CODES;
-var W_LBL={D:'不混樣',E:'混樣',F:'混樣(河川>40m)',G:'須出動橡皮艇',N:'100m以下',O:'100m以上',P:'使用M9',
+var W_LBL={D:'不混樣',E:'混樣',F:'混樣(河川>40m)',G:'須出動橡皮艇',N:'水量100m以下',O:'水量100m以上',P:'水量(使用M9)',
   K:'不洗井',L:'洗井<50m',M:'洗井>50m',Y:'單一廢棄物',Z:'混樣廢棄物',AA:'防護設備(不混樣)',AB:'防護設備(混樣)',
   AC:'不混樣',AD:'混樣',AE:'九宮格混樣',AF:'岩心',AG:'抓取/拖拉式',AH:'採樣鏟',V:'無發電機',W:'含發電機'};
 var WS={},WSAVE={},WOPEN={};
@@ -437,6 +442,9 @@ function wSumTxt(rows,upc){
   return o.join('・')||'尚未選擇';
 }
 /** 整筆的「項目｜數量｜金額」清單 */
+/** 這一類誰沒有資格（不分、不算人數） */
+function noQ(r,q){return q?r.staff.filter(function(n){return !hasQ(n,q);}):[];}
+function noQTxt(r,q,k){var x=noQ(r,q);return x.length?'<span class="nqt">÷'+(k||r.staff.length-x.length)+' 人・'+x.map(he).join('、')+' 無「'+he(q)+'」資格不分</span>':'';}
 function recList(r,c,can){
   var st=wsOf(r),cm=colMap(),k=esc(r.key),upc=upCodes(r),dis=can?'':' disabled',h='<div class="clist">';
   BLK.forEach(function(b){
@@ -445,7 +453,7 @@ function recList(r,c,can){
     c.lines.forEach(function(l){if(l.c&&b.codes.indexOf(l.c.c)>=0){sub+=l.amt;if(!l.ok){ok=false;nq=l.c.q;}}});
     var op=!!WOPEN[r.key+b.id],anyUp=b.codes.some(function(x){return upc[x];});
     h+='<button class="ci'+(op?' op':'')+(ok?'':' nq')+'" onclick="WOPEN[\''+k+b.id+'\']='+(!op)+';render()">'
-      +'<div class="cin"><b>'+b.name+(anyUp?' <i class="upm">▲</i>':'')+'</b><small>'+wSumTxt(rows,upc)+(st.tt[b.id]?'　（'+he(st.tt[b.id])+'）':'')+(ok?'':'　無「'+he(nq)+'」資格不計')+'</small></div>'
+      +'<div class="cin"><b>'+b.name+(anyUp?' <i class="upm">▲</i>':'')+'</b><small>'+wSumTxt(rows,upc)+(st.tt[b.id]?'　（'+he(st.tt[b.id])+'）':'')+(ok?'':'　無「'+he(nq)+'」資格不計')+'</small>'+noQTxt(r,(cm[b.codes[0]]||{}).q)+'</div>'
       +'<span class="ciq">'+rows.length+' '+b.unit+'</span><span class="cia">'+money(sub)+'</span><span class="cie">'+(op?'▴':(can?'✎':'›'))+'</span></button>';
     if(!op)return;
     h+='<div class="cl">';
@@ -467,8 +475,8 @@ function recList(r,c,can){
     });
     if(can){
       h+='<div class="cft"><button class="addp" onclick="wPts(\''+k+'\',\''+b.id+'\',1)">＋ 加一'+b.unit+'</button>';
-      if(b.id==='wg'){if(!st.b.wf)h+='<button class="addp" onclick="wAdd(\''+k+'\',\'wf\')">＋ 水量（斷面）</button>';if(!st.b.gw)h+='<button class="addp" onclick="wAdd(\''+k+'\',\'gw\')">＋ 地下水</button>';}
-      if(b.id==='wf'||b.id==='gw')h+='<button class="addp" style="color:var(--tx3)" onclick="wRm(\''+k+'\',\''+b.id+'\')">移除'+b.name+'</button>';
+      if(b.id==='wg'){if(!st.b.gw)h+='<button class="addp" onclick="wAdd(\''+k+'\',\'gw\')">＋ 地下水</button>';}
+      if(b.id==='gw')h+='<button class="addp" style="color:var(--tx3)" onclick="wRm(\''+k+'\',\''+b.id+'\')">移除'+b.name+'</button>';
       h+='<span style="flex:1"></span><button class="edit" onclick="WOPEN[\''+k+b.id+'\']=false;render()">完成 ✓</button></div>';
     }
     h+='</div>';
@@ -476,7 +484,7 @@ function recList(r,c,can){
   c.lines.forEach(function(l){
     if(l.c&&BLK_CODES.indexOf(l.c.c)>=0)return;
     if(l.un){h+='<div class="ci un"><div class="cin"><b>'+he(l.it.t||'未分類')+'</b><small>行程類型對不到津貼項目，請點右上 ✎ 選擇</small></div><span class="ciq"></span><span class="cia">—</span><span class="cie"></span></div>';return;}
-    h+='<div class="ci'+(l.ok?'':' nq')+'"><div class="cin"><b>'+he(l.c.g+'・'+l.c.s)+(upc[l.c.c]?' <i class="upm">▲</i>':'')+'</b><small>'+(l.it.t?he(l.it.t):'')+(l.ok?'':'　無「'+he(l.c.q)+'」資格不計')+(l.c.pp?'　每人計':'')+'</small></div>'
+    h+='<div class="ci'+(l.ok?'':' nq')+'"><div class="cin"><b>'+he(l.c.g+'・'+l.c.s)+(upc[l.c.c]?' <i class="upm">▲</i>':'')+'</b><small>'+(l.it.t?he(l.it.t):'')+(l.ok?'':'　無「'+he(l.c.q)+'」資格不計')+(l.c.pp?'　每人計':'')+'</small>'+(l.c.pp?'':noQTxt(r,l.c.q,l.k))+'</div>'
       +'<span class="ciq">'+l.n+' × '+l.c.r+'</span><span class="cia">'+money(l.amt)+'</span><span class="cie"></span></div>';
   });
   return h+'</div>';
@@ -510,7 +518,11 @@ function wApply(key){
 function wSet(key,bid,i,code){
   if(!code)return;
   var b=blkOf(bid),rows=WS[key].b[bid];
-  var tog=function(sel,on){var j=sel.indexOf(code);if(b.multi){if(on&&j<0)sel.push(code);if(!on&&j>=0)sel.splice(j,1);}else{sel.length=0;sel.push(code);}};
+  var tog=function(sel,on){var j=sel.indexOf(code);
+    if(b.multi){
+      if(on&&j<0){if(b.excl&&b.excl.indexOf(code)>=0)b.excl.forEach(function(x){var q=sel.indexOf(x);if(q>=0)sel.splice(q,1);});sel.push(code);}   // 水量只能選一種
+      if(!on&&j>=0)sel.splice(j,1);
+    }else{sel.length=0;sel.push(code);}};
   if(i<0){var all=rows.every(function(s){return s.indexOf(code)>=0;});rows.forEach(function(s){tog(s,b.multi?!all:true);});}
   else tog(rows[i],b.multi?rows[i].indexOf(code)<0:true);
   wApply(key);
