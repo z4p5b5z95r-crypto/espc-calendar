@@ -184,6 +184,11 @@ button.chip{cursor:pointer}
 .cft .addp{margin:0}
 .addp{font-size:13px;color:var(--accT);font-weight:600}
 .edit{font-size:13px;color:var(--accT);font-weight:700}
+.qd .x{width:30px;height:30px;flex:0 0 30px}
+.qpk{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
+.qpk input{width:20px;height:20px;accent-color:#F36F21}
+.qpk.tk{opacity:.5}
+.qpk small{display:block;color:var(--tx3);font-size:11.5px}
 details.fx{margin-top:10px}details.fx summary{font-size:13px;color:var(--accT);cursor:pointer;list-style:none}
 details.fx p{font-size:12.5px;color:var(--tx2);line-height:1.7;margin-top:6px}
 </style>
@@ -276,7 +281,7 @@ function moveM(d){
   if(m<0){m=11;y--;}if(m>11){m=0;y++;}
   S.ym=y+'-'+p2(m+1);load();
 }
-function go(t){S.tab=t;if(t==='all')loadSum();else if(t==='qual')loadQual();render();}
+function go(t){S.tab=t;if(t==='qdef')QD=null;if(t==='all')loadSum();else if(t==='qual')loadQual();render();}
 
 /* ── 計算（與後端相同） ── */
 function colMap(){var m={};(S.data.cols||[]).forEach(function(c){m[c.c]=c;});return m;}
@@ -329,7 +334,7 @@ function render(){
     +'<button class="btn" style="height:36px;padding:0 14px;font-size:13.5px" onclick="logout()">登出</button></div>';
   var canAll=d&&d.canAll;
   if(canAll){
-    h+='<div class="seg">'+[['me','個人明細'],['all','全員總表'],['qual','監測資格']].concat(d.isAdmin?[['rate','單價設定']]:[])
+    h+='<div class="seg">'+[['me','個人明細'],['all','全員總表'],['qual','監測資格']].concat(d.canQ?[['qdef','資格分類']]:[]).concat(d.isAdmin?[['rate','單價']]:[])
       .map(function(o){return '<button class="'+(S.tab===o[0]?'on':'')+'" onclick="go(\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>';
   }
   if(S.tab!=='qual'&&S.tab!=='rate')
@@ -339,6 +344,7 @@ function render(){
   if(S.tab==='all'&&canAll)h+=sumView();
   else if(S.tab==='qual'&&canAll)h+=qualView();
   else if(S.tab==='rate'&&d.isAdmin)h+=rateView();
+  else if(S.tab==='qdef'&&d.canQ)h+=qdefView();
   else h+=meView();
   $('app').innerHTML=h;
 }
@@ -632,12 +638,11 @@ function csv(){
 }
 
 /* ── 監測資格（放在帳號底下） ── */
-var QGROUP=[['水質'],['空品車','特殊項','戴奧辛'],['噪音振動'],['廢棄物'],['土壤'],['底泥'],['交通'],['海域']];
 function qualView(){
   if(!S.qual)return '<div class="spin"></div>';
   var q=S.qq.trim().toLowerCase();
   var list=S.qual.list.filter(function(x){return !q||(x.n+' '+x.u+' '+x.team).toLowerCase().indexOf(q)>=0;});
-  var h='<p class="hint" style="margin:8px 6px">只列 EIA-T、EIA-C 組別的人員。'+(S.qual.canEdit?'點一下切換，馬上儲存。':'只有主管可以設定，這裡只能查看。')+'沒有資格的類別不計津貼；「空品」分空品車、特殊項、戴奧辛。</p>'
+  var h='<p class="hint" style="margin:8px 6px">只列 EIA-T、EIA-C 組別的人員。'+(S.qual.canEdit?'點一下切換，馬上儲存。':'只有主管可以設定，這裡只能查看。')+'沒有資格的類別不計津貼。資格的種類在「資格分類」由主管設定。</p>'
     +'<input class="fld" placeholder="搜尋姓名、工號、組別" value="'+he(S.qq)+'" oninput="S.qq=this.value;qualList()" style="margin-bottom:10px">'
     +'<div class="list" id="ql">'+qualRows(list)+'</div>';
   return h;
@@ -648,9 +653,9 @@ function qualRows(list){
     var i=S.qual.list.indexOf(x);
     return '<div class="qr"><div class="row"><b style="flex:1">'+he(x.n)+'</b><span class="hint">'+he(x.u)+(x.team?'・'+he(x.team):'')+'</span>'
       +(x.q==null?'<span class="chip warn">未設定</span>':'')+'</div><div class="qg">'
-      +QGROUP.map(function(g,gi){return g.map(function(k){
+      +S.qual.quals.map(function(k){
         var on=x.q!=null&&x.q.indexOf(k)>=0;
-        return '<button class="cp'+(on?' on':'')+'"'+(S.qual.canEdit?' onclick="qualTap('+i+',\''+k+'\')"':' disabled')+'>'+(g.length>1?'空品・':'')+k+'</button>';}).join('');}).join('')
+        return '<button class="cp'+(on?' on':'')+'"'+(S.qual.canEdit?' onclick="qualTap('+i+',\''+esc(k)+'\')"':' disabled')+'>'+he(k)+'</button>';}).join('')
       +'</div></div>';
   }).join('');
 }
@@ -663,19 +668,67 @@ function qualTap(i,k){
     .catch(function(){x.q=old;qualList();toast('連線失敗','no');});
 }
 
+/* ── 資格分類（主管）：自己建資格、把表格細項拉進去 ── */
+var QD=null;   // 編輯中的副本 {defs:[{name,codes,old}], dirty}
+function qdInit(){QD={defs:(S.data.qdef||[]).map(function(g){return {name:g.name,old:g.name,codes:g.codes.slice()};}),dirty:false};}
+function qdOwner(c){for(var i=0;i<QD.defs.length;i++)if(QD.defs[i].codes.indexOf(c)>=0)return i;return -1;}
+function qdefView(){
+  if(!QD)qdInit();
+  var cm=colMap(),h='<p class="hint" style="margin:8px 6px">每個資格是一組細項：沒有這個資格的人，組裡的細項不分津貼、也不算平均人數。一個細項只能在一組；不在任何一組的＝不需資格。</p>';
+  QD.defs.forEach(function(g,gi){
+    h+='<div class="card qd"><div class="row"><b style="flex:1;font-size:15.5px" onclick="qdRename('+gi+')">'+he(g.name)+' <span class="hint">✎</span></b>'
+      +'<span class="hint">'+g.codes.length+' 項</span><button class="x" title="刪除這個資格" onclick="qdDel('+gi+')">✕</button></div><div class="chips" style="margin-top:8px">'
+      +(g.codes.length?g.codes.map(function(c){var x=cm[c];return x?'<button class="cp" onclick="qdOut('+gi+',\''+c+'\')">'+he(x.g+'・'+x.s)+'<i>✕</i></button>':'';}).join(''):'<span class="hint">還沒有細項</span>')
+      +'</div><button class="wadd" style="margin-top:10px" onclick="qdPick('+gi+')">＋ 拉細項進來</button></div>';
+  });
+  var free=(S.data.cols||[]).filter(function(c){return qdOwner(c.c)<0;});
+  h+='<button class="btn btn-full" style="margin:4px 0 12px" onclick="qdAdd()">＋ 新增資格</button>'
+    +'<div class="sec">不需資格的細項（'+free.length+'）</div><div class="card"><div class="chips">'
+    +(free.length?free.map(function(c){return '<span class="cp off">'+he(c.g+'・'+c.s)+'</span>';}).join(''):'<span class="hint">全部細項都已分類</span>')+'</div></div>'
+    +'<button class="btn btn-p btn-full" style="margin-top:12px"'+(QD.dirty?'':' disabled')+' onclick="qdSave()">'+(QD.dirty?'儲存資格分類':'已儲存')+'</button>';
+  return h;
+}
+function qdAdd(){var n=prompt('新資格名稱（例如：空氣・空品車）','');if(!n)return;n=n.trim().slice(0,20);if(!n)return;
+  if(QD.defs.some(function(g){return g.name===n;})){toast('已經有這個名稱','no');return;}
+  QD.defs.push({name:n,old:'',codes:[]});QD.dirty=true;render();qdPick(QD.defs.length-1);}
+function qdRename(gi){var g=QD.defs[gi],n=prompt('資格名稱',g.name);if(!n)return;n=n.trim().slice(0,20);
+  if(!n||n===g.name)return;if(QD.defs.some(function(x){return x.name===n;})){toast('已經有這個名稱','no');return;}g.name=n;QD.dirty=true;render();}
+function qdDel(gi){var g=QD.defs[gi];if(!confirm('刪除「'+g.name+'」？組裡的細項會變成不需資格，已勾這個資格的人也不再有作用。'))return;QD.defs.splice(gi,1);QD.dirty=true;render();}
+function qdOut(gi,c){var g=QD.defs[gi];g.codes.splice(g.codes.indexOf(c),1);QD.dirty=true;render();}
+function qdPick(gi){
+  var g=QD.defs[gi],cols=S.data.cols,last='',h='<div class="shh"><h3>拉細項進「'+he(g.name)+'」</h3><button class="ib" onclick="closeSheet();render()">✕</button></div>'
+    +'<p class="hint" style="margin-bottom:8px">勾選要放進這個資格的細項。一個細項只能屬於一個資格，已在別組的不能再勾。</p>';
+  cols.forEach(function(c){
+    if(c.g!==last){last=c.g;h+='<div class="lb">'+he(c.g)+'</div>';}
+    var o=qdOwner(c.c),on=o===gi;
+    var taken=o>=0&&o!==gi;   // 已在別的資格：不能重複，要先從那一組移出
+    h+='<label class="qpk'+(taken?' tk':'')+'"><input type="checkbox"'+(on?' checked':'')+(taken?' disabled':'')+' onchange="qdSet('+gi+',\''+c.c+'\',this.checked)"><span>'+he(c.s)+'<small>'+c.r+' 元'+(taken?'・已在「'+he(QD.defs[o].name)+'」，要先從那裡移出':'')+'</small></span></label>';
+  });
+  openSheet(h+'<button class="btn btn-p btn-full" style="margin-top:14px" onclick="closeSheet();render()">完成</button>');
+}
+function qdSet(gi,c,on){var o=qdOwner(c);if(on&&o>=0&&o!==gi){toast('這個細項已在「'+QD.defs[o].name+'」','no');return;}
+  if(o===gi&&!on)QD.defs[gi].codes.splice(QD.defs[gi].codes.indexOf(c),1);if(on&&o<0)QD.defs[gi].codes.push(c);QD.dirty=true;}
+function qdSave(){
+  var ren={};QD.defs.forEach(function(g){if(g.old&&g.old!==g.name)ren[g.old]=g.name;});
+  gas('allowQDef',TOKEN,QD.defs.map(function(g){return {name:g.name,codes:g.codes};}),ren).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
+    S.data.qdef=r.qdef;S.data.cols=r.cols;S.data.quals=r.qdef.map(function(g){return g.name;});S.qual=null;qdInit();toast('已儲存資格分類','ok');render();
+  }).catch(function(){toast('連線失敗','no');});
+}
+
 /* ── 單價設定（管理員） ── */
 function rateView(){
-  var cols=S.data.cols,last='',h='<p class="hint" style="margin:8px 6px">改單價或每個項目需要的資格，按最下面儲存。會影響所有月份的計算。</p><div class="list">';
+  var cols=S.data.cols,last='',h='<p class="hint" style="margin:8px 6px">改單價，按最下面儲存。會影響所有月份的計算。需要的資格在「資格分類」設定。</p><div class="list">';
   cols.forEach(function(c){
     if(c.g!==last){last=c.g;h+='<div class="rt" style="background:var(--gl);font-weight:700;font-size:12.5px;color:var(--tx2)">'+he(c.g)+'</div>';}
     h+='<div class="rt"><span class="l">'+he(c.s)+'<span class="hint">　'+c.c+'</span></span>'
-      +'<select id="rq-'+c.c+'"><option value="">不需資格</option>'+S.data.quals.map(function(q){return '<option'+(q===c.q?' selected':'')+'>'+q+'</option>';}).join('')+'</select>'
+      +(c.q?'<span class="chip">'+he(c.q)+'</span>':'')
       +'<input id="rr-'+c.c+'" type="number" inputmode="numeric" value="'+c.r+'"></div>';
   });
-  return h+'</div><button class="btn btn-p btn-full" style="margin-top:14px" onclick="saveRates()">儲存單價與資格</button>';
+  return h+'</div><button class="btn btn-p btn-full" style="margin-top:14px" onclick="saveRates()">儲存單價</button>';
 }
 function saveRates(){
-  var ov={};S.data.cols.forEach(function(c){ov[c.c]={r:+$('rr-'+c.c).value||0,q:$('rq-'+c.c).value};});
+  var ov={};S.data.cols.forEach(function(c){ov[c.c]={r:+$('rr-'+c.c).value||0};});
   gas('allowCols',TOKEN,ov).then(function(r){if(r&&r.ok){S.data.cols=r.cols;toast('已儲存','ok');render();}else toast((r&&r.error)||'失敗','no');});
 }
 
