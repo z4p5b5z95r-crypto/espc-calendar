@@ -931,6 +931,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
+    <button class="nb" id="nb-allow" data-t="allow" style="display:none"><span data-ic="money"></span><em>津貼</em></button>
     <button class="nb" id="nb-stat" data-t="stat" style="display:none"><span data-ic="chart"></span><em>統計</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
@@ -957,7 +958,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-09-30b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-09-30e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -990,6 +991,7 @@ function gas(fn){
   }
   return req.then(function(r){return r.json();})
     .then(function(j){
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&'team' in j){lsS('espc_team',j.team||'');allowNav();}   // 採樣津貼入口要看組別
       clearTimeout(timer);
       gasLog(fn,t0,!!(j&&j.ok),j);
       // 後端說還沒授權（profile_ok 被清掉等）→ 立刻擋下，叫出確認畫面
@@ -1010,6 +1012,7 @@ function gas(fn){
 
 /* ── 內嵌 SVG 圖示（不依賴外部字型，離線也正常）── */
 var ICON={
+ money:'<circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2s1.1 1.7 2.8 2.1 2.9.9 2.9 2.2-1.3 2.1-2.9 2.1c-1.3 0-2.5-.6-3-1.6M12 6.3v1.5M12 16.2v1.5"/>',
  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
@@ -1794,7 +1797,8 @@ function boot(u,r,eng){
   $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
   $('nb-cast').style.display=(r==='admin'||r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：管理員、主管、排程
   $('nb-dl').style.display=(r==='admin')?'':'none';
-  $('nb-stat').style.display=(r==='admin')?'':'none';   // 使用統計只有管理員 // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
+  $('nb-stat').style.display=(r==='admin')?'':'none';
+  allowNav();   // 使用統計只有管理員 // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -2047,7 +2051,11 @@ function touchTab(){
   });
   window.addEventListener('pagehide',away);
 })();
+/** 採樣津貼：EIA-T、EIA-C 的現場人員在底部多一個頁籤（點了開津貼頁） */
+function isAllowTeam(){return /^EIA-[TC]$/i.test((ls('espc_team')||'').trim());}
+function allowNav(){var b=$('nb-allow');if(b)b.style.display=isAllowTeam()?'':'none';}
 function go(t,s){
+  if(t==='allow'){location.href='allowance.html';return;}
   tab=t;sub=s||'';
   GC=(sub==='annNew')?GC_ANN:GC_CAST;
   saveTab();
@@ -2696,7 +2704,7 @@ function icDownloadAll(){
 function morePage(){
   var h='<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>'
-    +((ENGNAME||canWrite(ROLE))?'<button class="link" onclick="location.href=\'allowance.html\'">採樣津貼<span style="flex:1"></span>'+ic('file',19)+'</button>':'')
+    +((canWrite(ROLE)&&!isAllowTeam())?'<button class="link" onclick="location.href=\'allowance.html\'">採樣津貼<span style="flex:1"></span>'+ic('file',19)+'</button>':'')
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>'
     +'<button class="link" onclick="go(\'more\',\'hist\')">歷史廣播<span class="hint" style="margin-left:6px">7 天內</span><span style="flex:1"></span>'+ic('mega',19)+'</button>';
   h+='<div class="sec">偏好</div>'
