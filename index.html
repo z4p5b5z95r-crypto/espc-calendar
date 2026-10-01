@@ -958,7 +958,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-01a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-01b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2053,9 +2053,16 @@ function touchTab(){
 })();
 /** 採樣津貼：EIA-T、EIA-C 的現場人員在底部多一個頁籤（點了開津貼頁） */
 function isAllowTeam(){return /^EIA-[TC]$/i.test((ls('espc_team')||'').trim());}
+/* 津貼功能尚未正式開放：連點三下才打開，一、兩下只提示 */
+var ALLOW_TAP=0,ALLOW_TT=null;
+function allowTap(){
+  ALLOW_TAP++;clearTimeout(ALLOW_TT);
+  if(ALLOW_TAP>=3){ALLOW_TAP=0;location.href='allowance.html';return;}
+  ALLOW_TT=setTimeout(function(){ALLOW_TAP=0;toast('功能未開放','no',1800);},700);
+}
 function allowNav(){var b=$('nb-allow');if(b)b.style.display=(isAllowTeam()||canWrite(ROLE))?'':'none';}   // EIA-T/C 現場＋主管、排程、管理員
 function go(t,s){
-  if(t==='allow'){location.href='allowance.html';return;}
+  if(t==='allow'){allowTap();return;}
   tab=t;sub=s||'';
   GC=(sub==='annNew')?GC_ANN:GC_CAST;
   saveTab();
