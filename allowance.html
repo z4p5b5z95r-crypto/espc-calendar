@@ -294,7 +294,9 @@ function load(){
       else S.data={err:(r&&r.error)||'讀取失敗'};
       render();return;
     }
-    S.data=r;WS={};if(r.ym)S.ym=r.ym;render();
+    S.data=r;WS={};if(r.ym)S.ym=r.ym;
+    if(!S.first){S.first=1;if(r.canAll&&(r.notEligible||r.noName)&&S.tab==='me'&&!S.who)S.tab='all';}   // 主管／排程自己沒有津貼：直接開全員總表
+    render();
     if(S.tab==='all'&&r.canAll)loadSum();
     if(S.tab==='rule'&&r.canRule!=null)loadRule();
   }).catch(function(){S.busy=false;S.data={err:'連線失敗，請稍後再試'};render();});
@@ -468,16 +470,16 @@ function meView(){
 /* ── 分項明細（C 款：項目清單＋逐點下拉）。只有「水質・一般」可複選（金額累加），其餘都是單選 ── */
 var BLK=[
   {id:'wg',g:'水質',name:'水質・一般',codes:['D','E','F','G','N','O','P'],multi:true,excl:['N','O','P'],unit:'點'},   // 水量三選一，其他可複選
-  {id:'gw',g:'水質',name:'地下水',codes:['K','L','M'],multi:false,unit:'口'},
+  {id:'gw',g:'水質',name:'地下水',codes:['K','K2','K3','L','M'],multi:false,unit:'口'},
   {id:'car',g:'空氣',name:'空氣・監測車',codes:['V','W'],multi:false,unit:'台'},
   {id:'ws',g:'廢棄物',name:'廢棄物',codes:['Y','Z','AA','AB'],multi:false,unit:'點'},
   {id:'so',g:'土壤',name:'土壤',codes:['AC','AD','AE'],multi:false,unit:'點'},
-  {id:'se',g:'底泥',name:'底泥',codes:['AF','AG','AH'],multi:false,unit:'點'}];
+  {id:'se',g:'底泥',name:'底泥',codes:['AF','AG','AG2','AH'],multi:false,unit:'點'}];
 var BLK_CODES=[];BLK.forEach(function(b){BLK_CODES=BLK_CODES.concat(b.codes);});
 var WATER=BLK_CODES;
 var W_LBL={D:'不混樣',E:'混樣',F:'混樣(河川>40m)',G:'須出動橡皮艇',N:'水量100m以下',O:'水量100m以上',P:'水量(使用M9)',
-  K:'不洗井',L:'洗井<50m',M:'洗井>50m',Y:'單一廢棄物',Z:'混樣廢棄物',AA:'防護設備(不混樣)',AB:'防護設備(混樣)',
-  AC:'不混樣',AD:'混樣',AE:'九宮格混樣',AF:'岩心',AG:'抓取/拖拉式',AH:'採樣鏟',V:'無發電機',W:'含發電機'};
+  K:'不洗井',K2:'Dip',K3:'水桶',L:'洗井<50m',M:'洗井>50m',Y:'單一廢棄物',Z:'混樣廢棄物',AA:'防護設備(不混樣)',AB:'防護設備(混樣)',
+  AC:'不混樣',AD:'混樣',AE:'九宮格混樣',AF:'岩心',AG:'抓取式',AG2:'拖拉式',AH:'採樣鏟',V:'無發電機',W:'含發電機'};
 var WS={},WSAVE={},WOPEN={};
 function blkOf(id){for(var i=0;i<BLK.length;i++)if(BLK[i].id===id)return BLK[i];}
 /** 新點位的預設：最便宜那項 */
