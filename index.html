@@ -273,7 +273,8 @@ html[data-theme="dark"] .glass::after{
 .dnt b{display:block;font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .dnt span{font-size:12px;color:var(--tx3);}
 
-.cell.hol .dn{color:var(--err);}
+.cell.hol .dn{color:var(--err);font-weight:700;}
+.cell.hol .dn span{display:inline-block;min-width:21px;height:21px;line-height:21px;border-radius:11px;padding:0 2px;box-sizing:border-box;text-align:center;background:rgba(229,57,53,.15);}
 .cell.hol.oc .dn{opacity:.6;}
 .cell.tdy{outline:1.5px solid var(--acc);outline-offset:-1px;}
 .dn{font-size:11px;text-align:center;line-height:1.35;font-weight:500;}
@@ -960,7 +961,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-01e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-01f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2344,7 +2345,7 @@ function calPage(){
       +' onpointerdown="cellDown(event,\''+ds+'\')" onpointerup="cellUp(event)"'
       +' onpointermove="cellMove(event)" onpointercancel="cellUp(event)"'
       +' onpointerleave="cellUp(event)" oncontextmenu="return false">'
-      +'<div class="dn'+(out?' out':'')+(i%7===0&&!out?' sun':'')+'">'+day+'</div>';
+      +'<div class="dn'+(out?' out':'')+(i%7===0&&!out?' sun':'')+'">'+(hn?'<span>'+day+'</span>':day)+'</div>';
     gs.forEach(function(g){
       h+='<span class="evc" style="background:'+pcolor(g.project)+'"'
         +' onclick="evcTap(event,\''+ds+'\',\''+he(esc(g.project))+'\')">'
