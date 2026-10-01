@@ -317,6 +317,10 @@ html[data-theme="dark"] .glass::after{
 .tdchips button{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--tx2)}
 .tdchips button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
 body.locked .tdfab{display:none}
+.dayadd{display:flex;justify-content:center;padding:14px 0 4px}
+.tdplus{width:50px;height:50px;border-radius:50%;border:0;background:var(--brand);color:#fff;font-size:28px;line-height:48px;padding:0;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.5),0 6px 16px rgba(243,111,33,.42)}
+.tdplus:active{transform:scale(.94)}
 .tdcard{padding:2px 12px}.tdcard.warn{box-shadow:inset 3px 0 0 var(--err)}
 .tdl{display:flex;align-items:center;gap:9px;padding:5px 0;border-top:1px solid var(--line)}.tdl:first-child{border-top:0}
 .tdb{width:18px;height:18px;border-radius:50%;border:1.8px solid var(--tx3);background:none;flex:0 0 18px;padding:0}
@@ -1026,7 +1030,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02i';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02j';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -4172,6 +4176,7 @@ function openDay(d,focus){
       +(on?'<div class="pbody">'+evDetail(g)+'</div>':'')
       +'</div>';
   });
+  if(todoCan())h+='<div class="dayadd"><button class="tdplus" title="新增待辦" onclick="tdEdit(\'\',\''+d+'\')">＋</button></div>';   // PM：這天新增待辦
 
   castLoad(d);
   if(isOpen){
