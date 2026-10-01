@@ -189,6 +189,26 @@ button.chip{cursor:pointer}
 .qpk input{width:20px;height:20px;accent-color:#F36F21}
 .qpk.tk{opacity:.5}
 .qpk small{display:block;color:var(--tx3);font-size:11.5px}
+.voidbox{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.35);color:#b7791f;font-weight:700;font-size:13.5px}
+.voidbox span{font-weight:400;font-size:12.5px;color:var(--tx2)}
+.lockbox{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(31,138,76,.08);border:1px solid rgba(31,138,76,.3);color:var(--ok);font-weight:700;font-size:13.5px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ntfbox{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(232,120,40,.09);border:1px solid rgba(232,120,40,.3);color:var(--accT);font-weight:700;font-size:13.5px}
+.ntfbox span{display:block;font-weight:400;font-size:12.5px;color:var(--tx2);margin-top:3px}
+.ci.cxl .cin,.ci.cxl .ciq{opacity:.5}
+.ci.cxl .cia{text-decoration:line-through;color:var(--tx3)}
+.cxrow{margin:4px 0 8px;padding:7px 11px;border-radius:10px;background:rgba(211,59,47,.07);border:1px solid rgba(211,59,47,.25);font-size:12.5px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.cxrow b{color:var(--bad);font-weight:700}
+.cxrow i{font-style:normal;color:var(--tx3);margin-left:auto}
+.cxrow .chip{margin-left:auto;height:26px;padding:0 10px;font-size:12px}
+.cxrow span{flex:0 0 100%;color:var(--tx2)}
+.cxo{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--gl);margin-top:7px;font-size:14px;color:var(--tx)}
+.cxo.on{border-color:var(--bad);background:rgba(211,59,47,.07)}
+.cxo i{width:18px;height:18px;border-radius:50%;border:2px solid var(--tx3);flex:0 0 18px;box-sizing:border-box}
+.cxo.on i{border:5px solid var(--bad)}
+.cxo b{flex:1;font-weight:600}.cxo small{color:var(--tx3)}
+.cxo[disabled]{opacity:.45}
+.cxb{font-size:12.5px;color:var(--bad);background:none;border:1px solid rgba(211,59,47,.3);border-radius:999px;padding:4px 11px;margin-right:8px;flex:0 0 auto}
+.lockbox span{flex:0 0 100%;font-weight:400;font-size:12.5px;color:var(--tx2)}
 details.fx{margin-top:10px}details.fx summary{font-size:13px;color:var(--accT);cursor:pointer;list-style:none}
 details.fx p{font-size:12.5px;color:var(--tx2);line-height:1.7;margin-top:6px}
 </style>
@@ -225,7 +245,8 @@ function closeSheet(){$('ov').classList.remove('open');}
 /* 狀態 */
 var TOKEN=ls('espc_token')||'', UNAME=ls('espc_user')||'', ROLE=ls('espc_role')||'';
 var S={ym:'',tab:'me',who:'',data:null,busy:false,sum:null,qual:null,qq:'',edit:null};
-(function(){var d=new Date(Date.now()+8*3600e3);S.ym=d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1);})();
+(function(){var d=new Date(Date.now()+8*3600e3);S.ym=d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1);
+  var m=(location.search.match(/[?&]ym=(\d{4}-\d{2})/)||[])[1];if(m)S.ym=m;})();   // 從推播點進來直接開那個月
 
 /* ── 登入（與行事曆共用；在行事曆登入過就不用再登入） ── */
 function loginView(){
@@ -270,7 +291,7 @@ function load(){
 }
 function loadSum(){
   S.sum=null;render();
-  gas('allowSummary',TOKEN,S.ym).then(function(r){S.sum=r&&r.ok?r.list:[];render();}).catch(function(){S.sum=[];render();});
+  gas('allowSummary',TOKEN,S.ym).then(function(r){S.sum=r&&r.ok?r.list:[];S.ntf=r&&r.ok?r.ntf:null;S.sumCx=!!(r&&r.canCx);render();}).catch(function(){S.sum=[];render();});
 }
 function loadQual(){
   S.qual=null;render();
@@ -287,10 +308,11 @@ function go(t){S.tab=t;if(t==='qdef')QD=null;if(t==='all')loadSum();else if(t===
 function colMap(){var m={};(S.data.cols||[]).forEach(function(c){m[c.c]=c;});return m;}
 function hasQ(n,q){if(!q)return true;var l=(S.data.staffQuals||{})[n];return l==null?true:l.indexOf(q)>=0;}
 function calc(rec,who){
-  var cm=colMap(),share=0,pp=0,lines=[],parts=[];
+  var cm=colMap(),share=0,pp=0,lines=[],parts=[],cxc=cxCodes(rec);
   rec.items.forEach(function(it){
     var c=cm[it.c],n=+it.n||0;
     if(!c){lines.push({it:it,un:true});return;}
+    if(cxc[it.c]){lines.push({it:it,c:c,n:n,amt:c.r*n,ok:hasQ(who,c.q),k:0,mine:0,cx:cxc[it.c]});return;}   // 主管取消的項目不計
     var amt=c.r*n,ok=hasQ(who,c.q),k=0,mine=0;
     if(c.pp){mine=ok?amt:0;pp+=mine;}
     else{k=rec.staff.filter(function(s){return hasQ(s,c.q);}).length||1;mine=ok?amt/k:0;share+=mine;if(ok)parts.push(amt+'÷'+k);}
@@ -301,6 +323,17 @@ function calc(rec,who){
   return {tot:tot,lines:lines,fm:fm};
 }
 
+/* ── 主管取消的項目（一項一項） ── */
+function cxCodes(r){var o={};(r.cx||[]).forEach(function(x){x.codes.forEach(function(c){o[c]=x;});});return o;}
+function cxOf(r,item){return (r.cx||[]).filter(function(x){return x.item===item;})[0]||null;}
+/* 已確認的人：確認當下的內容＋現在的取消狀態（主管之後取消某項，鎖定金額也跟著扣） */
+function lockAmt(v,r,who){
+  if(v==null)return null;
+  if(typeof v!=='object')return +v||0;
+  var now=Object.keys(cxCodes(r)).sort().join(',');
+  if(now===(v.x||[]).join(','))return +v.a||0;
+  return calc({staff:v.s||[],items:v.i||[],cx:r.cx||[]},who).tot;
+}
 /* ── 手動調高：跟行程帶入的原始內容比 ── */
 function upOf(r,who){
   if(r.auto)return null;
@@ -364,41 +397,55 @@ function meView(){
   var who=d.who,self=(who===d.me),tot=0,days={};
   d.recs=d.recs.map(function(r){r.items=r.items.filter(function(x){return +x.n>0||x.keep;});return r;}).filter(function(r){return r.items.length;});   // 數量 0 的不顯示、不計價
   var rows=d.recs.map(function(r){var c=calc(r,who);tot+=c.tot;days[r.date]=1;return {r:r,c:c};});
+  var cxN=d.recs.reduce(function(s,r){return s+(r.cx||[]).length;},0);
   var cf=d.confirm,un=d.recs.filter(function(r){return r.items.some(function(x){return !x.c;});}).length;
+  // 已按「金額無誤」＝鎖定：每筆用確認當下的金額，同組別人之後再改不影響他
+  var LOCK=cf&&cf.status==='ok'?(cf.snap||null):null;
+  if(LOCK){tot=0;rows.forEach(function(x){x.lk=(x.r.key in LOCK)?lockAmt(LOCK[x.r.key],x.r,who):null;if(x.lk!=null)tot+=x.lk;});}
   var upN=0,upA=0;rows.forEach(function(x){var u=upOf(x.r,who);x.up=u;if(u&&u.amt>0){upN++;upA+=u.amt;}});
   h+='<div class="card"><div class="hint">'+(self?'我的':he(who)+' 的')+'津貼</div>'
     +'<div class="tot"><div class="big"><small>NT$</small>'+money(tot)+'</div>'
     +'<div class="hint" style="margin-bottom:7px">'+rows.length+' 筆・'+Object.keys(days).length+' 天</div></div>'
     +'<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center"><span class="hint">監測資格</span>'+qualText(who)+'</div>'
+    +(self&&d.ntf&&!LOCK?'<div class="ntfbox">主管已請大家核對 '+(+S.ym.slice(5))+' 月津貼・'+he(String(d.ntf.at).slice(5,10).replace('-','/'))+'<span>確認每一筆沒問題後，請按下方「金額無誤」；有問題按「有疑問」。</span></div>':'')
+    +(cxN?'<div style="margin-top:8px"><span class="chip q">主管取消 '+cxN+' 項（不計津貼）</span></div>':'')
     +(un?'<div style="margin-top:8px"><span class="chip warn">'+un+' 筆有行程類型沒對應到津貼項目，請點 ✎ 補上</span></div>':'')
-    +(upN?'<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip up">▲ 手動調高 '+upN+' 筆　+NT$'+money(upA)+'</span>'
+    +(upN&&!LOCK?'<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="chip up">▲ 手動調高 '+upN+' 筆　+NT$'+money(upA)+'</span>'
       +'<button class="chip'+(ONLY_UP?' acc':'')+'" onclick="ONLY_UP=!ONLY_UP;render()">'+(ONLY_UP?'顯示全部':'只看調高的')+'</button></div>':'')
-    +(cf?'<div style="margin-top:10px"><span class="chip '+(cf.status==='ok'?'ok':'q')+'">'+(cf.status==='ok'?'✓ 已核對無誤':'! 有疑問')+'・'+he(cf.at.slice(5,16))+'</span>'
-      +(cf.total!==tot?' <span class="chip warn">核對時 NT$'+money(cf.total)+'，之後有變動</span>':'')
-      +(cf.note?'<div class="hint" style="margin-top:5px">'+he(cf.note)+'</div>':'')+'</div>':'')
-    +(self&&rows.length?'<div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onclick="askQ()">有疑問</button><button class="btn btn-p" style="flex:1" onclick="confirmOk()">金額無誤</button></div>':'')
+    +(LOCK?'<div class="lockbox">🔒 已確認，金額鎖定・'+he(cf.at.slice(5,16))+'<span>之後同組的人再修改，只會改到還沒確認的人，你的金額維持不變。</span>'
+        +(self?'<button class="chip" onclick="unlockMe()">取消確認</button>':'')+'</div>'
+      :(cf&&cf.status==='q'?'<div style="margin-top:10px"><span class="chip q">! 有疑問・'+he(cf.at.slice(5,16))+'</span>'+(cf.note?'<div class="hint" style="margin-top:5px">'+he(cf.note)+'</div>':'')+'</div>':''))
+    +(self&&rows.length&&!LOCK?'<div class="row" style="margin-top:12px"><button class="btn" style="flex:1" onclick="askQ()">有疑問</button><button class="btn btn-p" style="flex:1" onclick="confirmOk()">金額無誤</button></div>':'')
     +'<details class="fx"><summary>怎麼算的？</summary><p>每一筆（某天某案）：<br>本人金額＝四捨五入（Σ 單價×點位數 ÷ 該類別有資格的人數）＋ 每人計的項目。<br>'
-    +'沒有該類別資格的人，那一類不分給他，也不算進平均人數。<br>點位數由行程帶入，現場人員或主管可以點 ✎ 修正細項（混樣、洗井等）。</p></details></div>';
+    +'沒有該類別資格的人，那一類不分給他，也不算進平均人數。<br>點位數、人員以行程為準，要增減請告知排程人員修改後重新上傳；現場可以在每一點選擇細項（混樣、橡皮艇、洗井等）。</p></details></div>';
   if(!rows.length)return h+'<div class="card"><div class="empty">這個月沒有行程</div></div>'+addBtn();
   var last='';
   rows.forEach(function(x){
     if(ONLY_UP&&!(x.up&&x.up.amt>0))return;
     var r=x.r,c=x.c;
     if(r.date!==last){last=r.date;var dt=new Date(r.date+'T00:00:00');h+='<div class="dh">'+(+r.date.slice(5,7))+'/'+(+r.date.slice(8))+'（'+'日一二三四五六'.charAt(dt.getDay())+'）</div>';}
-    var can=d.canAll||r.staff.indexOf(d.me)>=0;
+    var can=(d.canAll||r.staff.indexOf(d.me)>=0)&&!(LOCK&&self);   // 自己已確認就不能再改（要先取消確認）
     h+='<div class="card"><div class="rh"><div class="pn">'+he(r.project)+'</div>'
-      +(r.auto?'<span class="chip">行程帶入</span>':(x.up&&x.up.amt>0?'<span class="chip up">▲ '+(x.up.added?'手動新增':'調高')+' +'+money(x.up.amt)+'</span>':'<span class="chip acc">已修正</span>'))
-      +(can?'<button class="ed" title="修正" onclick="editRec(\''+esc(r.key)+'\')">✎</button>':'')+'</div>'
+      +(r.cx&&r.cx.length?'<span class="chip q">取消 '+r.cx.length+' 項</span>':'')
+      +(r.auto?'<span class="chip">行程帶入</span>':(x.up&&x.up.amt>0?'<span class="chip up">▲ '+(x.up.added?'手動新增':'調高')+' +'+money(x.up.amt)+'</span>':(r.selOnly?'<span class="chip acc">已選細項</span>':'<span class="chip acc">已修正</span>')))
+      +(can&&d.canAll?'<button class="ed" title="修正（主管／排程）" onclick="editRec(\''+esc(r.key)+'\')">✎</button>':'')+'</div>'
       +'<div class="rs">'+r.staff.length+' 人：'+r.staff.map(function(n){
         var cmm=colMap(),miss=[];r.items.forEach(function(it){var q=cmm[it.c]&&cmm[it.c].q;if(q&&!hasQ(n,q)&&miss.indexOf(q)<0)miss.push(q);});
         var t=n===who?'<b style="color:var(--tx)">'+he(n)+'</b>':he(n);
-        return miss.length?'<span class="nqn" title="無資格：'+he(miss.join('、'))+'">'+t+'<i>無'+he(miss.join('、'))+'</i></span>':t;}).join('、')
-      +(r.auto?'':'　'+he(r.by||'')+' 修正')+(r.note?'<br>備註：'+he(r.note):'')+'</div>'
+        return miss.length?'<span class="nqn" title="尚無資格：'+he(miss.join('、'))+'">'+t+'<i>尚無「'+miss.map(he).join('」「')+'」資格</i></span>':t;}).join('、')
+      +(r.auto?'':'　'+(r.selOnly?he(r.selBy||'')+' 選細項':he(r.by||'')+' 修正'))+(r.note?'<br>備註：'+he(r.note):'')+'</div>'
       +(x.up&&x.up.amt>0&&!x.up.added?'<div class="updiff">'+x.up.diff.map(function(q){var cc=colMap()[q.c];return '<span class="'+(q.up?'u':'dn')+'">'+(q.up?'＋':'－')+he(W_LBL[q.c]||cc.s)+' ×'+Math.abs(q.d)+'</span>';}).join('')
         +(x.up.staff?'<span class="dn">人數 '+x.up.staff+'</span>':'')+'</div>':'')
-      +(x.up&&x.up.added?'<div class="updiff"><span class="u">行程裡沒有這筆，是手動新增的</span></div>':'')+'<div style="margin-top:6px">';
+      +(x.up&&x.up.added?'<div class="updiff"><span class="u">行程裡沒有這筆，是手動新增的</span></div>':'')
+      +'<div style="margin-top:6px">';
     h+=recList(r,c,can);
-    h+='</div><div class="rf"><span class="fm">'+he(c.fm)+'</span><span class="am">NT$ '+money(c.tot)+'</span></div></div>';
+    h+='</div>';
+    var cxb=(d.canCx?'<button class="cxb" onclick="cxOpen(\''+esc(r.key)+'\')">取消項目</button>':'')
+      +(can&&r.selOnly?'<button class="cxb" style="color:var(--tx2);border-color:var(--line)" onclick="selReset(\''+esc(r.key)+'\')">還原預設</button>':'');
+    if(LOCK){
+      if(x.lk==null)h+='<div class="rf"><span class="fm">確認之後才新增的，未計入（要計入請取消確認再重新確認）</span><span class="am" style="color:var(--tx3)">—</span></div>'+(cxb?'<div class="rf" style="border:0;padding-top:0">'+cxb+'</div>':'')+'</div>';
+      else h+='<div class="rf">'+cxb+'<span class="fm">'+(x.lk!==c.tot?'同組修改後現在算是 NT$ '+money(c.tot)+'，你已確認，維持原金額':he(c.fm))+'</span><span class="am">🔒 NT$ '+money(x.lk)+'</span></div></div>';
+    }else h+='<div class="rf">'+cxb+'<span class="fm">'+he(c.fm)+'</span><span class="am">NT$ '+money(c.tot)+'</span></div></div>';
   });
   return h+addBtn();
 }
@@ -423,6 +470,10 @@ function wDef(b){var cm=colMap();return [b.codes.slice().sort(function(x,y){retu
 function wsOf(r){
   if(WS[r.key])return WS[r.key];
   var st={tt:{},b:{},nm:{}};
+  if(r.blk){   // 後端已照行程排好每一點（點位數以行程為準）
+    Object.keys(r.blk).forEach(function(id){var x=r.blk[id];st.b[id]=x.rows.map(function(a){return a.slice();});st.nm[id]=x.rows.map(function(a,i){return (x.names&&x.names[i])||'';});if(x.t)st.tt[id]=x.t;});
+    return (WS[r.key]=st);
+  }
   BLK.forEach(function(b){
     var cnt={},p=0,has=false,names=null;
     r.items.forEach(function(it){
@@ -450,17 +501,20 @@ function wSumTxt(rows,upc){
 /** 整筆的「項目｜數量｜金額」清單 */
 /** 這一類誰沒有資格（不分、不算人數） */
 function noQ(r,q){return q?r.staff.filter(function(n){return !hasQ(n,q);}):[];}
-function noQTxt(r,q,k){var x=noQ(r,q);return x.length?'<span class="nqt">÷'+(k||r.staff.length-x.length)+' 人・'+x.map(he).join('、')+' 無「'+he(q)+'」資格不分</span>':'';}
+function noQTxt(r,q,k){var x=noQ(r,q);return x.length?'<span class="nqt">÷'+(k||r.staff.length-x.length)+' 人・'+x.map(he).join('、')+' 尚無「'+he(q)+'」資格</span>':'';}
 function recList(r,c,can){
-  var st=wsOf(r),cm=colMap(),k=esc(r.key),upc=upCodes(r),dis=can?'':' disabled',h='<div class="clist">';
+  var st=wsOf(r),cm=colMap(),k=esc(r.key),upc=upCodes(r),h='<div class="clist">',can0=can;
+  var cxRow=function(x){return x?'<div class="cxrow"><b>✕ 主管取消・'+he(x.by)+'・'+he(String(x.at).slice(5,16))+'</b>'
+    +(S.data.canCx?'<button class="chip" onclick="cxUndo(\''+k+'\',\''+esc(x.item)+'\')">解除</button>':'<i>只有主管可以解除</i>')+'<span>原因：'+he(x.reason)+'</span></div>':'';};
   BLK.forEach(function(b){
     var rows=st.b[b.id];if(!rows)return;
+    var cx=cxOf(r,b.id),can=can0&&!(cx&&!S.data.canCx),dis=can?'':' disabled';
     var sub=0,ok=true,nq='';
-    c.lines.forEach(function(l){if(l.c&&b.codes.indexOf(l.c.c)>=0){sub+=l.amt;if(!l.ok){ok=false;nq=l.c.q;}}});
+    c.lines.forEach(function(l){if(l.c&&b.codes.indexOf(l.c.c)>=0){sub+=l.amt;if(!l.ok&&!l.cx){ok=false;nq=l.c.q;}}});
     var op=!!WOPEN[r.key+b.id],anyUp=b.codes.some(function(x){return upc[x];});
-    h+='<button class="ci'+(op?' op':'')+(ok?'':' nq')+'" onclick="WOPEN[\''+k+b.id+'\']='+(!op)+';render()">'
-      +'<div class="cin"><b>'+b.name+(anyUp?' <i class="upm">▲</i>':'')+'</b><small>'+wSumTxt(rows,upc)+(st.tt[b.id]?'　（'+he(st.tt[b.id])+'）':'')+(ok?'':'　無「'+he(nq)+'」資格不計')+'</small>'+noQTxt(r,(cm[b.codes[0]]||{}).q)+'</div>'
-      +'<span class="ciq">'+rows.length+' '+b.unit+'</span><span class="cia">'+money(sub)+'</span><span class="cie">'+(op?'▴':(can?'✎':'›'))+'</span></button>';
+    h+='<button class="ci'+(op?' op':'')+(ok?'':' nq')+(cx?' cxl':'')+'" onclick="WOPEN[\''+k+b.id+'\']='+(!op)+';render()">'
+      +'<div class="cin"><b>'+b.name+(anyUp?' <i class="upm">▲</i>':'')+'</b><small>'+wSumTxt(rows,upc)+(st.tt[b.id]?'　（'+he(st.tt[b.id])+'）':'')+(ok?'':'　尚無「'+he(nq)+'」資格')+'</small>'+noQTxt(r,(cm[b.codes[0]]||{}).q)+'</div>'
+      +'<span class="ciq">'+rows.length+' '+b.unit+'</span><span class="cia">'+money(sub)+'</span><span class="cie">'+(op?'▴':(can?'✎':'›'))+'</span></button>'+cxRow(cx);
     if(!op)return;
     h+='<div class="cl">';
     var ctl=function(i,sel){
@@ -476,22 +530,20 @@ function recList(r,c,can){
     }
     rows.forEach(function(sel,i){
       var nm=st.nm[b.id][i];
-      h+='<div class="cr'+(b.multi?' mrow':'')+'"><span class="pname"'+(can?' onclick="wName(\''+k+'\',\''+b.id+'\','+i+')"':'')+'>'+(nm?he(nm):'第 '+(i+1)+' '+b.unit)+'<small>'+(nm?'第 '+(i+1)+' '+b.unit:(can?'點這裡填點位名稱':''))+'</small></span>'
-        +ctl(i,sel)+(can&&rows.length>1?'<button class="rmx" title="刪除這'+b.unit+'" onclick="wDel(\''+k+'\',\''+b.id+'\','+i+')">✕</button>':'')+'</div>';
+      h+='<div class="cr'+(b.multi?' mrow':'')+'"><span class="pname">'+(nm?he(nm):'第 '+(i+1)+' '+b.unit)+'<small>'+(nm?'第 '+(i+1)+' '+b.unit:'')+'</small></span>'
+        +ctl(i,sel)+'</div>';
     });
     if(can){
-      h+='<div class="cft"><button class="addp" onclick="wPts(\''+k+'\',\''+b.id+'\',1)">＋ 加一'+b.unit+'</button>';
-      if(b.id==='wg'){if(!st.b.gw)h+='<button class="addp" onclick="wAdd(\''+k+'\',\'gw\')">＋ 地下水</button>';}
-      if(b.id==='gw')h+='<button class="addp" style="color:var(--tx3)" onclick="wRm(\''+k+'\',\''+b.id+'\')">移除'+b.name+'</button>';
-      h+='<span style="flex:1"></span><button class="edit" onclick="WOPEN[\''+k+b.id+'\']=false;render()">完成 ✓</button></div>';
+      h+='<div class="cft"><span class="hint" style="flex:1">點位數以行程為準，要增減請告知排程人員</span><button class="edit" onclick="WOPEN[\''+k+b.id+'\']=false;render()">完成 ✓</button></div>';
     }
     h+='</div>';
   });
   c.lines.forEach(function(l){
     if(l.c&&BLK_CODES.indexOf(l.c.c)>=0)return;
-    if(l.un){h+='<div class="ci un"><div class="cin"><b>'+he(l.it.t||'未分類')+'</b><small>行程類型對不到津貼項目，請點右上 ✎ 選擇</small></div><span class="ciq"></span><span class="cia">—</span><span class="cie"></span></div>';return;}
-    h+='<div class="ci'+(l.ok?'':' nq')+'"><div class="cin"><b>'+he(l.c.g+'・'+l.c.s)+(upc[l.c.c]?' <i class="upm">▲</i>':'')+'</b><small>'+(l.it.t?he(l.it.t):'')+(l.ok?'':'　無「'+he(l.c.q)+'」資格不計')+(l.c.pp?'　每人計':'')+'</small>'+(l.c.pp?'':noQTxt(r,l.c.q,l.k))+'</div>'
-      +'<span class="ciq">'+l.n+' × '+l.c.r+'</span><span class="cia">'+money(l.amt)+'</span><span class="cie"></span></div>';
+    var cx=l.cx||null;
+    if(l.un){h+='<div class="ci un"><div class="cin"><b>'+he(l.it.t||'未分類')+'</b><small>行程類型對不到津貼項目，'+(S.data.canAll?'請點右上 ✎ 選擇':'請告知排程人員或主管')+'</small></div><span class="ciq"></span><span class="cia">—</span><span class="cie"></span></div>';return;}
+    h+='<div class="ci'+(l.ok||cx?'':' nq')+(cx?' cxl':'')+'"><div class="cin"><b>'+he(l.c.g+'・'+l.c.s)+(upc[l.c.c]?' <i class="upm">▲</i>':'')+'</b><small>'+(l.it.t?he(l.it.t):'')+(l.ok?'':'　尚無「'+he(l.c.q)+'」資格')+(l.c.pp?'　每人計':'')+'</small>'+(l.c.pp?'':noQTxt(r,l.c.q,l.k))+'</div>'
+      +'<span class="ciq">'+l.n+' × '+l.c.r+'</span><span class="cia">'+money(l.amt)+'</span><span class="cie"></span></div>'+cxRow(cx);
   });
   return h+'</div>';
 }
@@ -510,14 +562,15 @@ function wApply(key){
   var r=S.data.recs.filter(function(x){return x.key===key;})[0];if(!r)return;
   var st=WS[key],others=r.items.filter(function(x){return BLK_CODES.indexOf(x.c)<0;}),w=wItems(st);
   var real=w.filter(function(x){return x.n>0;});
-  if(!real.length&&!others.length){toast('至少要勾一項；要刪整筆請點 ✎','no',2600);delete WS[key];render();return;}
+  if(!real.length&&!others.length){toast('至少要勾一項','no',2600);delete WS[key];render();return;}
   if(r.auto){r.base=r.items.filter(function(x){return +x.n>0;}).map(function(x){return {c:x.c,n:x.n};});r.baseStaff=r.staff.slice();r.inPlan=true;}   // 記住行程帶入的原樣
-  r.items=others.concat(w);r.auto=false;r.by=S.data.me||r.by;
+  r.items=others.concat(w);if(r.auto)r.selOnly=true;r.auto=false;r.selBy=S.data.me||r.selBy;
   render();
   clearTimeout(WSAVE[key]);
   WSAVE[key]=setTimeout(function(){
-    gas('allowSave',TOKEN,{date:r.date,project:r.project,staff:r.staff,items:r.items.filter(function(x){return x.n>0;}),note:r.note||''}).then(function(x){
-      if(x&&x.ok)toast('已儲存','ok',1200);else{toast((x&&x.error)||'儲存失敗','no',3000);delete WS[key];load();}
+    var sel={};Object.keys(st.b).forEach(function(id){sel[id]=st.b[id];});
+    gas('allowSel',TOKEN,key,sel).then(function(x){
+      if(x&&x.ok)toast(x.voided&&x.voided.length?'已儲存，已通知 '+x.voided.join('、')+' 重新核對':'已儲存','ok',x.voided&&x.voided.length?3000:1200);else{toast((x&&x.error)||'儲存失敗','no',3000);delete WS[key];load();}
     }).catch(function(){toast('連線失敗，請重試','no');});
   },700);
 }
@@ -539,10 +592,14 @@ function wAdd(key,bid){var st=WS[key];st.b[bid]=[wDef(blkOf(bid))];st.nm[bid]=['
 function wRm(key,bid){var st=WS[key];delete st.b[bid];delete st.nm[bid];wApply(key);}
 function wName(key,bid,i){var st=WS[key],v=prompt('點位名稱',st.nm[bid][i]||'');if(v===null)return;st.nm[bid][i]=v.trim().slice(0,30);wApply(key);}
 function addBtn(){
-  var d=S.data;if(!d||(!d.canAll&&d.who!==d.me))return '';
+  var d=S.data;if(!d||!d.canAll)return '';   // 行程沒有的只有主管／排程可以補
   return '<button class="btn btn-full" style="margin-top:6px" onclick="editRec(\'\')">＋ 補一筆行程沒有的</button>';
 }
 
+function selReset(key){
+  if(!confirm('還原成行程預設的細項（最便宜的選項）？'))return;
+  gas('allowSel',TOKEN,key,null).then(function(x){if(x&&x.ok){delete WS[key];toast('已還原','ok');load();}else toast((x&&x.error)||'失敗','no');});
+}
 /* ── 修正一筆 ── */
 function editRec(key){
   var d=S.data,r=d.recs.filter(function(x){return x.key===key;})[0];
@@ -585,7 +642,7 @@ function saveRec(){
   $('e-s').disabled=true;
   gas('allowSave',TOKEN,{date:e.date,project:e.project.trim(),staff:e.staff,items:items,note:e.note||''}).then(function(r){
     if(!r||!r.ok){$('e-s').disabled=false;toast((r&&r.error)||'儲存失敗','no',3500);return;}
-    closeSheet();toast('已儲存','ok');load();
+    closeSheet();toast(r.voided&&r.voided.length?'已儲存，已通知 '+r.voided.join('、')+' 重新核對':'已儲存','ok',3000);load();
   }).catch(function(){$('e-s').disabled=false;toast('連線失敗','no');});
 }
 function resetRec(){
@@ -596,9 +653,59 @@ function resetRec(){
     closeSheet();toast('已還原','ok');load();
   });
 }
+/* ── 主管取消／解除津貼 ── */
+function cxItems(r){   // 這筆可以取消的項目：分項（例如 空氣・監測車）＋其他各項
+  var st=wsOf(r),c=calc({staff:r.staff,items:r.items},r.staff[0]),o=[];
+  BLK.forEach(function(b){if(!st.b[b.id])return;var amt=0;
+    c.lines.forEach(function(l){if(l.c&&b.codes.indexOf(l.c.c)>=0)amt+=l.amt;});
+    o.push({item:b.id,codes:b.codes.slice(),label:b.name,sub:st.b[b.id].length+' '+b.unit+'・'+money(amt)});});
+  c.lines.forEach(function(l){if(!l.c||BLK_CODES.indexOf(l.c.c)>=0)return;
+    o.push({item:l.c.c,codes:[l.c.c],label:l.c.g+'・'+l.c.s,sub:l.n+' × '+l.c.r+'・'+money(l.amt)});});
+  return o;
+}
+var CXS=null;
+function cxOpen(key){
+  var r=S.data.recs.filter(function(x){return x.key===key;})[0];if(!r)return;
+  CXS={key:key,list:cxItems(r),i:-1,r:r};cxPaint();
+}
+function cxPaint(){
+  var r=CXS.r,t=$('cx-t')?$('cx-t').value:'';
+  openSheet('<div class="shh"><h3>取消津貼項目</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="hint">'+(+r.date.slice(5,7))+'/'+(+r.date.slice(8))+'　'+he(r.project)+'　'+r.staff.map(he).join('、')+'</p>'
+    +'<div class="lb">選擇要取消的項目</div>'
+    +CXS.list.map(function(o,i){var done=!!cxOf(r,o.item);
+      return '<button class="cxo'+(CXS.i===i?' on':'')+'"'+(done?' disabled':'')+' onclick="CXS.i='+i+';cxPaint()"><i></i><b>'+he(o.label)+'</b><small>'+(done?'已取消':he(o.sub))+'</small></button>';}).join('')
+    +'<div class="lb">取消原因（必填）</div><textarea class="fld" id="cx-t" rows="3" maxlength="200" placeholder="例：當天監測車未出車">'+he(t)+'</textarea>'
+    +'<p class="hint" style="margin-top:6px">這一項全組都不計津貼，會推播通知這筆的人員；取消後只有主管可以解除。</p>'
+    +'<button class="btn btn-full" id="cx-s" style="margin-top:12px;background:var(--bad);color:#fff;border-color:var(--bad)" onclick="cxSend()">確定取消並通知</button>');
+}
+function cxDone(r,t){
+  var np=(r.noPush||[]).length?'（'+r.noPush.join('、')+' 沒開推播）':'';
+  toast(t+np,'ok',3800);load();
+}
+function cxSend(){
+  var o=CXS.list[CXS.i];if(!o){toast('請選擇要取消的項目','no');return;}
+  var t=$('cx-t').value.trim();if(!t){toast('請填寫取消原因','no');return;}
+  $('cx-s').disabled=true;
+  gas('allowCancel',TOKEN,CXS.key,o.item,o.codes,o.label,t,false).then(function(r){
+    if(!r||!r.ok){$('cx-s').disabled=false;toast((r&&r.error)||'失敗','no',3500);return;}
+    closeSheet();cxDone(r,'已取消，已通知 '+(r.sent||[]).length+' 人');
+  }).catch(function(){$('cx-s').disabled=false;toast('連線失敗','no');});
+}
+function cxUndo(key,item){
+  if(!confirm('解除取消？這一項會恢復計算津貼，並通知這筆的人員。'))return;
+  gas('allowCancel',TOKEN,key,item,[],'','',true).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'失敗','no',3500);return;}
+    cxDone(r,'已恢復，已通知 '+(r.sent||[]).length+' 人');
+  }).catch(function(){toast('連線失敗','no');});
+}
 /* ── 核對 ── */
 function confirmOk(){
   gas('allowConfirm',TOKEN,S.ym,'ok','').then(function(r){if(r&&r.ok){toast('已記錄：金額無誤','ok');load();}else toast((r&&r.error)||'失敗','no');});
+}
+function unlockMe(){
+  if(!confirm('取消確認後，金額會照目前的內容重新計算，同組的人修改也會影響到你。確定取消？'))return;
+  gas('allowConfirm',TOKEN,S.ym,'reset','').then(function(r){if(r&&r.ok){toast('已取消確認','ok');load();}else toast((r&&r.error)||'失敗','no');});
 }
 function askQ(){
   openSheet('<div class="shh"><h3>有疑問</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
@@ -615,24 +722,46 @@ function sendQ(){
 function sumView(){
   if(!S.sum)return '<div class="spin"></div>';
   if(!S.sum.length)return '<div class="card"><div class="empty">這個月沒有資料</div></div>';
-  var all=S.sum.reduce(function(s,p){return s+p.total;},0),ok=S.sum.filter(function(p){return p.status==='ok';}).length,q=S.sum.filter(function(p){return p.status==='q';}).length;
+  var all=S.sum.reduce(function(s,p){return s+p.total;},0),ok=S.sum.filter(function(p){return p.status==='ok';}).length,q=S.sum.filter(function(p){return p.status==='q';}).length,vd=S.sum.filter(function(p){return p.status==='void';}).length;
   var h='<div class="card"><div class="tot"><div class="big"><small>NT$</small>'+money(all)+'</div><div class="hint" style="margin-bottom:7px">'+S.sum.length+' 人</div></div>'
-    +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip ok">已核對 '+ok+'</span><span class="chip q">有疑問 '+q+'</span><span class="chip">未核對 '+(S.sum.length-ok-q)+'</span></div>'
-    +'<button class="btn btn-full" style="margin-top:12px" onclick="csv()">下載總表（CSV）</button></div>';
+    +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip ok">已核對 '+ok+'</span><span class="chip q">有疑問 '+q+'</span><span class="chip">未核對 '+(S.sum.length-ok-q-vd)+'</span>'+(vd?'<span class="chip warn">需重新核對 '+vd+'</span>':'')+'</div>'
+    +(S.sumCx?'<button class="btn btn-p btn-full" style="margin-top:12px" onclick="ntfOpen()">通知現場確認津貼</button>'
+      +(S.ntf?'<div class="hint" style="margin-top:6px;text-align:center">上次通知：'+he(String(S.ntf.at).slice(5,16))+'・'+he(S.ntf.by)+'・'+S.ntf.n+' 人</div>':''):'')
+    +'<button class="btn btn-full" style="margin-top:10px" onclick="csv()">下載總表（CSV）</button></div>';
   h+='<div class="list">'+S.sum.map(function(p){
-    var st=p.status==='ok'?'<span class="chip ok">✓ 已核對</span>':p.status==='q'?'<span class="chip q">! 有疑問</span>':'<span class="chip">未核對</span>';
+    var st=p.status==='ok'?'<span class="chip ok">🔒 已確認</span>'+(p.live!=null&&p.live!==p.total?'<span class="chip">同組修改後現算 '+money(p.live)+'</span>':''):p.status==='q'?'<span class="chip q">! 有疑問</span>':p.status==='void'?'<span class="chip warn">⚠ 需重新核對</span>':'<span class="chip">未核對</span>';
     return '<div class="tr" onclick="S.who=\''+esc(p.name)+'\';S.tab=\'me\';ONLY_UP='+(p.up?'true':'false')+';load()"><div class="n"><b>'+he(p.name)+'</b>'
       +'<div class="hint">'+p.n+' 筆・'+p.days+' 天'+(p.edited?'・修正 '+p.edited:'')+'</div>'
-      +'<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">'+st+(p.up?'<span class="chip up">▲ 調高 '+p.up+' 筆 +'+money(p.upAmt)+'</span>':'')+(p.unmapped?'<span class="chip warn">未對應 '+p.unmapped+'</span>':'')+(p.noQual?'<span class="chip warn">資格未設定</span>':'')
-      +(p.status&&p.confirmedTotal!==p.total?'<span class="chip warn">核對後金額有變</span>':'')+'</div>'
+      +'<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">'+st+(p.cx?'<span class="chip q">取消 '+p.cx+' 項</span>':'')+(p.up?'<span class="chip up">▲ 調高 '+p.up+' 筆 +'+money(p.upAmt)+'</span>':'')+(p.unmapped?'<span class="chip warn">未對應 '+p.unmapped+'</span>':'')+(p.noQual?'<span class="chip warn">資格未設定</span>':'')
+      +'</div>'
       +(p.note?'<div class="hint" style="margin-top:4px;color:var(--bad)">'+he(p.note)+'</div>':'')+'</div>'
       +'<div class="v">'+money(p.total)+'</div></div>';
   }).join('')+'</div>';
   return h;
 }
+/* ── 主管：行程上傳確認後，通知現場核對津貼 ── */
+function ntfOpen(){
+  var un=S.sum.filter(function(p){return p.status!=='ok';});
+  var m=+S.ym.slice(5);
+  openSheet('<div class="shh"><h3>通知現場確認 '+m+' 月津貼</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="hint">請先確認 '+m+' 月行程都已上傳、修正完成。送出後會推播請大家到「津貼」核對金額並按「金額無誤」。</p>'
+    +(S.ntf?'<p class="hint" style="margin-top:6px">上次通知：'+he(String(S.ntf.at).slice(5,16))+'・'+he(S.ntf.by)+'・'+S.ntf.n+' 人</p>':'')
+    +'<div class="lb">通知誰</div>'
+    +'<button class="btn btn-p btn-full" id="nt-a" '+(un.length?'':'disabled ')+'onclick="ntfSend(\'un\')">還沒確認的 '+un.length+' 人</button>'
+    +(un.length?'<div class="hint" style="margin:6px 4px 0">'+un.map(function(p){return he(p.name);}).join('、')+'</div>':'<div class="hint" style="margin:6px 4px 0">大家都已確認</div>')
+    +'<button class="btn btn-full" id="nt-b" style="margin-top:12px" onclick="ntfSend(\'all\')">全部 '+S.sum.length+' 人</button>');
+}
+function ntfSend(mode){
+  ['nt-a','nt-b'].forEach(function(i){if($(i))$(i).disabled=true;});
+  gas('allowNotify',TOKEN,S.ym,mode).then(function(r){
+    if(!r||!r.ok){['nt-a','nt-b'].forEach(function(i){if($(i))$(i).disabled=false;});toast((r&&r.error)||'失敗','no',3500);return;}
+    closeSheet();S.ntf=r.ntf;
+    toast('已通知 '+r.sent.length+' 人'+(r.noPush.length?'（'+r.noPush.join('、')+' 沒開推播）':''),'ok',4500);render();
+  }).catch(function(){['nt-a','nt-b'].forEach(function(i){if($(i))$(i).disabled=false;});toast('連線失敗','no');});
+}
 function csv(){
   var rows=[['姓名','金額','筆數','天數','核對狀態','疑問']].concat(S.sum.map(function(p){
-    return [p.name,p.total,p.n,p.days,p.status==='ok'?'已核對':p.status==='q'?'有疑問':'未核對',p.note||''];}));
+    return [p.name,p.total,p.n,p.days,p.status==='ok'?'已核對':p.status==='q'?'有疑問':p.status==='void'?'需重新核對':'未核對',p.note||''];}));
   var s='\ufeff'+rows.map(function(r){return r.map(function(v){v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',');}).join('\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/csv'}));a.download='採樣津貼_'+S.ym+'.csv';document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},500);
 }
