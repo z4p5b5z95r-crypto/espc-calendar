@@ -1009,7 +1009,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2353,7 +2353,7 @@ function holLoad(y){
       else if(!x.isHoliday&&we)d[ds]=0;                                   // 補班的週六
     });
     lsS(k,JSON.stringify({t:Date.now(),d:d}));holSet(d);
-    if(tab==='cal'&&!sub)render();
+    if((tab==='cal'||tab==='today')&&!sub)render();
   }).catch(function(){});
 }
 function holSet(d){Object.keys(d).forEach(function(k){HOL[k]=d[k];});}
@@ -2375,7 +2375,8 @@ function calvSeg(){
   return '<div class="calv">'+[['ev','行程'],['td','待辦'],['all','全部']].map(function(o){
     return '<button class="'+(CALV===o[0]?'on':'')+'" onclick="calvSet(\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>';
 }
-/* 重複規則：{f:'d'|'w'|'m'|'y', n:間隔, wd:[0-6 星期], end:{t:'never'|'date'|'count', d:'yyyy-mm-dd', c:次數}}；
+/* 重複規則：{f:'d'|'w'|'m'|'y', n:間隔, wd:[0-6 星期], md:'d'|'fw'（每月第幾天／第一個上班日）, dd:幾號,
+   end:{t:'never'|'date'|'count', d:'yyyy-mm-dd', c:次數}}；
    舊資料的 'd'、'wd'、'w'、'm' 也看得懂 */
 function todoRepNorm(r, start) {
   if (!r) return null;
@@ -2396,6 +2397,10 @@ function todoRepNorm(r, start) {
     if (!wd.length && start) wd.push(new Date(start + 'T00:00:00Z').getUTCDay());
     o.wd = wd.sort();
   }
+  if (r.f === 'm') {
+    o.md = r.md === 'fw' ? 'fw' : 'd';
+    if (o.md === 'd') o.dd = Math.max(1, Math.min(31, Math.round(Number(r.dd) || (start ? Number(start.slice(8, 10)) : 1))));
+  }
   var e = r.end || {};
   if (e.t === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(String(e.d || ''))) o.end = { t: 'date', d: String(e.d) };
   else if (e.t === 'count') o.end = { t: 'count', c: Math.max(1, Math.min(999, Math.round(Number(e.c) || 1))) };
@@ -2412,7 +2417,19 @@ function todoHit(t, r, ds) {
     return Math.round((wb - wa) / 7) % n === 0;
   }
   var md = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + b.getUTCMonth() - a.getUTCMonth();
-  if (r.f === 'm') return b.getUTCDate() === a.getUTCDate() && md % n === 0;
+  if (r.f === 'm') {
+    if (md % n !== 0) return false;
+    if (r.md === 'fw') {                                   // 每月第一個上班日（跳過週末、國定假日，補班日算上班）
+      if (!todoWork(ds)) return false;
+      for (var k = 1; k < b.getUTCDate(); k++) {
+        var p = ds.slice(0, 8) + (k < 10 ? '0' + k : '' + k);
+        if (todoWork(p)) return false;
+      }
+      return true;
+    }
+    var dim = new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth() + 1, 0)).getUTCDate();
+    return b.getUTCDate() === Math.min(r.dd || a.getUTCDate(), dim);   // 31 號遇到小月就排在月底
+  }
   if (r.f === 'y') return b.getUTCDate() === a.getUTCDate() && b.getUTCMonth() === a.getUTCMonth() && (md / 12) % n === 0;
   return false;
 }
@@ -2436,6 +2453,7 @@ function todoOn(t, ds) {
   }
   return todoHit(t, r, ds);
 }
+function todoWork(ds){holLoad(+ds.slice(0,4));return holOf(ds)==='';}   // 上班日：不是週末、國定假日（補班日算上班）
 function todosOn(ds){
   return (TODOS||[]).filter(function(t){return todoOn(t,ds);})
     .sort(function(a,b){var da=a.dones.indexOf(ds)>=0,db=b.dones.indexOf(ds)>=0;if(da!==db)return da?1:-1;return (a.time||'99')<(b.time||'99')?-1:1;});
@@ -2490,6 +2508,7 @@ function dayTodos(d){
   }).join('')+'</div>';
 }
 function tdTick(id,ds,on){
+  if(tdBusy(id))return;
   var t=(TODOS||[]).filter(function(x){return x.id===id;})[0];if(!t)return;
   if(on){if(t.dones.indexOf(ds)<0)t.dones.push(ds);}else t.dones=t.dones.filter(function(x){return x!==ds;});
   render();
@@ -2545,6 +2564,7 @@ function tdUp(e){
   var c=document.elementFromPoint(e.clientX,e.clientY);c=c&&c.closest?c.closest('.cell'):null;
   var to=c&&c.getAttribute('data-d');
   if(!to||to===d.ds)return;
+  if(tdBusy(d.id))return;
   var t=(TODOS||[]).filter(function(x){return x.id===d.id;})[0];if(!t)return;
   var was=t.date;t.date=to;t.dones=t.dones.map(function(x){return x===was?to:x;});render();   // 先畫，再存
   gas('todoMove',TOKEN,d.id,to).then(function(r){
@@ -2555,6 +2575,7 @@ function tdUp(e){
 /* 新增／編輯 */
 var TDE=null;
 function tdEdit(id,ds){
+  if(id&&tdBusy(id))return;
   var t=id?(TODOS||[]).filter(function(x){return x.id===id;})[0]:null;
   TDE=t?JSON.parse(JSON.stringify(t)):{id:'',title:'',date:ds||twStr(),time:'',note:'',notify:true,lead:0,rep:'',nag:false,dones:[]};
   TDE.inst=ds||TDE.date;TDE.more=!!(TDE.rep||TDE.nag||TDE.note);TDE.cust=repPreset(TDE.rep,TDE.date)==='c';
@@ -2592,13 +2613,14 @@ function repPreset(r,date){
   if(r.f==='d')return 'd';
   if(r.f==='w'&&r.wd.join()==='1,2,3,4,5')return 'wd';
   if(r.f==='w'&&r.wd.length===1&&r.wd[0]===dw)return 'w1';
-  if(r.f==='m')return 'm1';
+  if(r.f==='m')return r.md==='fw'?'mfw':(r.dd===+date.slice(8)?'m1':'c');
   if(r.f==='y')return 'y1';
   return 'c';
 }
 function repText(r){
   if(!r)return '不重複';
   var u={d:'天',w:'週',m:'個月',y:'年'}[r.f],s=(r.n>1?'每 '+r.n+' '+u:'每'+(r.f==='m'?'月':u));
+  if(r.f==='m')s+=(r.n>1?'的':'')+(r.md==='fw'?'第一個上班日':' '+r.dd+' 日');
   if(r.f==='w')s+=(r.wd.join()==='1,2,3,4,5'?'的工作日':'的'+r.wd.map(function(x){return WDN.charAt(x);}).join('、'));
   if(r.end&&r.end.t==='date')s+='，到 '+(+r.end.d.slice(5,7))+'/'+(+r.end.d.slice(8));
   if(r.end&&r.end.t==='count')s+='，共 '+r.end.c+' 次';
@@ -2606,13 +2628,17 @@ function repText(r){
 }
 function repUI(){
   var t=TDE,d=t.date,dw=new Date(d+'T00:00:00Z').getUTCDay(),pr=t.cust?'c':repPreset(t.rep,d);
-  var opts=[['','不重複'],['d','每天'],['w1','每週'+WDN.charAt(dw)],['m1','每月 '+(+d.slice(8))+' 日'],['y1','每年 '+(+d.slice(5,7))+'/'+(+d.slice(8))],['wd','每個工作日（一～五）'],['c','自訂…']];
+  var opts=[['','不重複'],['d','每天'],['w1','每週'+WDN.charAt(dw)],['m1','每月 '+(+d.slice(8))+' 日'],['mfw','每月第一個上班日'],['y1','每年 '+(+d.slice(5,7))+'/'+(+d.slice(8))],['wd','每個工作日（一～五）'],['c','自訂…']];
   var h='<div class="tdrow"><span>重複</span><select onchange="repPick(this.value)">'
     +opts.map(function(o){return '<option value="'+o[0]+'"'+(pr===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
   if(pr==='c'){
     var r=t.rep||{f:'w',n:1,wd:[dw],end:{t:'never'}};
     h+='<div class="rpc"><div class="rpl">重複間隔</div><div class="rpi"><button onclick="repN(-1)">−</button><b>'+r.n+'</b><button onclick="repN(1)">＋</button>'
       +'<select onchange="repSet(\'f\',this.value)">'+[['d','天'],['w','週'],['m','個月'],['y','年']].map(function(o){return '<option value="'+o[0]+'"'+(r.f===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
+    if(r.f==='m')h+='<div class="rpl">每月的哪一天</div>'
+      +'<label class="rpe"><input type="radio" name="rpm"'+(r.md!=='fw'?' checked':'')+' onchange="repMd(\'d\')"><span>每月第</span>'
+        +'<input type="number" min="1" max="31" value="'+(r.dd||+d.slice(8))+'"'+(r.md!=='fw'?'':' disabled')+' onchange="TDE.rep.dd=Math.max(1,Math.min(31,+this.value||1));repLbl()" style="width:64px"> 天</label>'
+      +'<label class="rpe"><input type="radio" name="rpm"'+(r.md==='fw'?' checked':'')+' onchange="repMd(\'fw\')"><span>每月第一個上班日<small style="display:block;font-size:11.5px;color:var(--tx3)">跳過週末和國定假日</small></span></label>';
     if(r.f==='w')h+='<div class="rpl">重複日期</div><div class="rpw">'+WDN.split('').map(function(x,i){
         return '<button class="'+(r.wd.indexOf(i)>=0?'on':'')+(i===0||i===6?' we':'')+'" onclick="repWd('+i+')">'+x+'</button>';}).join('')+'</div>';
     var e=r.end||{t:'never'};
@@ -2632,41 +2658,45 @@ function repPick(v){
   if(v==='')TDE.rep=null;
   else if(v==='d')TDE.rep={f:'d',n:1,end:{t:'never'}};
   else if(v==='w1')TDE.rep={f:'w',n:1,wd:[dw],end:{t:'never'}};
-  else if(v==='m1')TDE.rep={f:'m',n:1,end:{t:'never'}};
+  else if(v==='m1')TDE.rep={f:'m',n:1,md:'d',dd:+d.slice(8),end:{t:'never'}};
+  else if(v==='mfw')TDE.rep={f:'m',n:1,md:'fw',end:{t:'never'}};
   else if(v==='y1')TDE.rep={f:'y',n:1,end:{t:'never'}};
   else if(v==='wd')TDE.rep={f:'w',n:1,wd:[1,2,3,4,5],end:{t:'never'}};
   else if(!TDE.rep)TDE.rep={f:'w',n:1,wd:[dw],end:{t:'never'}};
   tdKeep();tdPaint();
 }
+function repMd(m){var r=TDE.rep;r.md=m;if(m==='d'&&!r.dd)r.dd=+TDE.date.slice(8);tdKeep();tdPaint();}
 function repN(k){var r=TDE.rep;r.n=Math.max(1,Math.min(99,(r.n||1)+k));tdKeep();tdPaint();}
-function repSet(k,v){var r=TDE.rep;r[k]=v;if(v==='w'&&!(r.wd&&r.wd.length))r.wd=[new Date(TDE.date+'T00:00:00Z').getUTCDay()];tdKeep();tdPaint();}
+function repSet(k,v){var r=TDE.rep;r[k]=v;if(v==='w'&&!(r.wd&&r.wd.length))r.wd=[new Date(TDE.date+'T00:00:00Z').getUTCDay()];if(v==='m'&&!r.md){r.md='d';r.dd=+TDE.date.slice(8);}tdKeep();tdPaint();}
 function repWd(i){var r=TDE.rep,j=r.wd.indexOf(i);if(j>=0){if(r.wd.length>1)r.wd.splice(j,1);}else{r.wd.push(i);r.wd.sort();}tdKeep();tdPaint();}
 function repEnd(t){var r=TDE.rep,d=TDE.date;r.end=t==='never'?{t:'never'}:t==='date'?{t:'date',d:(r.end&&r.end.d)||addDays(d,90)}:{t:'count',c:(r.end&&r.end.c)||13};tdKeep();tdPaint();}
 function tdKeep(){var i=$('td-t');if(i)TDE.title=i.value;var sh=$('sheetin');TDE._sy=sh?sh.scrollTop:0;}
+/* 儲存、打勾、刪除都先在畫面上完成並關閉面板，背景再存到後台；失敗才提示並重新載入 */
 function tdSave(){
   var t=TDE;if(!t.title.trim()){toast('請輸入待辦內容','no');return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(t.date)){toast('請選日期','no');return;}
-  $('td-s').disabled=true;
-  gas('todoSave',TOKEN,{id:t.id,title:t.title.trim(),date:t.date,time:t.time||'',note:t.note||'',notify:t.notify,lead:t.lead,rep:t.rep,nag:t.nag}).then(function(r){
-    if(!r||!r.ok){$('td-s').disabled=false;toast((r&&r.error)||'儲存失敗','no');return;}
-    TODOS=(TODOS||[]).filter(function(x){return x.id!==r.todo.id;}).concat([r.todo]);
-    closeSheet();toast(t.notify&&!pushIsOn()?'已儲存（這支手機還沒開推播，收不到通知）':'已儲存','ok',2200);
-    render();if(EV_D)openDay(EV_D);
-  }).catch(function(){$('td-s').disabled=false;toast('連線失敗','no');});
+  var isNew=!t.id,tmp=t.id||('tmp_'+Date.now());
+  var loc={id:tmp,title:t.title.trim(),date:t.date,time:t.time||'',note:t.note||'',notify:!!t.notify,lead:t.lead,rep:todoRepNorm(t.rep,t.date),nag:!!t.nag,dones:t.dones||[],pend:true};
+  TODOS=(TODOS||[]).filter(function(x){return x.id!==tmp;}).concat([loc]);
+  closeSheet();render();
+  toast(t.notify&&!pushIsOn()?'已儲存（這支手機還沒開推播，收不到通知）':'已儲存','ok',t.notify&&!pushIsOn()?2600:1000);
+  gas('todoSave',TOKEN,{id:isNew?'':t.id,title:loc.title,date:loc.date,time:loc.time,note:loc.note,notify:loc.notify,lead:loc.lead,rep:loc.rep,nag:loc.nag}).then(function(r){
+    if(!r||!r.ok){toast('待辦沒有存成功：'+((r&&r.error)||'請再試一次'),'no',3500);TODOS=null;todoLoad();return;}
+    TODOS=(TODOS||[]).filter(function(x){return x.id!==tmp&&x.id!==r.todo.id;}).concat([r.todo]);
+    if((tab==='cal'||tab==='today')&&!sub&&!$('ov').classList.contains('open'))render();
+  }).catch(function(){toast('連線失敗，待辦沒有存成功','no',3500);TODOS=null;todoLoad();});
 }
+function tdBusy(id){if(String(id).indexOf('tmp_')===0){toast('剛建立的待辦還在儲存，請稍等一下','no',1800);return true;}return false;}
 function tdDone(){
-  var t=TDE,on=t.dones.indexOf(t.inst)<0;
-  gas('todoDone',TOKEN,t.id,t.inst,on).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'失敗','no');return;}
-    TODOS=(TODOS||[]).map(function(x){return x.id===r.todo.id?r.todo:x;});
-    closeSheet();toast(on?'完成':'已取消完成','ok',1200);render();
-  });
+  var t=TDE;if(tdBusy(t.id))return;
+  closeSheet();tdTick(t.id,t.inst,t.dones.indexOf(t.inst)<0);
 }
 function tdDel(){
-  var t=TDE;if(!confirm(t.rep?'刪除這個重複待辦（全部日期）？':'刪除這個待辦？'))return;
-  gas('todoDel',TOKEN,t.id).then(function(r){
-    TODOS=(TODOS||[]).filter(function(x){return x.id!==t.id;});closeSheet();toast('已刪除','ok',1200);render();
-  });
+  var t=TDE;if(tdBusy(t.id))return;
+  if(!confirm(t.rep?'刪除這個重複待辦（全部日期）？':'刪除這個待辦？'))return;
+  TODOS=(TODOS||[]).filter(function(x){return x.id!==t.id;});closeSheet();render();toast('已刪除','ok',1000);
+  gas('todoDel',TOKEN,t.id).then(function(r){if(!r||!r.ok){toast('刪除失敗','no');TODOS=null;todoLoad();}})
+    .catch(function(){toast('連線失敗，沒有刪除','no');TODOS=null;todoLoad();});
 }
 function calPage(){
   pmap={};pidx=0;
