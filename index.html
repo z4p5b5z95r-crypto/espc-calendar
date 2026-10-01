@@ -275,6 +275,23 @@ html[data-theme="dark"] .glass::after{
 .dnt span{font-size:12px;color:var(--tx3);}
 
 
+
+/* ── PM：行事曆／待辦 液態玻璃開關（A 款，篩選下方） ── */
+.lgbar{display:flex;justify-content:flex-end;margin:8px 2px 6px}
+.lgs{position:relative;display:inline-flex;align-items:center;width:96px;height:38px;border-radius:999px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;
+  background:rgba(255,255,255,.28);backdrop-filter:blur(16px) saturate(190%);-webkit-backdrop-filter:blur(16px) saturate(190%);
+  box-shadow:inset 0 1px 1.5px rgba(255,255,255,.9),inset 0 -1.5px 2px rgba(0,0,0,.06),inset 0 0 0 .5px rgba(255,255,255,.5),0 3px 12px rgba(0,0,0,.08)}
+.lgs .lgo{position:relative;z-index:2;flex:1;display:flex;align-items:center;justify-content:center;color:var(--tx3);transition:color .25s}
+.lgs .lgo svg{width:18px;height:18px}
+.lgs .lgo.on{color:#1c1c1e}
+.lgs .lgt{position:absolute;z-index:1;top:3px;bottom:3px;left:3px;width:45px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.66));
+  box-shadow:inset 0 1px 1px #fff,inset 0 -2px 3px rgba(0,0,0,.05),0 3px 10px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04);
+  transition:transform .45s cubic-bezier(.34,1.45,.55,1),scale .2s;will-change:transform}
+.lgs .lgt::after{content:"";position:absolute;left:12%;right:12%;top:2px;height:40%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,0))}
+.lgs.isOn .lgt{transform:translateX(45px)}
+.lgs.drag .lgt{transition:scale .2s}
+.lgs.press .lgt{scale:1.12 1.08}
 /* ── PM 待辦事項（行事曆切換：行程／待辦／全部） ── */
 .calv{display:flex;background:rgba(120,120,128,.14);border-radius:11px;padding:2px;margin:0 0 8px auto;width:max-content}
 .calv button{font-size:13px;padding:5px 14px;border-radius:9px;color:var(--tx2);background:none;border:0}
@@ -1009,7 +1026,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02i';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2437,6 +2454,9 @@ function todoHit(t, r, ds) {
 function todoOn(t, ds) {
   var r = t.rep;
   if (!r) return ds === t.date;
+  var ex = t.ex || {};                         // 重複待辦的例外：{原本日期: 移到的日期，'' ＝這次刪掉}
+  for (var k in ex) if (ex[k] === ds && k !== ds) return true;
+  if (Object.prototype.hasOwnProperty.call(ex, ds)) return ex[ds] === ds;
   if (ds < t.date) return false;
   if (r.end && r.end.t === 'date' && ds > r.end.d) return false;
   if (r.end && r.end.t === 'count') {
@@ -2517,14 +2537,16 @@ function tdTick(id,ds,on){
     else{toast((r&&r.error)||'失敗','no');todoLoad();}
   }).catch(function(){toast('連線失敗','no');todoLoad();});
 }
-/* 點兩下格子＝PM 新增待辦（長按＝看當天全部行程，見 cellDown） */
-var _tap={d:'',t:0};
+/* 點一下格子（含格子裡的行程標籤）＝看當天全部行程；PM 點兩下＝新增待辦 */
+var _tap={d:'',t:0,tm:null};
 function cellTap(e,ds){
   if(_lpFired){_lpFired=false;_tap.t=0;return;}
-  if(e.target.closest('.tdc,.evc'))return;
+  if(e.target.closest('.tdc'))return;          // 待辦條自己處理（點開編輯）
+  if(!todoCan()){openDay(ds);return;}
   var now=Date.now();
-  if(_tap.d===ds&&now-_tap.t<350){_tap.t=0;if(todoCan())tdEdit('',ds);else openDay(ds);return;}   // 點兩下：PM 新增待辦（其他人看當天）
-  _tap={d:ds,t:now};
+  clearTimeout(_tap.tm);
+  if(_tap.d===ds&&now-_tap.t<330){_tap.t=0;tdEdit('',ds);return;}
+  _tap={d:ds,t:now,tm:setTimeout(function(){_tap.t=0;openDay(ds);},300)};   // 等一下確定不是點兩下
 }
 /* 拖移：按住 0.35 秒拿起，放到別天；短按＝打開編輯 */
 var TDD=null;
@@ -2534,7 +2556,6 @@ function tdDown(e,id,ds){
   TDD={id:id,ds:ds,el:el,x:e.clientX,y:e.clientY,on:false,pid:e.pointerId,
     t:setTimeout(function(){
       var t=(TODOS||[]).filter(function(x){return x.id===id;})[0];if(!t)return;
-      if(t.rep){TDD.t=null;toast('重複的待辦請點開修改日期','no',2200);TDD.cancel=true;return;}
       TDD.on=true;TDD.t=null;el.classList.add('drg');
       try{navigator.vibrate&&navigator.vibrate(15);}catch(_){}
       var g=document.createElement('div');g.className='tdghost';g.textContent='○ '+t.title;document.body.appendChild(g);TDD.g=g;tdPos(TDD.x,TDD.y);
@@ -2566,9 +2587,13 @@ function tdUp(e){
   if(!to||to===d.ds)return;
   if(tdBusy(d.id))return;
   var t=(TODOS||[]).filter(function(x){return x.id===d.id;})[0];if(!t)return;
-  var was=t.date;t.date=to;t.dones=t.dones.map(function(x){return x===was?to:x;});render();   // 先畫，再存
-  gas('todoMove',TOKEN,d.id,to).then(function(r){
-    if(r&&r.ok){toast('已移到 '+(+to.slice(5,7))+'/'+(+to.slice(8)),'ok',1500);}
+  if(t.rep){                                      // 重複的：只移這一次
+    var ex=t.ex=t.ex||{},k=d.ds;Object.keys(ex).forEach(function(x){if(ex[x]===d.ds&&x!==d.ds)k=x;});ex[k]=to;
+    t.dones=t.dones.map(function(x){return x===d.ds?to:x;});t._last=undefined;
+  }else{var was=t.date;t.date=to;t.dones=t.dones.map(function(x){return x===was?to:x;});}
+  render();   // 先畫，再存
+  gas('todoMove',TOKEN,d.id,to,d.ds).then(function(r){
+    if(r&&r.ok){if(r.todo)TODOS=(TODOS||[]).map(function(x){return x.id===r.todo.id?r.todo:x;});toast('已移到 '+(+to.slice(5,7))+'/'+(+to.slice(8))+(t.rep?'（只有這一次）':''),'ok',1500);}
     else{toast((r&&r.error)||'移動失敗','no');todoLoad();}
   }).catch(function(){toast('連線失敗','no');todoLoad();});
 }
@@ -2693,10 +2718,59 @@ function tdDone(){
 }
 function tdDel(){
   var t=TDE;if(tdBusy(t.id))return;
-  if(!confirm(t.rep?'刪除這個重複待辦（全部日期）？':'刪除這個待辦？'))return;
-  TODOS=(TODOS||[]).filter(function(x){return x.id!==t.id;});closeSheet();render();toast('已刪除','ok',1000);
-  gas('todoDel',TOKEN,t.id).then(function(r){if(!r||!r.ok){toast('刪除失敗','no');TODOS=null;todoLoad();}})
-    .catch(function(){toast('連線失敗，沒有刪除','no');TODOS=null;todoLoad();});
+  if(!t.rep){if(!confirm('刪除這個待辦？'))return;tdDelGo(t.id,'all','');return;}
+  var md=(+t.inst.slice(5,7))+'/'+(+t.inst.slice(8));
+  openSheet('<div class="shh" style="align-items:center"><h3>刪除重複的待辦</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<p class="hint" style="margin:-6px 2px 12px">'+he(t.title)+'　'+he(repText(t.rep))+'</p>'
+    +'<button class="btn btn-full" onclick="tdDelGo(\''+t.id+'\',\'one\',\''+t.inst+'\')">只刪除這一次（'+md+'）</button>'
+    +'<button class="btn btn-d btn-full" style="margin-top:8px" onclick="tdDelGo(\''+t.id+'\',\'after\',\''+t.inst+'\')">這一次和之後的全部</button>'
+    +'<button class="btn btn-full" style="margin-top:8px" onclick="tdEdit(\''+t.id+'\',\''+t.inst+'\')">取消</button>');
+}
+function tdDelGo(id,mode,ds){
+  var t=(TODOS||[]).filter(function(x){return x.id===id;})[0];
+  if(t&&t.rep&&mode==='one'){var ex=t.ex=t.ex||{},k=ds;Object.keys(ex).forEach(function(x){if(ex[x]===ds&&x!==ds)k=x;});ex[k]='';}
+  else if(t&&t.rep&&mode==='after'&&ds>t.date){t.rep.end={t:'date',d:addDays(ds,-1)};t._last=undefined;var e2=t.ex||{};Object.keys(e2).forEach(function(x){if(e2[x]&&e2[x]>=ds)e2[x]='';});}
+  else TODOS=(TODOS||[]).filter(function(x){return x.id!==id;});
+  closeSheet();render();toast(mode==='one'?'已刪除這一次':'已刪除','ok',1200);
+  gas('todoDel',TOKEN,id,mode,ds).then(function(r){
+    if(!r||!r.ok){toast('刪除失敗','no');TODOS=null;todoLoad();return;}
+    if(r.todo)TODOS=(TODOS||[]).map(function(x){return x.id===r.todo.id?r.todo:x;});
+  }).catch(function(){toast('連線失敗，沒有刪除','no');TODOS=null;todoLoad();});
+}
+/* PM：行事曆（左）／行事曆＋待辦（右）開關；預設打開 */
+var TDV=ls('espc_tdv')!=='0';
+var LG_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+var LG_TD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.2l2.6 2.6 5-5.3"/></svg>';
+function tdvSwitch(){
+  return '<div class="lgbar"><div class="lgs'+(TDV?' isOn':'')+'" id="lgs" title="行事曆／行事曆＋待辦" onpointerdown="lgDown(event)">'
+    +'<span class="lgt"></span><span class="lgo'+(TDV?'':' on')+'">'+LG_CAL+'</span><span class="lgo'+(TDV?' on':'')+'">'+LG_TD+'</span></div></div>';
+}
+var LGS=null;
+function lgDown(e){
+  var sw=e.currentTarget;sw.setPointerCapture(e.pointerId);sw.classList.add('press');
+  LGS={sw:sw,x:e.clientX,base:sw.classList.contains('isOn')?45:0,moved:false};
+  sw.onpointermove=lgMove;sw.onpointerup=lgUp;sw.onpointercancel=lgUp;
+}
+function lgMove(e){
+  if(!LGS)return;var sw=LGS.sw,dx=e.clientX-LGS.x;
+  if(Math.abs(dx)>4){LGS.moved=true;sw.classList.add('drag');}
+  if(!LGS.moved)return;
+  var x=LGS.base+dx;if(x<0)x=x/4;if(x>45)x=45+(x-45)/4;           // 拉過頭有阻力
+  sw.querySelector('.lgt').style.transform='translateX('+x+'px)';
+  var o=sw.querySelectorAll('.lgo'),half=x>22;o[0].classList.toggle('on',!half);o[1].classList.toggle('on',half);
+}
+function lgUp(e){
+  if(!LGS)return;var sw=LGS.sw,on;
+  sw.classList.remove('press','drag');sw.onpointermove=sw.onpointerup=sw.onpointercancel=null;
+  if(LGS.moved)on=LGS.base+(e.clientX-LGS.x)>22;
+  else{var r=sw.getBoundingClientRect();on=e.clientX-r.left>r.width/2;}
+  LGS=null;
+  sw.querySelector('.lgt').style.transform='';
+  sw.classList.toggle('isOn',on);
+  var o=sw.querySelectorAll('.lgo');o[0].classList.toggle('on',!on);o[1].classList.toggle('on',on);
+  if(on===TDV)return;
+  TDV=on;lsS('espc_tdv',on?'1':'0');
+  setTimeout(function(){if(tab==='cal'&&!sub)render();},260);   // 等滑塊動畫跑完再重畫
 }
 function calPage(){
   pmap={};pidx=0;
@@ -2713,10 +2787,10 @@ function calPage(){
   var pdim=new Date(curY,curM,0).getDate();
   var today=twStr();
   holLoad(curY);if(curM===0)holLoad(curY-1);if(curM===11)holLoad(curY+1);
-  var TDON=todoCan();                     // PM：待辦一律顯示在格子裡（排在行程上面）
+  var TDON=todoCan()&&TDV;                 // PM：開關在右邊才顯示待辦（排在行程上面）
   if(todoCan()&&TODOS===null)todoLoad();
 
-  var h='<div class="dow">'+DW.map(function(d,i){
+  var h=(todoCan()?tdvSwitch():'')+'<div class="dow">'+DW.map(function(d,i){
     return '<span'+(i===0||i===6?' class="sun"':'')+'>'+d+'</span>';}).join('')+'</div><div class="cgrid">';
   var total=42;        // 固定 6 週，換月時高度不會忽高忽低
   for(var i=0;i<total;i++){
@@ -3980,9 +4054,7 @@ function cellUp(){
 }
 /** 點事件標籤開詳情；剛剛長按過就忽略這一下 */
 function evcTap(e,d,proj){
-  e.stopPropagation();
-  if(_lpFired){_lpFired=false;return;}
-  openEv(d,proj);
+  // 不再直接開案子：讓點擊傳到格子，開當天全部行程
 }
 
 var _sw=null;
