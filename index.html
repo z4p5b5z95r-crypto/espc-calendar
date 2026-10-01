@@ -445,6 +445,9 @@ body.kbl .lhead .logo svg{width:36px;height:36px;}
 body.kbl .lhead h1{font-size:21px;}
 body.kb .sheet{padding-bottom:calc(26px + var(--kb,0px));}
 .sheet.fit{height:auto;max-height:82vh;}   /* 待辦詳情、二選一：依內容高度，按鈕剛好在最下面 */
+/* 手機也改成置中懸浮視窗（跟桌機一樣） */
+.ov.fit{align-items:center;padding:0 14px;}
+.ov.fit .sheet{border-radius:22px;border:1px solid var(--glLine);padding:18px 18px 20px;max-height:84vh;}
 body.kb #app{padding-bottom:var(--kb,0px);}
 .strack{position:relative;}
 .spane{will-change:transform,opacity;}
@@ -1059,7 +1062,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02q';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2146,6 +2149,7 @@ function touchTab(){
     if(document.hidden){away();return;}
     var gone=hiddenAt?Date.now()-hiddenAt:0;
     hiddenAt=0;
+    if(TOKEN&&gone>60000)todoLoad(true);          // 回到 App 超過 1 分鐘：待辦也重新抓
     if(!TOKEN||gone<=TAB_KEEP_MS)return;
     if(tab==='today'&&!sub)return;
     go('today');
@@ -2232,6 +2236,7 @@ function titleText(){
 /** 行事曆的重新整理：重抓當月行程和各地區更新時間 */
 function refreshCal(){
   loadMonth(true);
+  todoLoad(true);
   loadRegionUpdates(true);
 }
 
@@ -2248,7 +2253,7 @@ function rightButtons(){
       +filterBtn();
   }
   if(tab==='today')
-    return '<button class="ib" onclick="loadToday(true);inboxLoad(true)" title="重新整理">↻</button>'+filterBtn();
+    return '<button class="ib" onclick="loadToday(true);inboxLoad(true);todoLoad(true)" title="重新整理">↻</button>'+filterBtn();
   if(tab==='book')
     return '<button class="ib" onclick="loadStaff(render,true)" title="重新整理">↻</button>';
   if(tab==='upload')
@@ -2425,9 +2430,13 @@ function holOf(ds){   // 回傳假日名稱（週末回 '週末'）；不是假�
 /* ══ PM 待辦事項：行事曆右上切換「行程／待辦／全部」；待辦可拖到別天、可設通知與重複 ══ */
 var TODOS=null,TODO_BUSY=false,CALV=ls('espc_calv')||'ev';
 function todoCan(){var r=normRole(ROLE);return r==='pm'||r==='admin';}
-function todoLoad(){
+function todoLoad(force){
   if(TODO_BUSY||!todoCan())return;TODO_BUSY=true;
-  gas('todoList',TOKEN).then(function(r){TODO_BUSY=false;TODOS=(r&&r.ok&&r.list)||[];if((tab==='cal'||tab==='today')&&!sub)render();})
+  gas('todoList',TOKEN).then(function(r){TODO_BUSY=false;
+    if(force&&!(r&&r.ok)){if(force)toast('待辦更新失敗','no');return;}
+    var pend=(TODOS||[]).filter(function(x){return String(x.id).indexOf('tmp_')===0;});   // 還在儲存的先留著
+    TODOS=((r&&r.ok&&r.list)||[]).concat(pend);
+    if((tab==='cal'||tab==='today')&&!sub&&!$('ov').classList.contains('open'))render();})
     .catch(function(){TODO_BUSY=false;TODOS=TODOS||[];});
 }
 function calvSet(v){CALV=v;lsS('espc_calv',v);render();}
@@ -4212,7 +4221,7 @@ var SHEET_FORM=false;     // 這張面板是表單嗎？是的話點背景不關
 function openSheet(html){
   SHEET_FORM=/<input|<select|<textarea/i.test(String(html||''));
   $('sheetin').innerHTML=html;
-  $('sheet').classList.toggle('fit',/class="tvw"|data-fit/.test(String(html||'')));
+  var fit=/class="tvw"|data-fit/.test(String(html||''));$('sheet').classList.toggle('fit',fit);$('ov').classList.toggle('fit',fit);
   _lockY=window.pageYOffset||document.documentElement.scrollTop||0;
   document.body.style.top=(-_lockY)+'px';
   document.body.classList.add('locked');
