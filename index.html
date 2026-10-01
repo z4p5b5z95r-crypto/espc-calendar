@@ -254,6 +254,7 @@ html[data-theme="dark"] .glass::after{
   overscroll-behavior:contain;scrollbar-width:none;
   -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
 .cell::-webkit-scrollbar{display:none;}
+.cell{touch-action:manipulation;}   /* 點兩下不要放大畫面 */
 .cell:active{background:var(--card);}
 .cell.lp{background:var(--tint);}
 /* 行程詳情的日期導覽 */
@@ -1008,7 +1009,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02d';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2477,6 +2478,17 @@ function todayTodos(today){
     +'<span style="flex:1"></span><button class="lnk" onclick="tdEdit(\'\',twStr())">＋ 新增</button></div>'
     +'<div class="card tdcard'+(over.length?' warn':'')+'">'+over.map(function(x){return row(x,true);}).join('')+now.map(function(x){return row(x,false);}).join('')+'</div>';
 }
+/* 當日面板最上面列出這天的待辦（PM） */
+function dayTodos(d){
+  if(!todoCan()||!TODOS)return '';
+  var l=todosOn(d);if(!l.length)return '';
+  var today=twStr();
+  return '<div class="card tdcard" style="margin-bottom:12px">'+l.map(function(t){
+    var dn=t.dones.indexOf(d)>=0,od=!dn&&d<today;
+    return '<div class="tdl'+(od?' od':'')+(dn?' dn':'')+'"><button class="tdb" onclick="tdTick(\''+t.id+'\',\''+d+'\','+(dn?'false':'true')+');openDay(\''+d+'\')"></button>'
+      +'<div class="tdm" onclick="tdEdit(\''+t.id+'\',\''+d+'\')"><b>'+he(t.title)+'</b><small>'+(od?'<em>! 逾期</em>　':'')+(t.time||'整天')+(t.rep?'　'+he(repText(t.rep)):'')+'</small></div></div>';
+  }).join('')+'</div>';
+}
 function tdTick(id,ds,on){
   var t=(TODOS||[]).filter(function(x){return x.id===id;})[0];if(!t)return;
   if(on){if(t.dones.indexOf(ds)<0)t.dones.push(ds);}else t.dones=t.dones.filter(function(x){return x!==ds;});
@@ -2486,11 +2498,14 @@ function tdTick(id,ds,on){
     else{toast((r&&r.error)||'失敗','no');todoLoad();}
   }).catch(function(){toast('連線失敗','no');todoLoad();});
 }
+/* 點兩下格子＝看當天全部行程（長按＝新增待辦，見 cellDown） */
+var _tap={d:'',t:0};
 function cellTap(e,ds){
-  if(CALV!=='td'||!todoCan())return;
-  if(_lpFired){_lpFired=false;return;}
+  if(_lpFired){_lpFired=false;_tap.t=0;return;}
   if(e.target.closest('.tdc,.evc'))return;
-  tdEdit('',ds);
+  var now=Date.now();
+  if(_tap.d===ds&&now-_tap.t<350){_tap.t=0;openDay(ds);return;}
+  _tap={d:ds,t:now};
 }
 /* 拖移：按住 0.35 秒拿起，放到別天；短按＝打開編輯 */
 var TDD=null;
@@ -2636,7 +2651,7 @@ function tdSave(){
     if(!r||!r.ok){$('td-s').disabled=false;toast((r&&r.error)||'儲存失敗','no');return;}
     TODOS=(TODOS||[]).filter(function(x){return x.id!==r.todo.id;}).concat([r.todo]);
     closeSheet();toast(t.notify&&!pushIsOn()?'已儲存（這支手機還沒開推播，收不到通知）':'已儲存','ok',2200);
-    if(CALV==='ev')CALV='all';render();
+    render();if(EV_D)openDay(EV_D);
   }).catch(function(){$('td-s').disabled=false;toast('連線失敗','no');});
 }
 function tdDone(){
@@ -2668,10 +2683,10 @@ function calPage(){
   var pdim=new Date(curY,curM,0).getDate();
   var today=twStr();
   holLoad(curY);if(curM===0)holLoad(curY-1);if(curM===11)holLoad(curY+1);
-  var TDON=todoCan()&&CALV!=='ev';
+  var TDON=todoCan();                     // PM：待辦一律顯示在格子裡（排在行程上面）
   if(todoCan()&&TODOS===null)todoLoad();
 
-  var h=(todoCan()?calvSeg():'')+'<div class="dow">'+DW.map(function(d,i){
+  var h='<div class="dow">'+DW.map(function(d,i){
     return '<span'+(i===0||i===6?' class="sun"':'')+'>'+d+'</span>';}).join('')+'</div><div class="cgrid">';
   var total=42;        // 固定 6 週，換月時高度不會忽高忽低
   for(var i=0;i<total;i++){
@@ -2686,7 +2701,7 @@ function calPage(){
     h+='<div class="cell'+(ds===today?' tdy':'')+(out?' oc':'')+(hn?' hol':'')+'" data-d="'+ds+'"'+(hn&&hn!=='週末'?' title="'+he(hn)+'"':'')
       +' onpointerdown="cellDown(event,\''+ds+'\')" onpointerup="cellUp(event)"'
       +' onpointermove="cellMove(event)" onpointercancel="cellUp(event)"'
-      +' onpointerleave="cellUp(event)" oncontextmenu="return false"'+(TDON?' onclick="cellTap(event,\''+ds+'\')"':'')+'>'
+      +' onpointerleave="cellUp(event)" oncontextmenu="return false"'+' onclick="cellTap(event,\''+ds+'\')">'
       +'<div class="dn'+(out?' out':'')+(i%7===0&&!out?' sun':'')+'">'+day+'</div>'; 
     if(TDON)h+=todoChips(ds,today);           // 待辦排在行程上面
     gs.forEach(function(g){
@@ -2702,13 +2717,12 @@ function calPage(){
   // MONTH_DONE 記錄哪些月份真的載完了，避免「還沒載就說沒排程」
   var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
   var busy=calLoading||!MONTH_DONE[ck];
-  h='<div class="calwrap'+(busy?' busy':'')+(todoCan()&&CALV==='td'?' tdv':'')+'">'+h
+  h='<div class="calwrap'+(busy?' busy':'')+'">'+h
     +(busy?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
     +'</div>';
-  if(!busy&&!Object.keys(pmap).length&&!(todoCan()&&CALV==='td'))
+  if(!busy&&!Object.keys(pmap).length)
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
   h+=regionUpdatesHTML();
-  if(TDON)h+='<button class="tdfab" title="新增待辦" onclick="tdEdit(\'\',tdDefDate())">＋</button>';
   return h;
 }
 
@@ -3921,7 +3935,8 @@ function cellDown(e,d){
   _lpT=setTimeout(function(){
     _lpT=null;_lpFired=true;
     if(_lpEl)_lpEl.classList.remove('lp');
-    openDay(d);
+    try{navigator.vibrate&&navigator.vibrate(15);}catch(_){}
+    if(todoCan())tdEdit('',d);else openDay(d);     // 長按：PM 新增待辦；其他人看當天全部行程
   },450);
 }
 function cellMove(e){
@@ -4034,7 +4049,7 @@ function openDay(d,focus){
   EV_D=d;
   if(focus)EV_OPEN[focus]=true;
 
-  var h=dayNav(d,gs.length?'共 '+gs.length+' 個案子':'');
+  var h=dayNav(d,gs.length?'共 '+gs.length+' 個案子':'')+dayTodos(d);
   if(!gs.length)h+='<div class="empty">當日沒有排程<br>'
     +'<span style="font-size:12px">左右滑動或按 ‹ › 看其他日期</span></div>';
 
