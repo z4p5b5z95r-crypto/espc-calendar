@@ -298,6 +298,26 @@ html[data-theme="dark"] .glass::after{
 .tdchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px}
 .tdchips button{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--tx2)}
 .tdchips button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+body.locked .tdfab{display:none}
+.tdcard{padding:4px 14px}.tdcard.warn{box-shadow:inset 3px 0 0 var(--err)}
+.tdl{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}.tdl:first-child{border-top:0}
+.tdb{width:24px;height:24px;border-radius:50%;border:2px solid var(--tx3);background:none;flex:0 0 24px;padding:0}
+.tdl.od .tdb{border-color:var(--err)}
+.tdl.dn .tdb{background:var(--brand);border-color:var(--brand)}.tdl.dn b{color:var(--tx3);text-decoration:line-through}
+.tdm{flex:1;min-width:0;cursor:pointer}.tdm b{display:block;font-size:15px;font-weight:600}.tdm small{display:block;font-size:12px;color:var(--tx3);margin-top:1px}
+.tdm em{font-style:normal;color:var(--err);font-weight:700}
+.tdwarn{margin-left:8px;font-size:11.5px;font-weight:700;color:#fff;background:var(--err);border-radius:999px;padding:2px 8px}
+.lnk{background:none;border:0;color:var(--accT);font-size:13.5px;font-weight:600;padding:0}
+.rpc{border-top:1px solid var(--line);padding:6px 0 12px}
+.rpl{font-size:12.5px;color:var(--tx3);margin:10px 0 6px}
+.rpi{display:flex;align-items:center;gap:8px}.rpi button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:18px;color:var(--tx)}
+.rpi b{min-width:28px;text-align:center;font-size:17px}.rpi select{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 10px;font-size:15px;color:var(--tx);margin-left:6px;font-family:inherit}
+.rpw{display:flex;gap:6px}.rpw button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:14px;color:var(--tx2)}
+.rpw button.we{color:var(--err)}.rpw button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.rpe{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:15px}.rpe input[type=radio]{width:20px;height:20px;accent-color:var(--acc);margin:0}
+.rpe span{min-width:64px}.rpe input[type=date],.rpe input[type=number]{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:14px;color:var(--tx);font-family:inherit}
+.rpe input:disabled{opacity:.45}
+.rpsum{margin-top:8px;font-size:13px;color:var(--accT);font-weight:600}
 .tdck{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--glStrong);margin-bottom:6px;font-size:15px;width:100%;border:0;color:var(--tx);text-align:left}
 .tdck i{width:22px;height:22px;border-radius:50%;border:2px solid var(--tx3);flex:0 0 22px}
 .tdck.on i{background:var(--brand);border-color:var(--brand)}
@@ -988,7 +1008,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2246,7 +2266,7 @@ function futToggle(){futOpen=!futOpen;render();}
 function todayPage(){
   var t=twStr(),parts=t.split('-');
   var mine=todayRows.filter(function(r){return r.date===t;});
-  var h=inboxBox()+'<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
+  var h=inboxBox()+todayTodos(t)+'<div class="sec" style="margin-top:2px">'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日　週'+DW[dowOf(t)]+'</div>';
   if(!mine.length)h+='<div class="card"><div class="empty" style="padding:22px">今日沒有排程</div></div>';
   else h+='<div class="glist">'+groupBy(mine).map(function(g){return evCard(g,t,true);}).join('')+'</div>';
 
@@ -2346,7 +2366,7 @@ var TODOS=null,TODO_BUSY=false,CALV=ls('espc_calv')||'ev';
 function todoCan(){var r=normRole(ROLE);return r==='pm'||r==='admin';}
 function todoLoad(){
   if(TODO_BUSY||!todoCan())return;TODO_BUSY=true;
-  gas('todoList',TOKEN).then(function(r){TODO_BUSY=false;TODOS=(r&&r.ok&&r.list)||[];if(tab==='cal'&&!sub)render();})
+  gas('todoList',TOKEN).then(function(r){TODO_BUSY=false;TODOS=(r&&r.ok&&r.list)||[];if((tab==='cal'||tab==='today')&&!sub)render();})
     .catch(function(){TODO_BUSY=false;TODOS=TODOS||[];});
 }
 function calvSet(v){CALV=v;lsS('espc_calv',v);render();}
@@ -2354,15 +2374,66 @@ function calvSeg(){
   return '<div class="calv">'+[['ev','行程'],['td','待辦'],['all','全部']].map(function(o){
     return '<button class="'+(CALV===o[0]?'on':'')+'" onclick="calvSet(\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>';
 }
-function todoOn(t,ds){
-  if(ds<t.date)return false;
-  if(!t.rep)return ds===t.date;
-  var a=new Date(t.date+'T00:00:00Z'),b=new Date(ds+'T00:00:00Z');
-  if(t.rep==='d')return true;
-  if(t.rep==='wd'){var w=b.getUTCDay();return w>=1&&w<=5;}
-  if(t.rep==='w')return a.getUTCDay()===b.getUTCDay();
-  if(t.rep==='m')return a.getUTCDate()===b.getUTCDate();
+/* 重複規則：{f:'d'|'w'|'m'|'y', n:間隔, wd:[0-6 星期], end:{t:'never'|'date'|'count', d:'yyyy-mm-dd', c:次數}}；
+   舊資料的 'd'、'wd'、'w'、'm' 也看得懂 */
+function todoRepNorm(r, start) {
+  if (!r) return null;
+  if (typeof r === 'string') {
+    if (r.charAt(0) === '{') { try { r = JSON.parse(r); } catch (e) { return null; } }
+    else if (r === 'd') r = { f: 'd' };
+    else if (r === 'wd') r = { f: 'w', wd: [1, 2, 3, 4, 5] };
+    else if (r === 'w') r = { f: 'w' };
+    else if (r === 'm') r = { f: 'm' };
+    else return null;
+  }
+  if (!r || ['d', 'w', 'm', 'y'].indexOf(r.f) < 0) return null;
+  var n = Math.max(1, Math.min(99, Math.round(Number(r.n) || 1)));
+  var o = { f: r.f, n: n };
+  if (r.f === 'w') {
+    var wd = [];
+    (Array.isArray(r.wd) ? r.wd : []).forEach(function (x) { x = Number(x); if (x >= 0 && x <= 6 && wd.indexOf(x) < 0) wd.push(x); });
+    if (!wd.length && start) wd.push(new Date(start + 'T00:00:00Z').getUTCDay());
+    o.wd = wd.sort();
+  }
+  var e = r.end || {};
+  if (e.t === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(String(e.d || ''))) o.end = { t: 'date', d: String(e.d) };
+  else if (e.t === 'count') o.end = { t: 'count', c: Math.max(1, Math.min(999, Math.round(Number(e.c) || 1))) };
+  else o.end = { t: 'never' };
+  return o;
+}
+function todoHit(t, r, ds) {
+  var a = new Date(t.date + 'T00:00:00Z'), b = new Date(ds + 'T00:00:00Z'), n = r.n || 1;
+  var days = Math.round((b - a) / 864e5);
+  if (r.f === 'd') return days % n === 0;
+  if (r.f === 'w') {
+    if ((r.wd || []).indexOf(b.getUTCDay()) < 0) return false;
+    var wa = Math.round((a - a.getUTCDay() * 864e5) / 864e5), wb = Math.round((b - b.getUTCDay() * 864e5) / 864e5);
+    return Math.round((wb - wa) / 7) % n === 0;
+  }
+  var md = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + b.getUTCMonth() - a.getUTCMonth();
+  if (r.f === 'm') return b.getUTCDate() === a.getUTCDate() && md % n === 0;
+  if (r.f === 'y') return b.getUTCDate() === a.getUTCDate() && b.getUTCMonth() === a.getUTCMonth() && (md / 12) % n === 0;
   return false;
+}
+/** 這個待辦在 ds 這天有沒有（t.rep 已整理過） */
+function todoOn(t, ds) {
+  var r = t.rep;
+  if (!r) return ds === t.date;
+  if (ds < t.date) return false;
+  if (r.end && r.end.t === 'date' && ds > r.end.d) return false;
+  if (r.end && r.end.t === 'count') {
+    if (t._last === undefined) {             // 第 c 次是哪一天（算一次記起來）
+      var c = 0, d = new Date(t.date + 'T00:00:00Z'), last = t.date;
+      for (var i = 0; i < 4000 && c < r.end.c; i++) {
+        var s = d.toISOString().slice(0, 10);
+        if (todoHit(t, r, s)) { c++; last = s; }
+        d = new Date(d.getTime() + 864e5);
+      }
+      t._last = last;
+    }
+    if (ds > t._last) return false;
+  }
+  return todoHit(t, r, ds);
 }
 function todosOn(ds){
   return (TODOS||[]).filter(function(t){return todoOn(t,ds);})
@@ -2376,6 +2447,44 @@ function todoChips(ds,today){
   });
   if(l.length>3)h+='<span class="evc" style="background:none;color:var(--tx3);text-align:center">+'+(l.length-3)+'</span>';
   return h;
+}
+/* 今日頁的待辦：今天的＋過期沒打勾的（過期的排最上面、紅色警示，打勾才會消失） */
+function todayTodos(today){
+  if(!todoCan())return '';
+  if(TODOS===null){todoLoad();return '';}
+  var over=[],now=[];
+  TODOS.forEach(function(t){
+    if(!t.rep){
+      if(t.dones.indexOf(t.date)>=0)return;
+      if(t.date<today)over.push({t:t,ds:t.date});else if(t.date===today)now.push({t:t,ds:today});
+      return;
+    }
+    for(var i=1;i<=30;i++){var d=addDays(today,-i);if(todoOn(t,d)){if(t.dones.indexOf(d)<0)over.push({t:t,ds:d});break;}}   // 重複的：只看最近一次有沒有漏
+    if(todoOn(t,today))now.push({t:t,ds:today,done:t.dones.indexOf(today)>=0});
+  });
+  if(!over.length&&!now.length)return '';
+  over.sort(function(a,b){return a.ds<b.ds?-1:1;});
+  now.sort(function(a,b){if(!!a.done!==!!b.done)return a.done?1:-1;return (a.t.time||'99')<(b.t.time||'99')?-1:1;});
+  var row=function(x,od){
+    var t=x.t,days=od?Math.round((new Date(today+'T00:00:00Z')-new Date(x.ds+'T00:00:00Z'))/864e5):0;
+    return '<div class="tdl'+(od?' od':'')+(x.done?' dn':'')+'"><button class="tdb" onclick="tdTick(\''+t.id+'\',\''+x.ds+'\','+(x.done?'false':'true')+')"></button>'
+      +'<div class="tdm" onclick="tdEdit(\''+t.id+'\',\''+x.ds+'\')"><b>'+he(t.title)+'</b><small>'
+      +(od?'<em>! 逾期 '+days+' 天</em>　'+(+x.ds.slice(5,7))+'/'+(+x.ds.slice(8))+' 到期':(t.time||'今天'))
+      +(t.rep?'　'+he(repText(t.rep)):'')+'</small></div></div>';
+  };
+  return '<div class="sec" style="margin-top:2px;display:flex;align-items:center">待辦'
+    +(over.length?'<span class="tdwarn">'+over.length+' 項逾期未完成</span>':'')
+    +'<span style="flex:1"></span><button class="lnk" onclick="tdEdit(\'\',twStr())">＋ 新增</button></div>'
+    +'<div class="card tdcard'+(over.length?' warn':'')+'">'+over.map(function(x){return row(x,true);}).join('')+now.map(function(x){return row(x,false);}).join('')+'</div>';
+}
+function tdTick(id,ds,on){
+  var t=(TODOS||[]).filter(function(x){return x.id===id;})[0];if(!t)return;
+  if(on){if(t.dones.indexOf(ds)<0)t.dones.push(ds);}else t.dones=t.dones.filter(function(x){return x!==ds;});
+  render();
+  gas('todoDone',TOKEN,id,ds,on).then(function(r){
+    if(r&&r.ok){TODOS=(TODOS||[]).map(function(x){return x.id===r.todo.id?r.todo:x;});if(on)toast('完成','ok',1000);}
+    else{toast((r&&r.error)||'失敗','no');todoLoad();}
+  }).catch(function(){toast('連線失敗','no');todoLoad();});
 }
 function cellTap(e,ds){
   if(CALV!=='td'||!todoCan())return;
@@ -2433,11 +2542,11 @@ var TDE=null;
 function tdEdit(id,ds){
   var t=id?(TODOS||[]).filter(function(x){return x.id===id;})[0]:null;
   TDE=t?JSON.parse(JSON.stringify(t)):{id:'',title:'',date:ds||twStr(),time:'',note:'',notify:true,lead:0,rep:'',nag:false,dones:[]};
-  TDE.inst=ds||TDE.date;TDE.more=!!(TDE.rep||TDE.nag||TDE.note);
+  TDE.inst=ds||TDE.date;TDE.more=!!(TDE.rep||TDE.nag||TDE.note);TDE.cust=repPreset(TDE.rep,TDE.date)==='c';
   tdPaint();
 }
 function tdPaint(){
-  var t=TDE,rp={'':'不重複',d:'每天',wd:'每個工作日（一～五）',w:'每週',m:'每月'};
+  var t=TDE;
   var dn=t.id&&t.dones.indexOf(t.inst)>=0;
   var h='<div class="shh" style="align-items:center"><h3>'+(t.id?'待辦':'新增待辦')+'</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
     +(t.id?'<button class="tdck'+(dn?' on':'')+'" onclick="tdDone()"><i></i>'+(dn?'已完成（點一下取消）':'標記完成')+(t.rep?'<span style="margin-left:auto;font-size:12px;color:var(--tx3)">'+(+t.inst.slice(5,7))+'/'+(+t.inst.slice(8))+' 這一次</span>':'')+'</button>':'')
@@ -2449,16 +2558,76 @@ function tdPaint(){
         return '<button class="'+(t.lead===o[0]?'on':'')+'" onclick="TDE.lead='+o[0]+';tdPaint()">'+o[1]+'</button>';}).join('')+'</div>':'')
     +'</div>';
   if(!t.more)h+='<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="TDE.more=true;tdPaint()">重複、一直提醒、備註…</button>';
-  else h+='<div class="tdsec"><div class="tdrow"><span>重複</span><select onchange="TDE.rep=this.value">'
-      +Object.keys(rp).map(function(k){return '<option value="'+k+'"'+(t.rep===k?' selected':'')+'>'+rp[k]+'</option>';}).join('')+'</select></div>'
+  else h+='<div class="tdsec">'+repUI()
     +'<div class="tdrow"><span>沒完成就一直提醒<small style="display:block;font-size:11.5px;color:var(--tx3)">每 2 小時（08:00～21:00），直到打勾</small></span><button class="sw'+(t.nag?' on':'')+'" onclick="TDE.nag=!TDE.nag;tdPaint()"></button></div></div>'
     +'<p class="lb" style="margin-top:12px">備註</p><textarea class="fld" rows="2" maxlength="300" oninput="TDE.note=this.value">'+he(t.note)+'</textarea>';
   h+='<button class="btn btn-p btn-full" id="td-s" style="margin-top:14px" onclick="tdSave()">儲存</button>'
     +(t.id?'<button class="btn btn-d btn-full" style="margin-top:8px" onclick="tdDel()">刪除</button>':'');
-  openSheet(h);
-  if(!t.id)setTimeout(function(){var i=$('td-t');if(i)i.focus();},250);
+  var keep=$('ov').classList.contains('open')&&$('sheetin')&&$('sheetin').querySelector('#td-t');
+  if(keep){$('sheetin').innerHTML=h;if(TDE._sy)$('sheetin').scrollTop=TDE._sy;}
+  else{openSheet(h);if(!t.id)setTimeout(function(){var i=$('td-t');if(i)i.focus();},250);}
 }
 function tdDefDate(){var t=twStr(),m=curY+'-'+p2(curM+1);return t.slice(0,7)===m?t:m+'-01';}
+/* ── 重複：常用選項＋自訂週期（間隔、星期幾、結束） ── */
+var WDN='日一二三四五六';
+function repPreset(r,date){
+  if(!r)return '';
+  var dw=new Date(date+'T00:00:00Z').getUTCDay(),never=!r.end||r.end.t==='never';
+  if(!never||r.n!==1)return 'c';
+  if(r.f==='d')return 'd';
+  if(r.f==='w'&&r.wd.join()==='1,2,3,4,5')return 'wd';
+  if(r.f==='w'&&r.wd.length===1&&r.wd[0]===dw)return 'w1';
+  if(r.f==='m')return 'm1';
+  if(r.f==='y')return 'y1';
+  return 'c';
+}
+function repText(r){
+  if(!r)return '不重複';
+  var u={d:'天',w:'週',m:'個月',y:'年'}[r.f],s=(r.n>1?'每 '+r.n+' '+u:'每'+(r.f==='m'?'月':u));
+  if(r.f==='w')s+=(r.wd.join()==='1,2,3,4,5'?'的工作日':'的'+r.wd.map(function(x){return WDN.charAt(x);}).join('、'));
+  if(r.end&&r.end.t==='date')s+='，到 '+(+r.end.d.slice(5,7))+'/'+(+r.end.d.slice(8));
+  if(r.end&&r.end.t==='count')s+='，共 '+r.end.c+' 次';
+  return s;
+}
+function repUI(){
+  var t=TDE,d=t.date,dw=new Date(d+'T00:00:00Z').getUTCDay(),pr=t.cust?'c':repPreset(t.rep,d);
+  var opts=[['','不重複'],['d','每天'],['w1','每週'+WDN.charAt(dw)],['m1','每月 '+(+d.slice(8))+' 日'],['y1','每年 '+(+d.slice(5,7))+'/'+(+d.slice(8))],['wd','每個工作日（一～五）'],['c','自訂…']];
+  var h='<div class="tdrow"><span>重複</span><select onchange="repPick(this.value)">'
+    +opts.map(function(o){return '<option value="'+o[0]+'"'+(pr===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
+  if(pr==='c'){
+    var r=t.rep||{f:'w',n:1,wd:[dw],end:{t:'never'}};
+    h+='<div class="rpc"><div class="rpl">重複間隔</div><div class="rpi"><button onclick="repN(-1)">−</button><b>'+r.n+'</b><button onclick="repN(1)">＋</button>'
+      +'<select onchange="repSet(\'f\',this.value)">'+[['d','天'],['w','週'],['m','個月'],['y','年']].map(function(o){return '<option value="'+o[0]+'"'+(r.f===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
+    if(r.f==='w')h+='<div class="rpl">重複日期</div><div class="rpw">'+WDN.split('').map(function(x,i){
+        return '<button class="'+(r.wd.indexOf(i)>=0?'on':'')+(i===0||i===6?' we':'')+'" onclick="repWd('+i+')">'+x+'</button>';}).join('')+'</div>';
+    var e=r.end||{t:'never'};
+    h+='<div class="rpl">結束時間</div>'
+      +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='never'?' checked':'')+' onchange="repEnd(\'never\')"><span>持續不停</span></label>'
+      +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='date'?' checked':'')+' onchange="repEnd(\'date\')"><span>於</span>'
+        +'<input type="date" value="'+(e.d||addDays(d,90))+'"'+(e.t==='date'?'':' disabled')+' onchange="TDE.rep.end={t:\'date\',d:this.value};repLbl()"></label>'
+      +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='count'?' checked':'')+' onchange="repEnd(\'count\')"><span>重複</span>'
+        +'<input type="number" min="1" max="999" value="'+(e.c||13)+'"'+(e.t==='count'?'':' disabled')+' onchange="TDE.rep.end={t:\'count\',c:Math.max(1,+this.value||1)};repLbl()" style="width:64px"> 次</label>'
+      +'<div class="rpsum" id="rp-sum">'+he(repText(r))+'</div></div>';
+  }
+  return h;
+}
+function repLbl(){var e=$('rp-sum');if(e&&TDE.rep)e.textContent=repText(TDE.rep);}
+function repPick(v){
+  var d=TDE.date,dw=new Date(d+'T00:00:00Z').getUTCDay();TDE.cust=(v==='c');
+  if(v==='')TDE.rep=null;
+  else if(v==='d')TDE.rep={f:'d',n:1,end:{t:'never'}};
+  else if(v==='w1')TDE.rep={f:'w',n:1,wd:[dw],end:{t:'never'}};
+  else if(v==='m1')TDE.rep={f:'m',n:1,end:{t:'never'}};
+  else if(v==='y1')TDE.rep={f:'y',n:1,end:{t:'never'}};
+  else if(v==='wd')TDE.rep={f:'w',n:1,wd:[1,2,3,4,5],end:{t:'never'}};
+  else if(!TDE.rep)TDE.rep={f:'w',n:1,wd:[dw],end:{t:'never'}};
+  tdKeep();tdPaint();
+}
+function repN(k){var r=TDE.rep;r.n=Math.max(1,Math.min(99,(r.n||1)+k));tdKeep();tdPaint();}
+function repSet(k,v){var r=TDE.rep;r[k]=v;if(v==='w'&&!(r.wd&&r.wd.length))r.wd=[new Date(TDE.date+'T00:00:00Z').getUTCDay()];tdKeep();tdPaint();}
+function repWd(i){var r=TDE.rep,j=r.wd.indexOf(i);if(j>=0){if(r.wd.length>1)r.wd.splice(j,1);}else{r.wd.push(i);r.wd.sort();}tdKeep();tdPaint();}
+function repEnd(t){var r=TDE.rep,d=TDE.date;r.end=t==='never'?{t:'never'}:t==='date'?{t:'date',d:(r.end&&r.end.d)||addDays(d,90)}:{t:'count',c:(r.end&&r.end.c)||13};tdKeep();tdPaint();}
+function tdKeep(){var i=$('td-t');if(i)TDE.title=i.value;var sh=$('sheetin');TDE._sy=sh?sh.scrollTop:0;}
 function tdSave(){
   var t=TDE;if(!t.title.trim()){toast('請輸入待辦內容','no');return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(t.date)){toast('請選日期','no');return;}
@@ -2519,12 +2688,12 @@ function calPage(){
       +' onpointermove="cellMove(event)" onpointercancel="cellUp(event)"'
       +' onpointerleave="cellUp(event)" oncontextmenu="return false"'+(TDON?' onclick="cellTap(event,\''+ds+'\')"':'')+'>'
       +'<div class="dn'+(out?' out':'')+(i%7===0&&!out?' sun':'')+'">'+day+'</div>'; 
+    if(TDON)h+=todoChips(ds,today);           // 待辦排在行程上面
     gs.forEach(function(g){
       h+='<span class="evc" style="background:'+pcolor(g.project)+'"'
         +' onclick="evcTap(event,\''+ds+'\',\''+he(esc(g.project))+'\')">'
         +he(g.project+carTag(g))+'</span>';
     });
-    if(TDON)h+=todoChips(ds,today);
     h+='</div>';
   }
   h+='</div>';
