@@ -273,6 +273,34 @@ html[data-theme="dark"] .glass::after{
 .dnt b{display:block;font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .dnt span{font-size:12px;color:var(--tx3);}
 
+
+/* ── PM 待辦事項（行事曆切換：行程／待辦／全部） ── */
+.calv{display:flex;background:rgba(120,120,128,.14);border-radius:11px;padding:2px;margin:0 0 8px auto;width:max-content}
+.calv button{font-size:13px;padding:5px 14px;border-radius:9px;color:var(--tx2);background:none;border:0}
+.calv button.on{background:var(--card);color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.calwrap.tdv .evc{opacity:.25}
+.tdc{display:flex;align-items:center;gap:3px;font-size:9.5px;line-height:1.5;padding:0 3px;margin-top:2px;border:1px dashed rgba(120,120,128,.55);
+  background:var(--glStrong);border-radius:4px;white-space:nowrap;overflow:hidden;color:var(--tx);touch-action:none;cursor:pointer}
+.tdc i{width:7px;height:7px;border:1.3px solid var(--tx3);border-radius:50%;flex:0 0 7px}
+.tdc.done{color:var(--tx3);text-decoration:line-through}.tdc.done i{background:var(--tx3)}
+.tdc.over i{border-color:var(--err)}
+.tdc.drg{opacity:.3}
+.tdghost{position:fixed;z-index:400;pointer-events:none;font-size:12px;padding:4px 9px;border-radius:8px;background:var(--card);
+  border:1.5px solid var(--brand);box-shadow:0 8px 20px rgba(0,0,0,.25);transform:translate(-50%,-130%) rotate(-3deg);white-space:nowrap}
+.cell.tdt{outline:1.5px dashed var(--brand);outline-offset:-1px;background:var(--tint)}
+.tdfab{position:fixed;right:18px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:60;width:52px;height:52px;border-radius:50%;
+  background:var(--brand);color:#fff;font-size:28px;line-height:50px;text-align:center;border:0;box-shadow:0 6px 18px rgba(243,111,33,.45)}
+@media(min-width:900px){.tdc{font-size:11.5px;line-height:1.7;padding:0 6px;margin-top:3px}.tdfab{bottom:28px;right:28px}}
+.tdsec{background:var(--glStrong);border-radius:14px;padding:4px 14px;margin-top:10px}
+.tdrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--line);font-size:15px}
+.tdrow:first-child{border-top:0}
+.tdrow input,.tdrow select{border:0;background:none;font-size:15px;color:var(--tx2);text-align:right;font-family:inherit;max-width:60%}
+.tdchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px}
+.tdchips button{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--tx2)}
+.tdchips button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.tdck{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--glStrong);margin-bottom:6px;font-size:15px;width:100%;border:0;color:var(--tx);text-align:left}
+.tdck i{width:22px;height:22px;border-radius:50%;border:2px solid var(--tx3);flex:0 0 22px}
+.tdck.on i{background:var(--brand);border-color:var(--brand)}
 .cell.hol .dn{color:var(--err);font-weight:800;}
 .cell.hol.oc .dn{opacity:.6;}
 .cell.tdy{outline:1.5px solid var(--acc);outline-offset:-1px;}
@@ -929,7 +957,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
-    <button class="nb" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳排程</em></button>
+    <button class="nb dlm" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳排程</em></button>
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
@@ -960,7 +988,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-01i';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -1795,7 +1823,7 @@ function boot(u,r,eng){
   $('u-av').textContent=((eng&&eng!==u?eng:u)||'?').slice(0,1);
   $('u-nm').innerHTML=he((eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）')
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
-  $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到
+  $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到；手機版由 CSS（.dlm）隱藏，只在桌機出現
   $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
   $('nb-cast').style.display=(r==='admin'||r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：管理員、主管、排程
   $('nb-dl').style.display=(r==='admin')?'':'none';
@@ -1988,9 +2016,9 @@ function restoreTab(){
   if(v.t==='stat'&&ROLE!=='admin')return null;
   if(v.t==='dl'&&(!isDesk()||ROLE!=='admin'))return null;
   if(okTab.indexOf(v.t)<0)return null;
-  if(v.t==='upload'&&!canWrite(ROLE))return null;
+  if(v.t==='upload'&&(!canWrite(ROLE)||!isDesk()))return null;   // 上傳排程只在桌機
   if(v.t==='admin'&&!canManage(ROLE))return null;
-  if(v.s==='upload'&&!canWrite(ROLE))v.s='';
+  if(v.s==='upload'&&(!canWrite(ROLE)||!isDesk()))v.s='';
   if(v.s==='admin'&&!canManage(ROLE))v.s='';
   if(v.t==='today')return null;                 // 今日是預設頁，照原流程走
   if(v.t==='cal'&&typeof v.y==='number'&&typeof v.m==='number'){
@@ -2312,6 +2340,150 @@ function holOf(ds){   // 回傳假日名稱（週末回 '週末'）；不是假�
   if(ds in HOL)return HOL[ds]||'';
   var w=new Date(ds+'T00:00:00').getDay();return (w===0||w===6)?'週末':'';
 }
+
+/* ══ PM 待辦事項：行事曆右上切換「行程／待辦／全部」；待辦可拖到別天、可設通知與重複 ══ */
+var TODOS=null,TODO_BUSY=false,CALV=ls('espc_calv')||'ev';
+function todoCan(){var r=normRole(ROLE);return r==='pm'||r==='admin';}
+function todoLoad(){
+  if(TODO_BUSY||!todoCan())return;TODO_BUSY=true;
+  gas('todoList',TOKEN).then(function(r){TODO_BUSY=false;TODOS=(r&&r.ok&&r.list)||[];if(tab==='cal'&&!sub)render();})
+    .catch(function(){TODO_BUSY=false;TODOS=TODOS||[];});
+}
+function calvSet(v){CALV=v;lsS('espc_calv',v);render();}
+function calvSeg(){
+  return '<div class="calv">'+[['ev','行程'],['td','待辦'],['all','全部']].map(function(o){
+    return '<button class="'+(CALV===o[0]?'on':'')+'" onclick="calvSet(\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>';
+}
+function todoOn(t,ds){
+  if(ds<t.date)return false;
+  if(!t.rep)return ds===t.date;
+  var a=new Date(t.date+'T00:00:00Z'),b=new Date(ds+'T00:00:00Z');
+  if(t.rep==='d')return true;
+  if(t.rep==='wd'){var w=b.getUTCDay();return w>=1&&w<=5;}
+  if(t.rep==='w')return a.getUTCDay()===b.getUTCDay();
+  if(t.rep==='m')return a.getUTCDate()===b.getUTCDate();
+  return false;
+}
+function todosOn(ds){
+  return (TODOS||[]).filter(function(t){return todoOn(t,ds);})
+    .sort(function(a,b){var da=a.dones.indexOf(ds)>=0,db=b.dones.indexOf(ds)>=0;if(da!==db)return da?1:-1;return (a.time||'99')<(b.time||'99')?-1:1;});
+}
+function todoChips(ds,today){
+  var l=todosOn(ds),h='';
+  l.slice(0,3).forEach(function(t){
+    var dn=t.dones.indexOf(ds)>=0;
+    h+='<span class="tdc'+(dn?' done':'')+(!dn&&ds<today?' over':'')+'" onpointerdown="tdDown(event,\''+t.id+'\',\''+ds+'\')"><i></i>'+he(t.title)+'</span>';
+  });
+  if(l.length>3)h+='<span class="evc" style="background:none;color:var(--tx3);text-align:center">+'+(l.length-3)+'</span>';
+  return h;
+}
+function cellTap(e,ds){
+  if(CALV!=='td'||!todoCan())return;
+  if(_lpFired){_lpFired=false;return;}
+  if(e.target.closest('.tdc,.evc'))return;
+  tdEdit('',ds);
+}
+/* 拖移：按住 0.35 秒拿起，放到別天；短按＝打開編輯 */
+var TDD=null;
+function tdDown(e,id,ds){
+  e.stopPropagation();cellUp();
+  var el=e.currentTarget;
+  TDD={id:id,ds:ds,el:el,x:e.clientX,y:e.clientY,on:false,pid:e.pointerId,
+    t:setTimeout(function(){
+      var t=(TODOS||[]).filter(function(x){return x.id===id;})[0];if(!t)return;
+      if(t.rep){TDD.t=null;toast('重複的待辦請點開修改日期','no',2200);TDD.cancel=true;return;}
+      TDD.on=true;TDD.t=null;el.classList.add('drg');
+      try{navigator.vibrate&&navigator.vibrate(15);}catch(_){}
+      var g=document.createElement('div');g.className='tdghost';g.textContent='○ '+t.title;document.body.appendChild(g);TDD.g=g;tdPos(TDD.x,TDD.y);
+    },350)};
+  try{el.setPointerCapture(e.pointerId);}catch(_){}
+  document.addEventListener('pointermove',tdMove);document.addEventListener('pointerup',tdUp);document.addEventListener('pointercancel',tdUp);
+}
+function tdPos(x,y){
+  if(!TDD||!TDD.g)return;TDD.g.style.left=x+'px';TDD.g.style.top=y+'px';
+  var c=document.elementFromPoint(x,y);c=c&&c.closest?c.closest('.cell'):null;
+  document.querySelectorAll('.cell.tdt').forEach(function(n){if(n!==c)n.classList.remove('tdt');});
+  if(c&&c.getAttribute('data-d')!==TDD.ds)c.classList.add('tdt');
+}
+function tdMove(e){
+  if(!TDD)return;
+  if(!TDD.on){if(TDD.t&&(Math.abs(e.clientX-TDD.x)>8||Math.abs(e.clientY-TDD.y)>8)){clearTimeout(TDD.t);TDD.t=null;TDD.cancel=true;}return;}
+  e.preventDefault();tdPos(e.clientX,e.clientY);
+}
+function tdUp(e){
+  document.removeEventListener('pointermove',tdMove);document.removeEventListener('pointerup',tdUp);document.removeEventListener('pointercancel',tdUp);
+  var d=TDD;TDD=null;if(!d)return;
+  if(d.t)clearTimeout(d.t);
+  if(d.g)d.g.remove();
+  if(d.el)d.el.classList.remove('drg');
+  document.querySelectorAll('.cell.tdt').forEach(function(n){n.classList.remove('tdt');});
+  if(!d.on){if(!d.cancel&&e.type==='pointerup')tdEdit(d.id,d.ds);return;}
+  var c=document.elementFromPoint(e.clientX,e.clientY);c=c&&c.closest?c.closest('.cell'):null;
+  var to=c&&c.getAttribute('data-d');
+  if(!to||to===d.ds)return;
+  var t=(TODOS||[]).filter(function(x){return x.id===d.id;})[0];if(!t)return;
+  var was=t.date;t.date=to;t.dones=t.dones.map(function(x){return x===was?to:x;});render();   // 先畫，再存
+  gas('todoMove',TOKEN,d.id,to).then(function(r){
+    if(r&&r.ok){toast('已移到 '+(+to.slice(5,7))+'/'+(+to.slice(8)),'ok',1500);}
+    else{toast((r&&r.error)||'移動失敗','no');todoLoad();}
+  }).catch(function(){toast('連線失敗','no');todoLoad();});
+}
+/* 新增／編輯 */
+var TDE=null;
+function tdEdit(id,ds){
+  var t=id?(TODOS||[]).filter(function(x){return x.id===id;})[0]:null;
+  TDE=t?JSON.parse(JSON.stringify(t)):{id:'',title:'',date:ds||twStr(),time:'',note:'',notify:true,lead:0,rep:'',nag:false,dones:[]};
+  TDE.inst=ds||TDE.date;TDE.more=!!(TDE.rep||TDE.nag||TDE.note);
+  tdPaint();
+}
+function tdPaint(){
+  var t=TDE,rp={'':'不重複',d:'每天',wd:'每個工作日（一～五）',w:'每週',m:'每月'};
+  var dn=t.id&&t.dones.indexOf(t.inst)>=0;
+  var h='<div class="shh" style="align-items:center"><h3>'+(t.id?'待辦':'新增待辦')+'</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +(t.id?'<button class="tdck'+(dn?' on':'')+'" onclick="tdDone()"><i></i>'+(dn?'已完成（點一下取消）':'標記完成')+(t.rep?'<span style="margin-left:auto;font-size:12px;color:var(--tx3)">'+(+t.inst.slice(5,7))+'/'+(+t.inst.slice(8))+' 這一次</span>':'')+'</button>':'')
+    +'<input class="fld" id="td-t" maxlength="60" placeholder="要做什麼？" value="'+he(t.title)+'" oninput="TDE.title=this.value">'
+    +'<div class="tdsec"><div class="tdrow"><span>日期</span><input type="date" value="'+t.date+'" onchange="TDE.date=this.value"></div>'
+    +'<div class="tdrow"><span>時間</span><input type="time" value="'+he(t.time)+'" onchange="TDE.time=this.value" placeholder="整天"></div></div>'
+    +'<div class="tdsec"><div class="tdrow"><span>通知'+(!t.time?'<small style="display:block;font-size:11.5px;color:var(--tx3)">沒設時間＝當天 09:00</small>':'')+'</span><button class="sw'+(t.notify?' on':'')+'" onclick="TDE.notify=!TDE.notify;tdPaint()"></button></div>'
+    +(t.notify?'<div class="tdchips">'+[[0,'準時'],[10,'10 分前'],[60,'1 小時前'],[1440,'前一天']].map(function(o){
+        return '<button class="'+(t.lead===o[0]?'on':'')+'" onclick="TDE.lead='+o[0]+';tdPaint()">'+o[1]+'</button>';}).join('')+'</div>':'')
+    +'</div>';
+  if(!t.more)h+='<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="TDE.more=true;tdPaint()">重複、一直提醒、備註…</button>';
+  else h+='<div class="tdsec"><div class="tdrow"><span>重複</span><select onchange="TDE.rep=this.value">'
+      +Object.keys(rp).map(function(k){return '<option value="'+k+'"'+(t.rep===k?' selected':'')+'>'+rp[k]+'</option>';}).join('')+'</select></div>'
+    +'<div class="tdrow"><span>沒完成就一直提醒<small style="display:block;font-size:11.5px;color:var(--tx3)">每 2 小時（08:00～21:00），直到打勾</small></span><button class="sw'+(t.nag?' on':'')+'" onclick="TDE.nag=!TDE.nag;tdPaint()"></button></div></div>'
+    +'<p class="lb" style="margin-top:12px">備註</p><textarea class="fld" rows="2" maxlength="300" oninput="TDE.note=this.value">'+he(t.note)+'</textarea>';
+  h+='<button class="btn btn-p btn-full" id="td-s" style="margin-top:14px" onclick="tdSave()">儲存</button>'
+    +(t.id?'<button class="btn btn-d btn-full" style="margin-top:8px" onclick="tdDel()">刪除</button>':'');
+  openSheet(h);
+  if(!t.id)setTimeout(function(){var i=$('td-t');if(i)i.focus();},250);
+}
+function tdDefDate(){var t=twStr(),m=curY+'-'+p2(curM+1);return t.slice(0,7)===m?t:m+'-01';}
+function tdSave(){
+  var t=TDE;if(!t.title.trim()){toast('請輸入待辦內容','no');return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(t.date)){toast('請選日期','no');return;}
+  $('td-s').disabled=true;
+  gas('todoSave',TOKEN,{id:t.id,title:t.title.trim(),date:t.date,time:t.time||'',note:t.note||'',notify:t.notify,lead:t.lead,rep:t.rep,nag:t.nag}).then(function(r){
+    if(!r||!r.ok){$('td-s').disabled=false;toast((r&&r.error)||'儲存失敗','no');return;}
+    TODOS=(TODOS||[]).filter(function(x){return x.id!==r.todo.id;}).concat([r.todo]);
+    closeSheet();toast(t.notify&&!pushIsOn()?'已儲存（這支手機還沒開推播，收不到通知）':'已儲存','ok',2200);
+    if(CALV==='ev')CALV='all';render();
+  }).catch(function(){$('td-s').disabled=false;toast('連線失敗','no');});
+}
+function tdDone(){
+  var t=TDE,on=t.dones.indexOf(t.inst)<0;
+  gas('todoDone',TOKEN,t.id,t.inst,on).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'失敗','no');return;}
+    TODOS=(TODOS||[]).map(function(x){return x.id===r.todo.id?r.todo:x;});
+    closeSheet();toast(on?'完成':'已取消完成','ok',1200);render();
+  });
+}
+function tdDel(){
+  var t=TDE;if(!confirm(t.rep?'刪除這個重複待辦（全部日期）？':'刪除這個待辦？'))return;
+  gas('todoDel',TOKEN,t.id).then(function(r){
+    TODOS=(TODOS||[]).filter(function(x){return x.id!==t.id;});closeSheet();toast('已刪除','ok',1200);render();
+  });
+}
 function calPage(){
   pmap={};pidx=0;
   var byDate={};
@@ -2327,8 +2499,10 @@ function calPage(){
   var pdim=new Date(curY,curM,0).getDate();
   var today=twStr();
   holLoad(curY);if(curM===0)holLoad(curY-1);if(curM===11)holLoad(curY+1);
+  var TDON=todoCan()&&CALV!=='ev';
+  if(todoCan()&&TODOS===null)todoLoad();
 
-  var h='<div class="dow">'+DW.map(function(d,i){
+  var h=(todoCan()?calvSeg():'')+'<div class="dow">'+DW.map(function(d,i){
     return '<span'+(i===0||i===6?' class="sun"':'')+'>'+d+'</span>';}).join('')+'</div><div class="cgrid">';
   var total=42;        // 固定 6 週，換月時高度不會忽高忽低
   for(var i=0;i<total;i++){
@@ -2343,13 +2517,14 @@ function calPage(){
     h+='<div class="cell'+(ds===today?' tdy':'')+(out?' oc':'')+(hn?' hol':'')+'" data-d="'+ds+'"'+(hn&&hn!=='週末'?' title="'+he(hn)+'"':'')
       +' onpointerdown="cellDown(event,\''+ds+'\')" onpointerup="cellUp(event)"'
       +' onpointermove="cellMove(event)" onpointercancel="cellUp(event)"'
-      +' onpointerleave="cellUp(event)" oncontextmenu="return false">'
+      +' onpointerleave="cellUp(event)" oncontextmenu="return false"'+(TDON?' onclick="cellTap(event,\''+ds+'\')"':'')+'>'
       +'<div class="dn'+(out?' out':'')+(i%7===0&&!out?' sun':'')+'">'+day+'</div>'; 
     gs.forEach(function(g){
       h+='<span class="evc" style="background:'+pcolor(g.project)+'"'
         +' onclick="evcTap(event,\''+ds+'\',\''+he(esc(g.project))+'\')">'
         +he(g.project+carTag(g))+'</span>';
     });
+    if(TDON)h+=todoChips(ds,today);
     h+='</div>';
   }
   h+='</div>';
@@ -2358,12 +2533,13 @@ function calPage(){
   // MONTH_DONE 記錄哪些月份真的載完了，避免「還沒載就說沒排程」
   var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
   var busy=calLoading||!MONTH_DONE[ck];
-  h='<div class="calwrap'+(busy?' busy':'')+'">'+h
+  h='<div class="calwrap'+(busy?' busy':'')+(todoCan()&&CALV==='td'?' tdv':'')+'">'+h
     +(busy?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
     +'</div>';
-  if(!busy&&!Object.keys(pmap).length)
+  if(!busy&&!Object.keys(pmap).length&&!(todoCan()&&CALV==='td'))
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
   h+=regionUpdatesHTML();
+  if(TDON)h+='<button class="tdfab" title="新增待辦" onclick="tdEdit(\'\',tdDefDate())">＋</button>';
   return h;
 }
 
