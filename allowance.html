@@ -35,6 +35,7 @@ textarea.fld{height:auto;padding:10px 14px;line-height:1.5;resize:vertical}
 .fld:focus{border-color:var(--acc)}
 .seg{display:flex;background:rgba(120,120,128,.14);border-radius:12px;padding:3px;margin:10px 0 4px;overflow-x:auto}
 .seg button{flex:1;min-width:64px;height:34px;border-radius:9px;font-size:14px;color:var(--tx2);white-space:nowrap;padding:0 10px}
+.segn{font-size:12px;color:var(--tx3);margin-left:6px;font-weight:400}
 .seg button.on{background:var(--glS);color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .mon{display:flex;align-items:center;justify-content:center;gap:14px;margin:8px 0 2px}
 .mon b{font-size:17px;min-width:120px;text-align:center}
@@ -207,6 +208,13 @@ button.chip{cursor:pointer}
 .cxo.on i{border:5px solid var(--bad)}
 .cxo b{flex:1;font-weight:600}.cxo small{color:var(--tx3)}
 .cxo[disabled]{opacity:.45}
+.pst{display:block;font-style:normal;font-size:11px;font-weight:600;margin-top:2px}
+.cr.mrow .pst{display:inline;margin:0 0 0 4px}
+.pst.pd{color:#b7791f}.pst.no{color:var(--bad)}.pst.ok{color:var(--ok)}
+.rbad{font-style:normal;display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;margin-left:3px;padding:0 5px}
+.rlr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;padding:9px 11px;border-radius:12px;background:var(--gl);border:1px solid var(--line);font-size:13.5px}
+.rlr .o{color:var(--tx3);text-decoration:line-through}.rlr .ar{color:var(--tx3)}.rlr .n{font-weight:700;color:var(--tx)}
+.rlr .df{margin-left:auto;color:#b7791f;font-weight:700}
 .cxb{font-size:12.5px;color:var(--bad);background:none;border:1px solid rgba(211,59,47,.3);border-radius:999px;padding:4px 11px;margin-right:8px;flex:0 0 auto}
 .lockbox span{flex:0 0 100%;font-weight:400;font-size:12.5px;color:var(--tx2)}
 details.fx{margin-top:10px}details.fx summary{font-size:13px;color:var(--accT);cursor:pointer;list-style:none}
@@ -244,9 +252,10 @@ function closeSheet(){$('ov').classList.remove('open');}
 
 /* 狀態 */
 var TOKEN=ls('espc_token')||'', UNAME=ls('espc_user')||'', ROLE=ls('espc_role')||'';
-var S={ym:'',tab:'me',who:'',data:null,busy:false,sum:null,qual:null,qq:'',edit:null};
+var S={qt:'EIA-T',ym:'',tab:'me',who:'',data:null,busy:false,sum:null,qual:null,qq:'',edit:null};
 (function(){var d=new Date(Date.now()+8*3600e3);S.ym=d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1);
-  var m=(location.search.match(/[?&]ym=(\d{4}-\d{2})/)||[])[1];if(m)S.ym=m;})();   // 從推播點進來直接開那個月
+  var m=(location.search.match(/[?&]ym=(\d{4}-\d{2})/)||[])[1];if(m)S.ym=m;
+  if(/[?&]tab=rule/.test(location.search))S.tab='rule';})();   // 從推播點進來直接開那個月
 
 /* ── 登入（與行事曆共用；在行事曆登入過就不用再登入） ── */
 function loginView(){
@@ -287,11 +296,17 @@ function load(){
     }
     S.data=r;WS={};if(r.ym)S.ym=r.ym;render();
     if(S.tab==='all'&&r.canAll)loadSum();
+    if(S.tab==='rule'&&r.canRule!=null)loadRule();
   }).catch(function(){S.busy=false;S.data={err:'連線失敗，請稍後再試'};render();});
 }
 function loadSum(){
   S.sum=null;render();
   gas('allowSummary',TOKEN,S.ym).then(function(r){S.sum=r&&r.ok?r.list:[];S.ntf=r&&r.ok?r.ntf:null;S.sumCx=!!(r&&r.canCx);render();}).catch(function(){S.sum=[];render();});
+}
+function loadRule(){
+  S.rule=null;render();
+  gas('allowRules',TOKEN).then(function(r){S.rule=r&&r.ok?r:{pend:[],rules:[],recent:[],err:(r&&r.error)||''};if(S.data&&r&&r.ok)S.data.canRule=r.pend.length;render();})
+    .catch(function(){S.rule={pend:[],rules:[],recent:[],err:'連線失敗'};render();});
 }
 function loadQual(){
   S.qual=null;render();
@@ -302,7 +317,7 @@ function moveM(d){
   if(m<0){m=11;y--;}if(m>11){m=0;y++;}
   S.ym=y+'-'+p2(m+1);load();
 }
-function go(t){S.tab=t;if(t==='qdef')QD=null;if(t==='all')loadSum();else if(t==='qual')loadQual();render();}
+function go(t){S.tab=t;if(t==='qdef')QD=null;if(t==='all')loadSum();else if(t==='qual')loadQual();else if(t==='rule')loadRule();render();}
 
 /* ── 計算（與後端相同） ── */
 function colMap(){var m={};(S.data.cols||[]).forEach(function(c){m[c.c]=c;});return m;}
@@ -367,17 +382,18 @@ function render(){
     +'<button class="btn" style="height:36px;padding:0 14px;font-size:13.5px" onclick="logout()">登出</button></div>';
   var canAll=d&&d.canAll;
   if(canAll){
-    h+='<div class="seg">'+[['me','個人明細'],['all','全員總表'],['qual','監測資格']].concat(d.canQ?[['qdef','資格分類']]:[]).concat(d.isAdmin?[['rate','單價']]:[])
+    h+='<div class="seg">'+[['me','個人明細'],['all','全員總表'],['qual','監測資格']].concat(d.canQ?[['qdef','資格分類']]:[]).concat(d.canRule!=null?[['rule','核可'+(d.canRule?' <i class="rbad">'+d.canRule+'</i>':'')]]:[]).concat(d.canQ?[['rate','單價']]:[])
       .map(function(o){return '<button class="'+(S.tab===o[0]?'on':'')+'" onclick="go(\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>';
   }
-  if(S.tab!=='qual'&&S.tab!=='rate')
+  if(S.tab!=='qual'&&S.tab!=='rate'&&S.tab!=='rule')
     h+='<div class="mon"><button class="ib" onclick="moveM(-1)">‹</button><b>'+S.ym.slice(0,4)+' 年 '+(+S.ym.slice(5))+' 月</b><button class="ib" onclick="moveM(1)">›</button></div>';
   if(S.busy&&!d){$('app').innerHTML=h+'<div class="spin"></div>';return;}
   if(d&&d.err){$('app').innerHTML=h+'<div class="card"><div class="empty">'+he(d.err)+'</div></div>';return;}
   if(S.tab==='all'&&canAll)h+=sumView();
   else if(S.tab==='qual'&&canAll)h+=qualView();
-  else if(S.tab==='rate'&&d.isAdmin)h+=rateView();
+  else if(S.tab==='rate'&&d.canQ)h+=rateView();
   else if(S.tab==='qdef'&&d.canQ)h+=qdefView();
+  else if(S.tab==='rule'&&d.canRule!=null)h+=ruleView();
   else h+=meView();
   $('app').innerHTML=h;
 }
@@ -471,7 +487,8 @@ function wsOf(r){
   if(WS[r.key])return WS[r.key];
   var st={tt:{},b:{},nm:{}};
   if(r.blk){   // 後端已照行程排好每一點（點位數以行程為準）
-    Object.keys(r.blk).forEach(function(id){var x=r.blk[id];st.b[id]=x.rows.map(function(a){return a.slice();});st.nm[id]=x.rows.map(function(a,i){return (x.names&&x.names[i])||'';});if(x.t)st.tt[id]=x.t;});
+    st.mt={};
+    Object.keys(r.blk).forEach(function(id){var x=r.blk[id];st.b[id]=x.rows.map(function(a){return a.slice();});st.mt[id]=x.meta||[];st.nm[id]=x.rows.map(function(a,i){return (x.names&&x.names[i])||'';});if(x.t)st.tt[id]=x.t;});
     return (WS[r.key]=st);
   }
   BLK.forEach(function(b){
@@ -530,7 +547,11 @@ function recList(r,c,can){
     }
     rows.forEach(function(sel,i){
       var nm=st.nm[b.id][i];
-      h+='<div class="cr'+(b.multi?' mrow':'')+'"><span class="pname">'+(nm?he(nm):'第 '+(i+1)+' '+b.unit)+'<small>'+(nm?'第 '+(i+1)+' '+b.unit:'')+'</small></span>'
+      var mt=(st.mt&&st.mt[b.id]&&st.mt[b.id][i])||{},bad='';
+      if(mt.st==='pend')bad='<em class="pst pd">審核中・暫以「'+he(lblOf(mt.base))+'」計</em>';
+      else if(mt.st==='no')bad='<em class="pst no">主管退回'+(mt.note?'：'+he(mt.note):'')+'・以「'+he(lblOf(mt.base))+'」計</em>';
+      else if(mt.st==='ok')bad='<em class="pst ok">已核可</em>';
+      h+='<div class="cr'+(b.multi?' mrow':'')+(bad?' hasb':'')+'"><span class="pname">'+(nm?he(nm):'第 '+(i+1)+' '+b.unit)+'<small>'+(nm?'第 '+(i+1)+' '+b.unit:'')+'</small>'+bad+'</span>'
         +ctl(i,sel)+'</div>';
     });
     if(can){
@@ -570,7 +591,7 @@ function wApply(key){
   WSAVE[key]=setTimeout(function(){
     var sel={};Object.keys(st.b).forEach(function(id){sel[id]=st.b[id];});
     gas('allowSel',TOKEN,key,sel).then(function(x){
-      if(x&&x.ok)toast(x.voided&&x.voided.length?'已儲存，已通知 '+x.voided.join('、')+' 重新核對':'已儲存','ok',x.voided&&x.voided.length?3000:1200);else{toast((x&&x.error)||'儲存失敗','no',3000);delete WS[key];load();}
+      if(x&&x.ok){if(x.req){toast('已送直屬主管核可（'+x.req+' 點），核可前照原本金額計','ok',3800);}else toast('已儲存','ok',1200);delete WS[key];load();}else{toast((x&&x.error)||'儲存失敗','no',3000);delete WS[key];load();}
     }).catch(function(){toast('連線失敗，請重試','no');});
   },700);
 }
@@ -596,6 +617,44 @@ function addBtn(){
   return '<button class="btn btn-full" style="margin-top:6px" onclick="editRec(\'\')">＋ 補一筆行程沒有的</button>';
 }
 
+function lblOf(codes){return (codes||[]).map(function(c){return W_LBL[c]||c;}).join('＋')||'—';}
+/* ── 細項核可（直屬主管）：專案＋分項＋點位 ── */
+function ruleView(){
+  var R=S.rule;if(!R)return '<div class="spin"></div>';
+  if(R.err)return '<div class="card"><div class="empty">'+he(R.err)+'</div></div>';
+  var h='<div class="hint" style="margin:10px 4px 6px">現場在某個專案點位選了比較貴的細項（例如橡皮艇、河寬>40m），會送到這裡。核可後，之後行程再有這個「專案＋測項＋點位」就自動帶入；核可前照原本金額計。</div>';
+  h+='<div class="dh">待核可 '+R.pend.length+'</div>';
+  if(!R.pend.length)h+='<div class="card"><div class="empty">沒有待核可的申請</div></div>';
+  R.pend.forEach(function(x){
+    h+='<div class="card"><div class="rh"><div class="pn">'+he(x.project)+'</div><span class="chip q">待核可</span></div>'
+      +'<div class="rs">'+he(x.blkName)+'・<b style="color:var(--tx)">'+he(ptTxt(x.point))+'</b>　'+he(x.by)+' 申請・'+he(x.at.slice(5,16))+(x.key?'・行程 '+he(x.key.slice(5,10).replace('-','/')):'')+'</div>'
+      +'<div class="rlr"><span class="o">'+he(x.baseTxt)+'</span><span class="ar">→</span><span class="n">'+he(x.txt)+'</span><span class="df">+'+money(x.diff)+' /點</span></div>'
+      +'<div class="row" style="margin-top:10px"><button class="btn" style="flex:1" onclick="ruleNo(\''+esc(x.rid)+'\')">退回</button><button class="btn btn-p" style="flex:1" onclick="ruleAct(\''+esc(x.rid)+'\',\'ok\',\'\')">核可</button></div></div>';
+  });
+  h+='<div class="dh">已核可的點位設定 '+R.rules.length+'</div>';
+  if(!R.rules.length)h+='<div class="card"><div class="empty">還沒有核可的設定</div></div>';
+  else{h+='<div class="list">'+R.rules.map(function(x){
+    return '<div class="tr"><div class="n"><b>'+he(x.project)+'</b><div class="hint">'+he(x.blkName)+'・'+he(ptTxt(x.point))+'：<b style="color:var(--tx)">'+he(x.txt)+'</b></div>'
+      +'<div class="hint">'+he(x.by)+' 申請・'+he(x.dec_by)+' 核可 '+he(x.dec_at.slice(5,10).replace('-','/'))+'</div></div>'
+      +'<button class="cxb" onclick="ruleRevoke(\''+esc(x.rid)+'\')">撤銷</button></div>';}).join('')+'</div>';}
+  var rn=R.recent.filter(function(x){return x.status==='no';});
+  if(rn.length){h+='<div class="dh">最近退回</div><div class="list">'+rn.map(function(x){
+    return '<div class="tr"><div class="n"><b>'+he(x.project)+'</b><div class="hint">'+he(x.blkName)+'・'+he(ptTxt(x.point))+'：'+he(x.txt)+'</div><div class="hint">'+he(x.by)+' 申請・'+he(x.dec_by)+' 退回'+(x.note?'：'+he(x.note):'')+'</div></div></div>';}).join('')+'</div>';}
+  return h;
+}
+function ptTxt(p){return /^#\d+$/.test(p)?'第 '+p.slice(1)+' 點':p;}
+function ruleAct(rid,act,note){
+  gas('allowRuleDecide',TOKEN,rid,act,note).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'失敗','no',3000);return;}
+    closeSheet();toast(act==='ok'?'已核可，之後會自動帶入':act==='no'?'已退回':'已撤銷','ok');loadRule();
+  }).catch(function(){toast('連線失敗','no');});
+}
+function ruleNo(rid){
+  openSheet('<div class="shh"><h3>退回申請</h3><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<div class="lb">原因（會通知申請人）</div><textarea class="fld" id="rn-t" rows="3" maxlength="200" placeholder="例：這個點位不需要橡皮艇"></textarea>'
+    +'<button class="btn btn-p btn-full" style="margin-top:12px" onclick="ruleAct(\''+esc(rid)+'\',\'no\',$(\'rn-t\').value.trim())">確定退回</button>');
+}
+function ruleRevoke(rid){if(confirm('撤銷這個點位的核可設定？之後會回到預設（最便宜）的細項。'))ruleAct(rid,'revoke','');}
 function selReset(key){
   if(!confirm('還原成行程預設的細項（最便宜的選項）？'))return;
   gas('allowSel',TOKEN,key,null).then(function(x){if(x&&x.ok){delete WS[key];toast('已還原','ok');load();}else toast((x&&x.error)||'失敗','no');});
@@ -769,10 +828,12 @@ function csv(){
 /* ── 監測資格（放在帳號底下） ── */
 function qualView(){
   if(!S.qual)return '<div class="spin"></div>';
-  var q=S.qq.trim().toLowerCase();
-  var list=S.qual.list.filter(function(x){return !q||(x.n+' '+x.u+' '+x.team).toLowerCase().indexOf(q)>=0;});
-  var h='<p class="hint" style="margin:8px 6px">只列 EIA-T、EIA-C 組別的人員。'+(S.qual.canEdit?'點一下切換，馬上儲存。':'只有主管可以設定，這裡只能查看。')+'沒有資格的類別不計津貼。資格的種類在「資格分類」由主管設定。</p>'
-    +'<input class="fld" placeholder="搜尋姓名、工號、組別" value="'+he(S.qq)+'" oninput="S.qq=this.value;qualList()" style="margin-bottom:10px">'
+  var list=qualFilter();
+  var cnt=function(t){return S.qual.list.filter(function(x){return String(x.team||'').toUpperCase()===t;}).length;};
+  var h='<p class="hint" style="margin:8px 6px">'+(S.qual.canEdit?'點一下切換，馬上儲存。':'只有主管或排程可以設定，這裡只能查看。')+'沒有資格的類別不計津貼。資格的種類在「資格分類」由主管或排程設定。</p>'
+    +'<input class="fld" placeholder="搜尋姓名或工號" value="'+he(S.qq)+'" oninput="S.qq=this.value;qualList()">'
+    +'<div class="seg" style="margin:10px 0 12px">'+['EIA-T','EIA-C'].map(function(t){
+      return '<button class="'+(S.qt===t?'on':'')+'" onclick="S.qt=\''+t+'\';render()">'+t+'<span class="segn">'+cnt(t)+'</span></button>';}).join('')+'</div>'
     +'<div class="list" id="ql">'+qualRows(list)+'</div>';
   return h;
 }
@@ -788,7 +849,11 @@ function qualRows(list){
       +'</div></div>';
   }).join('');
 }
-function qualList(){var q=S.qq.trim().toLowerCase();$('ql').innerHTML=qualRows(S.qual.list.filter(function(x){return !q||(x.n+' '+x.u+' '+x.team).toLowerCase().indexOf(q)>=0;}));}
+function qualFilter(){   // 組別（EIA-T／EIA-C）＋搜尋
+  var q=S.qq.trim().toLowerCase(),t=S.qt||'EIA-T';
+  return S.qual.list.filter(function(x){return String(x.team||'').toUpperCase()===t&&(!q||(x.n+' '+x.u).toLowerCase().indexOf(q)>=0);});
+}
+function qualList(){$('ql').innerHTML=qualRows(qualFilter());}
 function qualTap(i,k){
   var x=S.qual.list[i],l=(x.q||[]).slice(),j=l.indexOf(k);
   if(j>=0)l.splice(j,1);else l.push(k);
@@ -845,7 +910,7 @@ function qdSave(){
   }).catch(function(){toast('連線失敗','no');});
 }
 
-/* ── 單價設定（管理員） ── */
+/* ── 單價設定（主管／排程／管理員） ── */
 function rateView(){
   var cols=S.data.cols,last='',h='<p class="hint" style="margin:8px 6px">改單價，按最下面儲存。會影響所有月份的計算。需要的資格在「資格分類」設定。</p><div class="list">';
   cols.forEach(function(c){
