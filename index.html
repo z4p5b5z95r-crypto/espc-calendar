@@ -292,6 +292,28 @@ html[data-theme="dark"] .glass::after{
 .lgs.isOn .lgt{transform:translateX(45px)}
 .lgs.drag .lgt{transition:scale .2s}
 .lgs.press .lgt{scale:1.12 1.08}
+/* ── 功能權限（管理員） ── */
+.pmseg{display:flex;background:var(--card2);border-radius:12px;padding:3px;margin-bottom:12px}
+.pmseg button{flex:1;border:0;background:none;padding:8px 0;border-radius:9px;font-size:14px;color:var(--tx2);font-weight:600}
+.pmseg button.on{background:var(--card);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.pmtg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pmtg button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:13.5px;color:var(--tx)}
+.pmtg button small{color:var(--tx3);margin-left:4px;font-size:11.5px}
+.pmtg button.on{background:var(--tint);border-color:transparent;color:var(--accT);font-weight:700}
+.pmtg button.pmov::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc);margin-left:5px;vertical-align:middle}
+.pmrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--line)}
+.pmrow:first-child{border-top:0}
+.pmrow .pmn{flex:1;min-width:0}.pmrow .pmn b{font-size:14.5px;font-weight:600;display:block}
+.pmrow .pmn small{display:block;font-size:12px;color:var(--tx3);line-height:1.4;margin-top:1px}
+.pmrow .pmn em{font-style:normal;font-size:12px;font-weight:700;margin-top:3px;display:inline-block}
+.pmrow .pmn em.y{color:#1e8a4c}.pmrow .pmn em.n{color:var(--tx3)}
+.pm3{display:inline-flex;background:var(--card2);border-radius:9px;padding:2px;flex:0 0 auto}
+.pm3 button{border:0;background:none;padding:6px 9px;border-radius:7px;font-size:12.5px;color:var(--tx2)}
+.pm3 button.on{background:var(--card);color:var(--tx);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.pm3 button.on.y{color:#1e8a4c}.pm3 button.on.n{color:var(--err)}
+.pmu{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
+.pmu:first-child{border-top:0}.pmu.on{background:var(--tint)}
+.pmu b{font-size:14px}.pmu small{color:var(--tx3);font-size:12px}
 /* ── 待辦詳情（Google 式，只顯示資訊） ── */
 .tvw .tvtop{display:flex;justify-content:flex-end;gap:8px;margin:-4px 0 4px}
 .tvw .tvtop .ib{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx2)}
@@ -1062,7 +1084,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02s';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-03a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -1095,7 +1117,8 @@ function gas(fn){
   }
   return req.then(function(r){return r.json();})
     .then(function(j){
-      if((fn==='getMe'||fn==='login')&&j&&j.ok&&'team' in j){lsS('espc_team',j.team||'');allowNav();}   // 採樣津貼入口要看組別
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&'team' in j){lsS('espc_team',j.team||'');allowNav();}
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.perms){if(fn==='login'&&j.username)lsS('espc_user',j.username);permSet(j.perms);}   // 功能權限   // 採樣津貼入口要看組別
       clearTimeout(timer);
       gasLog(fn,t0,!!(j&&j.ok),j);
       // 後端說還沒授權（profile_ok 被清掉等）→ 立刻擋下，叫出確認畫面
@@ -1357,6 +1380,36 @@ function roleLabel(r){return ROLE_LABEL[normRole(r)]||r;}
 function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
 /** 可進帳號管理：管理員、主管、排程 */
 function canManage(r){return canWrite(r);}
+/* ── 功能權限：後台（Perm.gs）依角色／組別／個人算好，登入與 getMe 時帶下來；沒拿到前用預設 ── */
+var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
+  allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
+  cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]}};
+var PERMS=null;
+(function(){try{var o=JSON.parse(ls('espc_perm')||'null');if(o&&o.u&&o.u===ls('espc_user'))PERMS=o.p;}catch(e){}})();
+function permDefOf(k,role,team){
+  var d=PERM_DEF_FE[k]||{},tk=String(team||'').trim().toUpperCase();
+  return (d.role||[]).indexOf(role)>=0||(d.team||[]).some(function(x){return x.toUpperCase()===tk;});
+}
+function can(k){
+  var r=normRole(ROLE);if(r==='admin')return true;
+  if(PERMS&&typeof PERMS[k]==='boolean')return PERMS[k];
+  return permDefOf(k,r,ls('espc_team'));
+}
+function permSet(p){
+  if(!p)return;PERMS=p;lsS('espc_perm',JSON.stringify({u:UNAME||ls('espc_user'),p:p}));
+  if(ROLE)navPerm();
+}
+/* 依權限顯示導覽列；目前所在頁沒權限了就回今日 */
+function navPerm(){
+  $('nb-up').style.display=can('upload')?'':'none';   // 手機版由 CSS（.dlm）隱藏，只在桌機出現
+  $('nb-adm').style.display=can('acct')?'':'none';
+  $('nb-cast').style.display=can('cast')?'':'none';
+  $('nb-dl').style.display=can('dl')?'':'none';
+  $('nb-stat').style.display=can('stat')?'':'none';
+  allowNav();
+  var bad={upload:'upload',admin:'acct',cast:'cast',dl:'dl',stat:'stat',allow:'allow'}[tab];
+  if(bad&&!can(bad)&&typeof go==='function')go('today');
+}
 /** 非管理員不能動管理員帳號，也不能指派管理員 */
 /* 角色層級：數字越小權力越大；只能編層級比自己低、且同地區的帳號 */
 var ROLE_RANK={admin:0,supervisor:1,scheduler:2,pm:3,sampler:4};
@@ -1897,12 +1950,7 @@ function boot(u,r,eng){
   $('u-av').textContent=((eng&&eng!==u?eng:u)||'?').slice(0,1);
   $('u-nm').innerHTML=he((eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）')
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
-  $('nb-up').style.display=canWrite(r)?'':'none';   // 只有可上傳的角色看得到；手機版由 CSS（.dlm）隱藏，只在桌機出現
-  $('nb-adm').style.display=canManage(r)?'':'none'; // 管理員、主管、排程才有帳號管理
-  $('nb-cast').style.display=(r==='admin'||r==='supervisor'||r==='scheduler')?'':'none';   // 群組廣播：管理員、主管、排程
-  $('nb-dl').style.display=(r==='admin')?'':'none';
-  $('nb-stat').style.display=(r==='admin')?'':'none';
-  allowNav();   // 使用統計只有管理員 // 下載行程只有管理員看得到（桌機才顯示由 CSS 控制）
+  navPerm();   // 上傳、帳號、廣播、下載、統計、津貼：依功能權限（管理員可在「更多 › 功能權限」調整）
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -2087,13 +2135,13 @@ function restoreTab(){
   if(!v||!v.t)return null;
   if(!v.at||Date.now()-v.at>TAB_KEEP_MS)return null;   // 超過 3 小時（或舊資料沒記時間）→ 開今日
   var okTab=['today','cal','book','upload','dl','admin','more','stat'];
-  if(v.t==='stat'&&ROLE!=='admin')return null;
-  if(v.t==='dl'&&(!isDesk()||ROLE!=='admin'))return null;
+  if(v.t==='stat'&&!can('stat'))return null;
+  if(v.t==='dl'&&(!isDesk()||!can('dl')))return null;
   if(okTab.indexOf(v.t)<0)return null;
-  if(v.t==='upload'&&(!canWrite(ROLE)||!isDesk()))return null;   // 上傳排程只在桌機
-  if(v.t==='admin'&&!canManage(ROLE))return null;
-  if(v.s==='upload'&&(!canWrite(ROLE)||!isDesk()))v.s='';
-  if(v.s==='admin'&&!canManage(ROLE))v.s='';
+  if(v.t==='upload'&&(!can('upload')||!isDesk()))return null;   // 上傳排程只在桌機
+  if(v.t==='admin'&&!can('acct'))return null;
+  if(v.s==='upload'&&(!can('upload')||!isDesk()))v.s='';
+  if(v.s==='admin'&&!can('acct'))v.s='';
   if(v.t==='today')return null;                 // 今日是預設頁，照原流程走
   if(v.t==='cal'&&typeof v.y==='number'&&typeof v.m==='number'){
     curY=v.y;curM=v.m;                          // 連月份一起還原
@@ -2165,7 +2213,7 @@ function allowTap(){
   if(ALLOW_TAP>=3){ALLOW_TAP=0;location.href='allowance.html';return;}
   ALLOW_TT=setTimeout(function(){ALLOW_TAP=0;toast('功能未開放','no',1800);},700);
 }
-function allowNav(){var b=$('nb-allow');if(b)b.style.display=(isAllowTeam()||canWrite(ROLE))?'':'none';}   // EIA-T/C 現場＋主管、排程、管理員
+function allowNav(){var b=$('nb-allow');if(b)b.style.display=can('allow')?'':'none';}   // 依功能權限（預設：EIA-T/C＋主管、排程、管理員）   // EIA-T/C 現場＋主管、排程、管理員
 function go(t,s){
   if(t==='allow'){allowTap();return;}
   tab=t;sub=s||'';
@@ -2189,6 +2237,7 @@ function go(t,s){
   else if(t==='book')loadStaff(null);
   else if(t==='stat')statLoad(!STAT);
   else if(sub==='ann')annLoad(true);
+  else if(sub==='perm')permLoad();
   else if(sub==='annNew')loadStaff(function(){if(sub==='annNew')render();});
   else if(t==='cast'){loadStaff(function(){if(tab==='cast'&&!sub)render();});inboxLoad(true);}
 }
@@ -2224,6 +2273,7 @@ function titleText(){
   if(sub==='pw')return '修改密碼';
   if(sub==='hist')return '歷史廣播';
   if(sub==='ann')return '公告';
+  if(sub==='perm')return '功能權限';
   if(sub==='annNew')return '發布公告';
   if(tab==='today')return '今日';
   if(tab==='cal')return curY+' 年 '+MO[curM];
@@ -2243,6 +2293,7 @@ function refreshCal(){
 function rightButtons(){
   if(sub==='annNew')return '<button class="ib" onclick="go(\'more\',\'ann\')" title="返回">✕</button>';
   if(sub==='ann')return '<button class="ib" onclick="annLoad(true)" title="重新整理">↻</button><button class="ib" onclick="go(\'more\')" title="返回">✕</button>';
+  if(sub==='perm')return '<button class="ib" onclick="permLoad()" title="重新整理">↻</button><button class="ib" onclick="go(\'more\')" title="返回">✕</button>';
   if(sub)return '<button class="ib" onclick="go(\''+tab+'\')" title="返回">✕</button>';
   if(tab==='cal'){
     var n=twDate(),now=(n.getFullYear()===curY&&n.getMonth()===curM);
@@ -2315,6 +2366,7 @@ function pageHTML(){
   if(sub==='pw')return pwPage();
   if(sub==='hist')return histPage();
   if(sub==='ann')return annPage();
+  if(sub==='perm')return permPage();
   if(sub==='annNew')return annNewPage();
   if(tab==='dl')return dlPage();
   if(tab==='today')return todayPage();
@@ -2429,7 +2481,7 @@ function holOf(ds){   // 回傳假日名稱（週末回 '週末'）；不是假�
 
 /* ══ PM 待辦事項：行事曆右上切換「行程／待辦／全部」；待辦可拖到別天、可設通知與重複 ══ */
 var TODOS=null,TODO_BUSY=false,CALV=ls('espc_calv')||'ev';
-function todoCan(){var r=normRole(ROLE);return r==='pm'||r==='admin';}
+function todoCan(){return can('todo');}   // 待辦：依功能權限（預設 PM、主管、排程、管理員；各自私人）
 function todoLoad(force){
   if(TODO_BUSY||!todoCan())return;TODO_BUSY=true;
   gas('todoList',TOKEN).then(function(r){TODO_BUSY=false;
@@ -2661,6 +2713,81 @@ function tdUp(e){
     if(r&&r.ok){if(r.todo)TODOS=(TODOS||[]).map(function(x){return x.id===r.todo.id?r.todo:x;});toast('已移到 '+(+to.slice(5,7))+'/'+(+to.slice(8))+(t.rep?'（只有這一次）':''),'ok',1500);}
     else{toast((r&&r.error)||'移動失敗','no');todoLoad();}
   }).catch(function(){toast('連線失敗','no');todoLoad();});
+}
+/* ══ 功能權限（管理員）══ 角色／組別／個人 三層，個人＞組別＞角色＞預設 */
+var PM={d:null,busy:false,err:'',mode:'role',sel:'supervisor',q:'',tm:null};
+var PM_ROLES=[['supervisor','主管'],['scheduler','排程'],['pm','PM'],['sampler','現場']];
+function permLoad(){
+  PM.busy=true;PM.err='';if(sub==='perm')render();
+  gas('permLoad',TOKEN).then(function(r){PM.busy=false;if(!r||!r.ok){PM.err=(r&&r.error)||'讀取失敗';}else{PM.d=r;r.cfg=pmNorm(r.cfg);r.teams=r.teams||[];r.users=r.users||[];}if(sub==='perm')render();})
+    .catch(function(){PM.busy=false;PM.err='連線失敗';if(sub==='perm')render();});
+}
+function pmNorm(c){c=c||{};c.role=c.role||{};c.team=c.team||{};c.user=c.user||{};return c;}
+function pmDef(k,role,team){var d=(PM.d&&PM.d.def&&PM.d.def[k])||{},tk=String(team||'').trim().toUpperCase();
+  return (d.role||[]).indexOf(role)>=0||(d.team||[]).some(function(x){return String(x).toUpperCase()===tk;});}
+function pmPick(o,k){return o&&(o[k]===1||o[k]===0)?o[k]===1:null;}
+function pmTeamCfg(team){var c=PM.d.cfg.team||{},tk=String(team||'').trim().toUpperCase(),hit=null;Object.keys(c).forEach(function(t){if(!hit&&t.toUpperCase()===tk)hit=c[t];});return hit;}
+/* 算「沿用」時會得到什麼，以及來源 */
+function pmInherit(k){
+  var c=PM.d.cfg,v,src;
+  if(PM.mode==='role'){v=pmDef(k,PM.sel,'');return {v:v,src:'預設'};}
+  if(PM.mode==='team'){return {v:null,src:'依各人角色'};}
+  var u=PM.d.users.filter(function(x){return x.u===PM.sel;})[0];if(!u)return {v:false,src:''};
+  if(u.role==='admin')return {v:true,src:'管理員'};
+  v=pmPick(pmTeamCfg(u.team),k);if(v!==null)return {v:v,src:'組別 '+u.team};
+  v=pmPick((c.role||{})[u.role],k);if(v!==null)return {v:v,src:'角色 '+roleLabel(u.role)};
+  return {v:pmDef(k,u.role,u.team),src:'預設'};
+}
+function pmBucket(){var c=PM.d.cfg,b=PM.mode==='role'?'role':PM.mode==='team'?'team':'user';c[b]=c[b]||{};return c[b];}
+function pmSetV(k,v){
+  var b=pmBucket(),o=b[PM.sel]=b[PM.sel]||{};
+  if(v===null)delete o[k];else o[k]=v;
+  if(!Object.keys(o).length)delete b[PM.sel];
+  render();
+  clearTimeout(PM.tm);PM.tm=setTimeout(pmSave,500);   // 連續點只存一次
+}
+function pmSave(){
+  gas('permSave',TOKEN,PM.d.cfg).then(function(r){
+    if(r&&r.ok){if(r.cfg)PM.d.cfg=pmNorm(r.cfg);toast('已儲存，對方重新開啟 App 後生效','ok',1800);}
+    else{toast((r&&r.error)||'儲存失敗','no');permLoad();}
+  }).catch(function(){toast('連線失敗，沒有儲存','no');permLoad();});
+}
+function pmMode(m){PM.mode=m;PM.sel=m==='role'?'supervisor':m==='team'?((PM.d.teams[0]||{}).t||''):'';render();}
+function pmSel(v){PM.sel=v;render();}
+function permPage(){
+  if(normRole(ROLE)!=='admin')return '<div class="card"><div class="empty">只有管理員可以設定功能權限</div></div>';
+  if(!PM.d)return PM.err?'<div class="card"><div class="empty">'+he(PM.err)+'</div></div>':loader('讀取功能權限…');
+  var c=PM.d.cfg,h='<p class="hint" style="margin:0 2px 12px">個人設定優先，其次是組別，再來是角色。管理員永遠全部都能用。</p>'
+    +'<div class="pmseg">'+[['role','角色'],['team','組別'],['user','個人']].map(function(x){return '<button class="'+(PM.mode===x[0]?'on':'')+'" onclick="pmMode(\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+  if(PM.mode==='role'){
+    h+='<div class="pmtg">'+PM_ROLES.map(function(x){return '<button class="'+(PM.sel===x[0]?'on':'')+((c.role||{})[x[0]]?' pmov':'')+'" onclick="pmSel(\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>';
+  }else if(PM.mode==='team'){
+    if(!PM.d.teams.length)return h+'<div class="card"><div class="empty">帳號裡還沒有填組別</div></div>';
+    h+='<div class="pmtg">'+PM.d.teams.map(function(x){return '<button class="'+(PM.sel===x.t?'on':'')+(pmTeamCfg(x.t)?' pmov':'')+'" onclick="pmSel(\''+esc(x.t)+'\')">'+he(x.t)+'<small>'+x.c+'</small></button>';}).join('')+'</div>';
+  }else{
+    var q=PM.q.trim().toLowerCase(),uc=c.user||{};
+    var list=PM.d.users.filter(function(x){return x.role!=='admin'&&(!q?!!uc[x.u]:(x.u+' '+x.n+' '+x.team).toLowerCase().indexOf(q)>=0);}).slice(0,40);
+    h+='<input class="fld" placeholder="搜尋姓名、工號、組別" value="'+he(PM.q)+'" oninput="PM.q=this.value;clearTimeout(PM.qt);PM.qt=setTimeout(function(){render();var i=document.querySelector(\'.fld[placeholder^=搜尋姓名]\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250)" style="margin-bottom:10px">'
+      +(!q?'<div class="hint" style="margin:0 2px 6px">'+(list.length?'已有個人設定的人：':'還沒有人有個人設定，搜尋後點選要設定的人')+'</div>':'')
+      +(list.length?'<div class="card" style="padding:0;margin-bottom:12px">'+list.map(function(x){
+        return '<div class="pmu'+(PM.sel===x.u?' on':'')+'" onclick="pmSel(\''+esc(x.u)+'\')"><div style="flex:1"><b>'+he(x.n||x.u)+'</b>'+(uc[x.u]?' <span style="color:var(--acc)">●</span>':'')
+          +'<br><small>'+he(x.u)+'　'+roleLabel(x.role)+(x.team?'　'+he(x.team):'')+'</small></div></div>';}).join('')+'</div>':'');
+    if(!PM.sel||!PM.d.users.some(function(x){return x.u===PM.sel;}))return h;
+    var su=PM.d.users.filter(function(x){return x.u===PM.sel;})[0];
+    h+='<div class="sec" style="margin-top:0">'+he(su.n||su.u)+'　<span class="hint">'+roleLabel(su.role)+(su.team?'・'+he(su.team):'')+'</span></div>';
+  }
+  if(!PM.sel)return h;
+  var mine=(pmBucket()[PM.sel])||{};
+  if(PM.mode==='team')mine=pmTeamCfg(PM.sel)||{};
+  h+='<div class="card" style="padding:0">'+PM.d.feats.map(function(f){
+    var cur=pmPick(mine,f.k),inh=pmInherit(f.k),eff=cur!==null?cur:inh.v;
+    var st=eff===null?'<em class="n">沿用各人角色的設定</em>':'<em class="'+(eff?'y':'n')+'">'+(eff?'可以使用':'不能使用')+(cur===null?'（'+inh.src+'）':'')+'</em>';
+    var b=function(v,l,cls){var on=(v===null?cur===null:cur===(v===1));return '<button class="'+(on?'on '+cls:'')+'" onclick="pmSetV(\''+f.k+'\','+(v===null?'null':v)+')">'+l+'</button>';};
+    return '<div class="pmrow"><div class="pmn"><b>'+he(f.n)+'</b><small>'+he(f.d)+'</small>'+st+'</div>'
+      +'<div class="pm3">'+b(null,'沿用','')+b(1,'開','y')+b(0,'關','n')+'</div></div>';
+  }).join('')+'</div>'
+  +'<p class="hint" style="margin:10px 2px 0">改完會自動儲存。對方下次開啟或重新整理 App 時生效。</p>';
+  return h;
 }
 /* 點待辦：先只看資訊（Google 式）；鉛筆＝編輯、垃圾桶＝刪除、右下＝標示為完成 */
 var TV_IC={e:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
@@ -3338,6 +3465,8 @@ function morePage(){
 
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>'
     +'<button class="link" onclick="go(\'more\',\'hist\')">歷史廣播<span class="hint" style="margin-left:6px">7 天內</span><span style="flex:1"></span>'+ic('mega',19)+'</button>';
+  if(normRole(ROLE)==='admin')h+='<div class="sec">管理</div>'
+    +'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
       +'<div>行程提醒推播通知</div>'
@@ -5599,7 +5728,7 @@ function dlInit(){
 }
 /** 讀取期間內的全部行程（不套個人篩選，客戶要看的是整個專案） */
 function dlLoad(force){
-  if(ROLE!=='admin')return;
+  if(!can('dl'))return;
   dlInit();
   DL.loading=true;DL.err='';
   if(tab==='dl')render();
@@ -5939,14 +6068,14 @@ function paintHistory(){
           :'<span style="color:var(--warn)">'+he(r.app_ver)+'　建議用目前版本 '+he(APP_VER)+' 重傳</span>')
         :'<span style="color:var(--warn)">舊版　建議重新上傳</span>')
       +'</div></div>'
-      +(canWrite(ROLE)&&!isOld
+      +(can('upload')&&!isOld
         ?'<button class="ib" style="color:var(--err)" onclick="delUpload(\''+he(r.id)+'\',\''+esc(r.filename)+'\')">✕</button>':'')
       +'</div></div>';
   });
   if(hid.length)
     h+='<button class="btn btn-sm btn-full" style="margin-top:4px" onclick="histToggle()">'
       +(histMore?'收起較早的記錄':'顯示更早的記錄（'+hid.length+' 筆）')+'</button>';
-  if(canWrite(ROLE)&&old>1)
+  if(can('upload')&&old>1)
     h+='<button class="btn btn-sm btn-full" style="margin-top:8px" onclick="purgeOld('+old+')">清除 '+old+' 筆已被取代的記錄</button>';
   el.innerHTML=h;
 }
