@@ -300,12 +300,12 @@ html[data-theme="dark"] .glass::after{
 .tdchips button{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--tx2)}
 .tdchips button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
 body.locked .tdfab{display:none}
-.tdcard{padding:4px 14px}.tdcard.warn{box-shadow:inset 3px 0 0 var(--err)}
-.tdl{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}.tdl:first-child{border-top:0}
-.tdb{width:24px;height:24px;border-radius:50%;border:2px solid var(--tx3);background:none;flex:0 0 24px;padding:0}
+.tdcard{padding:2px 12px}.tdcard.warn{box-shadow:inset 3px 0 0 var(--err)}
+.tdl{display:flex;align-items:center;gap:9px;padding:5px 0;border-top:1px solid var(--line)}.tdl:first-child{border-top:0}
+.tdb{width:18px;height:18px;border-radius:50%;border:1.8px solid var(--tx3);background:none;flex:0 0 18px;padding:0}
 .tdl.od .tdb{border-color:var(--err)}
 .tdl.dn .tdb{background:var(--brand);border-color:var(--brand)}.tdl.dn b{color:var(--tx3);text-decoration:line-through}
-.tdm{flex:1;min-width:0;cursor:pointer}.tdm b{display:block;font-size:15px;font-weight:600}.tdm small{display:block;font-size:12px;color:var(--tx3);margin-top:1px}
+.tdm{flex:1;min-width:0;cursor:pointer}.tdm{display:flex;align-items:baseline;gap:8px}.tdm b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.tdm small{font-size:11.5px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
 .tdm em{font-style:normal;color:var(--err);font-weight:700}
 .tdwarn{margin-left:8px;font-size:11.5px;font-weight:700;color:#fff;background:var(--err);border-radius:999px;padding:2px 8px}
 .lnk{background:none;border:0;color:var(--accT);font-size:13.5px;font-weight:600;padding:0}
@@ -1009,7 +1009,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-02e';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-02f';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2517,13 +2517,13 @@ function tdTick(id,ds,on){
     else{toast((r&&r.error)||'失敗','no');todoLoad();}
   }).catch(function(){toast('連線失敗','no');todoLoad();});
 }
-/* 點兩下格子＝看當天全部行程（長按＝新增待辦，見 cellDown） */
+/* 點兩下格子＝PM 新增待辦（長按＝看當天全部行程，見 cellDown） */
 var _tap={d:'',t:0};
 function cellTap(e,ds){
   if(_lpFired){_lpFired=false;_tap.t=0;return;}
   if(e.target.closest('.tdc,.evc'))return;
   var now=Date.now();
-  if(_tap.d===ds&&now-_tap.t<350){_tap.t=0;openDay(ds);return;}
+  if(_tap.d===ds&&now-_tap.t<350){_tap.t=0;if(todoCan())tdEdit('',ds);else openDay(ds);return;}   // 點兩下：PM 新增待辦（其他人看當天）
   _tap={d:ds,t:now};
 }
 /* 拖移：按住 0.35 秒拿起，放到別天；短按＝打開編輯 */
@@ -2577,7 +2577,7 @@ var TDE=null;
 function tdEdit(id,ds){
   if(id&&tdBusy(id))return;
   var t=id?(TODOS||[]).filter(function(x){return x.id===id;})[0]:null;
-  TDE=t?JSON.parse(JSON.stringify(t)):{id:'',title:'',date:ds||twStr(),time:'',note:'',notify:true,lead:0,rep:'',nag:false,dones:[]};
+  TDE=t?JSON.parse(JSON.stringify(t)):{id:'',title:'',date:ds||twStr(),time:'',note:'',notify:false,lead:0,rep:'',nag:false,dones:[]};
   TDE.inst=ds||TDE.date;TDE.more=!!(TDE.rep||TDE.nag||TDE.note);TDE.cust=repPreset(TDE.rep,TDE.date)==='c';
   tdPaint();
 }
@@ -3135,7 +3135,7 @@ function morePage(){
   h+='<div class="sec">偏好</div>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
       +'<div>行程提醒推播通知</div>'
-      +'<div class="hint" style="margin-top:2px">'+(remindOn()&&pushIsOn()?'已開啟，點這裡設定提醒時間':'關閉時仍會收到廣播與證照到期通知')+'</div></div>'
+      +'<div class="hint" style="margin-top:2px">'+(remindOn()&&pushIsOn()?'已開啟，點這裡設定提醒時間':'關閉時仍會收到廣播與證照到期通知'+(todoCan()?'、待辦事項通知':''))+(todoCan()?'<br>待辦事項的通知在每個待辦裡個別開關（預設關閉）':'')+'</div></div>'
       +'<span style="flex:1"></span>'
       +'<button class="sw'+(remindOn()&&pushIsOn()?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="event.stopPropagation();pushSwitch()"></button></div>'
 
@@ -3966,7 +3966,7 @@ function cellDown(e,d){
     _lpT=null;_lpFired=true;
     if(_lpEl)_lpEl.classList.remove('lp');
     try{navigator.vibrate&&navigator.vibrate(15);}catch(_){}
-    if(todoCan())tdEdit('',d);else openDay(d);     // 長按：PM 新增待辦；其他人看當天全部行程
+    openDay(d);                                    // 長按：看當天全部行程
   },450);
 }
 function cellMove(e){
@@ -6401,7 +6401,7 @@ function icsPage(){
   h+=pushHTML();
   var ron=c.on!==false;
   h+='<div class="card"><div class="row"><div><div style="font-size:15px">行程提醒</div>'
-    +'<div class="hint" style="margin-top:2px">有排到你的行程時提醒；關掉不影響廣播與證照到期通知</div></div>'
+    +'<div class="hint" style="margin-top:2px">有排到你的行程時提醒；關掉不影響廣播與證照到期通知'+(todoCan()?'，也不影響待辦事項通知（待辦通知在每個待辦裡個別開關，預設關閉）':'')+'</div></div>'
     +'<button class="sw'+(ron?' on':'')+'" onclick="ICS.cfg.on=!(ICS.cfg.on!==false);lsS(\'espc_remind_on\',ICS.cfg.on?\'1\':\'0\');ICS.dirty=true;render()"></button></div></div>';
   if(!ron)return h+'<button class="btn btn-p btn-full" style="margin:6px 0 4px"'+(ICS.dirty?'':' disabled')+' onclick="icsSave()">'
     +(ICS.dirty?'儲存提醒設定':'提醒設定已儲存')+'</button>';
