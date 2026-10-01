@@ -273,6 +273,10 @@ html[data-theme="dark"] .glass::after{
 .dnt b{display:block;font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .dnt span{font-size:12px;color:var(--tx3);}
 
+.cell.hol{background:var(--errBg);}
+.cell.hol .dn{color:var(--err);}
+.cell.hol.oc{background:transparent;}
+.cell.hol.oc .dn{color:inherit;}
 .cell.tdy{outline:1.5px solid var(--acc);outline-offset:-1px;}
 .dn{font-size:11px;text-align:center;line-height:1.35;font-weight:500;}
 .dn.out{color:var(--tx3);font-weight:400;}
@@ -931,7 +935,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
     <button class="nb" id="nb-adm" data-t="admin" style="display:none"><span data-ic="users"></span><em>帳號</em></button>
     <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
-    <button class="nb" id="nb-allow" data-t="allow" style="display:none"><span data-ic="money"></span><em>津貼</em></button>
+    <button class="nb" id="nb-allow" data-t="allow" style="display:none;touch-action:manipulation"><span data-ic="money"></span><em>津貼</em></button>
     <button class="nb" id="nb-stat" data-t="stat" style="display:none"><span data-ic="chart"></span><em>統計</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
@@ -958,7 +962,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-01b';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-01c';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -2285,6 +2289,31 @@ function evCard(g,d,full){
 function esc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 
 /* ── 月曆 ── */
+/* 假日：週六日＋國定假日／補假（補班的週六不算）。資料來自行政院人事行政總處行事曆的公開整理（ruyut/TaiwanCalendar），
+   每年抓一次存在手機，30 天更新；抓不到就只標週六日 */
+var HOL={},HOL_Y={};
+function holLoad(y){
+  if(HOL_Y[y])return;HOL_Y[y]=1;
+  var k='espc_hol_'+y,c=null;try{c=JSON.parse(ls(k)||'null');}catch(e){c=null;}
+  if(c&&c.d)holSet(c.d);
+  if(c&&c.t&&Date.now()-c.t<30*864e5)return;
+  fetch('https://cdn.jsdelivr.net/gh/ruyut/TaiwanCalendar/data/'+y+'.json').then(function(r){return r.ok?r.json():null;}).then(function(a){
+    if(!Array.isArray(a))return;
+    var d={};
+    a.forEach(function(x){
+      var s=String(x.date||''),ds=s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8),we=(x.week==='六'||x.week==='日');
+      if(x.isHoliday&&(x.description||!we))d[ds]=x.description||'假日';   // 平日放假、或有名稱的假日
+      else if(!x.isHoliday&&we)d[ds]=0;                                   // 補班的週六
+    });
+    lsS(k,JSON.stringify({t:Date.now(),d:d}));holSet(d);
+    if(tab==='cal'&&!sub)render();
+  }).catch(function(){});
+}
+function holSet(d){Object.keys(d).forEach(function(k){HOL[k]=d[k];});}
+function holOf(ds){   // 回傳假日名稱（週末回 '週末'）；不是假日回 ''
+  if(ds in HOL)return HOL[ds]||'';
+  var w=new Date(ds+'T00:00:00').getDay();return (w===0||w===6)?'週末':'';
+}
 function calPage(){
   pmap={};pidx=0;
   var byDate={};
@@ -2299,6 +2328,7 @@ function calPage(){
   var dim=new Date(curY,curM+1,0).getDate();
   var pdim=new Date(curY,curM,0).getDate();
   var today=twStr();
+  holLoad(curY);if(curM===0)holLoad(curY-1);if(curM===11)holLoad(curY+1);
 
   var h='<div class="dow">'+DW.map(function(d,i){
     return '<span'+(i===0?' class="sun"':'')+'>'+d+'</span>';}).join('')+'</div><div class="cgrid">';
@@ -2311,7 +2341,8 @@ function calPage(){
       var nm=curM===11?1:curM+2,ny=curM===11?curY+1:curY;ds=ny+'-'+p2(nm)+'-'+p2(day);}
     else{day=i-first+1;ds=curY+'-'+p2(curM+1)+'-'+p2(day);}
     var gs=groups[ds]||[];                 // 前後月份露出的日子也顯示行程
-    h+='<div class="cell'+(ds===today?' tdy':'')+(out?' oc':'')+'" data-d="'+ds+'"'
+    var hn=holOf(ds);
+    h+='<div class="cell'+(ds===today?' tdy':'')+(out?' oc':'')+(hn?' hol':'')+'" data-d="'+ds+'"'+(hn&&hn!=='週末'?' title="'+he(hn)+'"':'')
       +' onpointerdown="cellDown(event,\''+ds+'\')" onpointerup="cellUp(event)"'
       +' onpointermove="cellMove(event)" onpointercancel="cellUp(event)"'
       +' onpointerleave="cellUp(event)" oncontextmenu="return false">'
