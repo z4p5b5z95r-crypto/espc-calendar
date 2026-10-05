@@ -394,6 +394,9 @@ body.locked .tdfab{display:none}
 .rpe span{min-width:64px}.rpe input[type=date],.rpe input[type=number]{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:14px;color:var(--tx);font-family:inherit}
 .rpe input:disabled{opacity:.45}
 .rpsum{margin-top:8px;font-size:13px;color:var(--accT);font-weight:600}
+.rpseg{display:flex;background:var(--card2);border-radius:10px;padding:2px;margin:6px 0 4px}
+.rpseg button{flex:1;border:0;background:none;padding:8px 0;border-radius:8px;font-size:14px;color:var(--tx2);font-family:inherit}
+.rpseg button.on{background:var(--card);color:var(--tx);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .tdck{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--glStrong);margin-bottom:6px;font-size:15px;width:100%;border:0;color:var(--tx);text-align:left}
 .tdck i{width:22px;height:22px;border-radius:50%;border:2px solid var(--tx3);flex:0 0 22px}
 .tdck.on i{background:var(--brand);border-color:var(--brand)}
@@ -1112,7 +1115,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05n';
+var APP_VER='2026-10-05r';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -2947,7 +2950,7 @@ function tdEdit(id,ds){
   if(id&&tdBusy(id))return;
   var t=id?(TODOS||[]).filter(function(x){return x.id===id;})[0]:null;
   TDE=t?JSON.parse(JSON.stringify(t)):{id:'',title:'',date:ds||twStr(),time:'',note:'',notify:false,lead:0,rep:'',nag:false,dones:[]};
-  TDE.inst=ds||TDE.date;TDE.more=!!(TDE.rep||TDE.nag);TDE.allday=!TDE.time;if(t&&t.rep)TDE.date=TDE.inst;   // 重複的：日期欄顯示這一次TDE.cust=repPreset(TDE.rep,TDE.date)==='c';
+  TDE.inst=ds||TDE.date;TDE.allday=!TDE.time;if(t&&t.rep)TDE.date=TDE.inst;   // 重複的：日期欄顯示這一次TDE.cust=repPreset(TDE.rep,TDE.date)==='c';
   tdPaint();
 }
 function tdPaint(){
@@ -2962,12 +2965,12 @@ function tdPaint(){
     +(t.notify?'<div class="tdchips">'+[[0,'準時'],[10,'10 分前'],[60,'1 小時前'],[1440,'前一天']].map(function(o){
         return '<button class="'+(t.lead===o[0]?'on':'')+'" onclick="TDE.lead='+o[0]+';tdPaint()">'+o[1]+'</button>';}).join('')+'</div>':'')
     +'</div>';
-  if(!t.more)h+='<button class="btn btn-sm btn-full" style="margin-top:10px" onclick="tdKeep();TDE.more=true;tdPaint()">重複、一直提醒…</button>';
-  else h+='<div class="tdsec">'+repUI()
+  h+='<div class="tdsec">'+repUI()
     +'<div class="tdrow"><span>沒完成就一直提醒<small style="display:block;font-size:11.5px;color:var(--tx3)">每 2 小時（08:00～21:00），直到打勾</small></span><button class="sw'+(t.nag?' on':'')+'" onclick="TDE.nag=!TDE.nag;tdPaint()"></button></div></div>';
   h+='<p class="lb" style="margin-top:12px">備註</p><textarea class="fld" id="td-n" rows="2" maxlength="300" placeholder="電話、地點、聯絡人…" oninput="TDE.note=this.value">'+he(t.note)+'</textarea>';
   h+='<button class="btn btn-p btn-full" id="td-s" style="margin-top:14px" onclick="tdSave()">儲存</button>'
-    +(t.id?'<button class="btn btn-d btn-full" style="margin-top:8px" onclick="tdDel()">刪除</button>':'');
+    +(t.id?'<button class="btn btn-d btn-full" style="margin-top:8px" onclick="tdDel()">刪除</button>':'')
+    +'<p class="hint" style="margin:12px 4px 0;text-align:center;line-height:1.5">請勿加入私人待辦事項，後台看得到～</p>';
   var keep=$('ov').classList.contains('open')&&$('sheetin')&&$('sheetin').querySelector('#td-t');
   if(keep){$('sheetin').innerHTML=h;if(TDE._sy)$('sheetin').scrollTop=TDE._sy;}
   else{openSheet(h);if(!t.id)setTimeout(function(){var i=$('td-t');if(i)i.focus();},250);}
@@ -2996,30 +2999,35 @@ function repText(r){
   if(r.end&&r.end.t==='count')s+='，共 '+r.end.c+' 次';
   return s;
 }
+/* 重複：開關（預設關），打開才展開設定——每天／每週／每月／每年＋間隔＋（星期或每月哪天）＋結束 */
+function repToggle(){
+  tdKeep();
+  var dw=new Date(TDE.date+'T00:00:00Z').getUTCDay();
+  TDE.rep=TDE.rep?null:{f:'w',n:1,wd:[dw],end:{t:'never'}};
+  tdPaint();
+}
 function repUI(){
-  var t=TDE,d=t.date,dw=new Date(d+'T00:00:00Z').getUTCDay(),pr=t.cust?'c':repPreset(t.rep,d);
-  var opts=[['','不重複'],['d','每天'],['w1','每週'+WDN.charAt(dw)],['m1','每月 '+(+d.slice(8))+' 日'],['mfw','每月第一個上班日'],['y1','每年 '+(+d.slice(5,7))+'/'+(+d.slice(8))],['wd','每個工作日（一～五）'],['c','自訂…']];
-  var h='<div class="tdrow"><span>重複</span><select onchange="repPick(this.value)">'
-    +opts.map(function(o){return '<option value="'+o[0]+'"'+(pr===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
-  if(pr==='c'){
-    var r=t.rep||{f:'w',n:1,wd:[dw],end:{t:'never'}};
-    h+='<div class="rpc"><div class="rpl">重複間隔</div><div class="rpi"><button onclick="repN(-1)">−</button><b>'+r.n+'</b><button onclick="repN(1)">＋</button>'
-      +'<select onchange="repSet(\'f\',this.value)">'+[['d','天'],['w','週'],['m','個月'],['y','年']].map(function(o){return '<option value="'+o[0]+'"'+(r.f===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
-    if(r.f==='m')h+='<div class="rpl">每月的哪一天</div>'
-      +'<label class="rpe"><input type="radio" name="rpm"'+(r.md!=='fw'?' checked':'')+' onchange="repMd(\'d\')"><span>每月第</span>'
-        +'<input type="number" min="1" max="31" value="'+(r.dd||+d.slice(8))+'"'+(r.md!=='fw'?'':' disabled')+' onchange="TDE.rep.dd=Math.max(1,Math.min(31,+this.value||1));repLbl()" style="width:64px"> 天</label>'
-      +'<label class="rpe"><input type="radio" name="rpm"'+(r.md==='fw'?' checked':'')+' onchange="repMd(\'fw\')"><span>每月第一個上班日<small style="display:block;font-size:11.5px;color:var(--tx3)">跳過週末和國定假日</small></span></label>';
-    if(r.f==='w')h+='<div class="rpl">重複日期</div><div class="rpw">'+WDN.split('').map(function(x,i){
-        return '<button class="'+(r.wd.indexOf(i)>=0?'on':'')+(i===0||i===6?' we':'')+'" onclick="repWd('+i+')">'+x+'</button>';}).join('')+'</div>';
-    var e=r.end||{t:'never'};
-    h+='<div class="rpl">結束時間</div>'
-      +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='never'?' checked':'')+' onchange="repEnd(\'never\')"><span>持續不停</span></label>'
-      +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='date'?' checked':'')+' onchange="repEnd(\'date\')"><span>於</span>'
-        +'<input type="date" value="'+(e.d||addDays(d,90))+'"'+(e.t==='date'?'':' disabled')+' onchange="TDE.rep.end={t:\'date\',d:this.value};repLbl()"></label>'
-      +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='count'?' checked':'')+' onchange="repEnd(\'count\')"><span>重複</span>'
-        +'<input type="number" min="1" max="999" value="'+(e.c||13)+'"'+(e.t==='count'?'':' disabled')+' onchange="TDE.rep.end={t:\'count\',c:Math.max(1,+this.value||1)};repLbl()" style="width:64px"> 次</label>'
-      +'<div class="rpsum" id="rp-sum">'+he(repText(r))+'</div></div>';
-  }
+  var t=TDE,d=t.date,r=t.rep;
+  var h='<div class="tdrow"><span>重複</span><button class="sw'+(r?' on':'')+'" onclick="repToggle()"></button></div>';
+  if(!r)return h;
+  var unit={d:'天',w:'週',m:'個月',y:'年'}[r.f];
+  h+='<div class="rpc"><div class="rpseg">'+[['d','每天'],['w','每週'],['m','每月'],['y','每年']].map(function(o){
+      return '<button class="'+(r.f===o[0]?'on':'')+'" onclick="repSet(\'f\',\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>'
+    +'<div class="rpe"><span>間隔</span><div class="rpi"><span style="min-width:0">每</span><button onclick="repN(-1)">−</button><b>'+r.n+'</b><button onclick="repN(1)">＋</button><span style="min-width:0">'+unit+'</span></div></div>';
+  if(r.f==='w')h+='<div class="rpl">星期（可多選）</div><div class="rpw">'+WDN.split('').map(function(x,i){
+      return '<button class="'+(r.wd.indexOf(i)>=0?'on':'')+(i===0||i===6?' we':'')+'" onclick="repWd('+i+')">'+x+'</button>';}).join('')+'</div>';
+  if(r.f==='m')h+='<div class="rpl">每月的哪一天</div>'
+    +'<label class="rpe"><input type="radio" name="rpm"'+(r.md!=='fw'?' checked':'')+' onchange="repMd(\'d\')"><span>每月第</span>'
+      +'<input type="number" min="1" max="31" value="'+(r.dd||+d.slice(8))+'"'+(r.md!=='fw'?'':' disabled')+' onchange="TDE.rep.dd=Math.max(1,Math.min(31,+this.value||1));repLbl()" style="width:64px"> 天</label>'
+    +'<label class="rpe"><input type="radio" name="rpm"'+(r.md==='fw'?' checked':'')+' onchange="repMd(\'fw\')"><span>第一個上班日<small style="display:block;font-size:11.5px;color:var(--tx3)">跳過週末和國定假日</small></span></label>';
+  var e=r.end||{t:'never'};
+  h+='<div class="rpl">結束</div>'
+    +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='never'?' checked':'')+' onchange="repEnd(\'never\')"><span>持續不停</span></label>'
+    +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='date'?' checked':'')+' onchange="repEnd(\'date\')"><span>到</span>'
+      +'<input type="date" value="'+(e.d||addDays(d,90))+'"'+(e.t==='date'?'':' disabled')+' onchange="TDE.rep.end={t:\'date\',d:this.value};repLbl()"></label>'
+    +'<label class="rpe"><input type="radio" name="rpe"'+(e.t==='count'?' checked':'')+' onchange="repEnd(\'count\')"><span>重複</span>'
+      +'<input type="number" min="1" max="999" value="'+(e.c||13)+'"'+(e.t==='count'?'':' disabled')+' onchange="TDE.rep.end={t:\'count\',c:Math.max(1,+this.value||1)};repLbl()" style="width:64px"> 次</label>'
+    +'<div class="rpsum" id="rp-sum">'+he(repText(r))+'</div></div>';
   return h;
 }
 function repLbl(){var e=$('rp-sum');if(e&&TDE.rep)e.textContent=repText(TDE.rep);}
