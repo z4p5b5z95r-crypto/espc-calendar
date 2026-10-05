@@ -324,23 +324,17 @@ html[data-theme="dark"] .glass::after{
 .pmu:first-child{border-top:0}.pmu.on{background:var(--tint)}
 .pmu b{font-size:14px}.pmu small{color:var(--tx3);font-size:12px}
 
-/* ── 頁籤水滴（液態玻璃）：選中的底色是一顆會滑動的玻璃水滴，到定點「啵」一下 ── */
-.nb{position:relative;z-index:1;background:transparent!important;transition:color .25s}
-.navdrop{position:absolute;left:0;top:0;width:0;height:0;border-radius:999px;z-index:0;pointer-events:none;opacity:0;
-  background:var(--tint);
-  box-shadow:inset 0 1px 1.5px rgba(255,255,255,.65),inset 0 -1.5px 2px rgba(0,0,0,.07),inset 0 0 0 .6px rgba(255,255,255,.45),0 4px 14px rgba(150,70,20,.16);
-  will-change:left,width,transform}
-.navdrop::after{content:"";position:absolute;left:12%;right:12%;top:2px;height:42%;border-radius:999px;
-  background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0));pointer-events:none}
-html[data-theme="dark"] .navdrop{box-shadow:inset 0 1px 1.5px rgba(255,255,255,.25),inset 0 -1.5px 2px rgba(0,0,0,.3),inset 0 0 0 .6px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.35)}
-html[data-theme="dark"] .navdrop::after{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0))}
-.navdrop.show{opacity:1}
-.navdrop.snap{transition:left .55s cubic-bezier(.3,1.5,.5,1),top .55s cubic-bezier(.3,1.5,.5,1),width .55s cubic-bezier(.3,1.5,.5,1),height .3s ease,transform .55s cubic-bezier(.3,1.6,.5,1),opacity .2s}
-.navdrop.pop{animation:navpop .42s cubic-bezier(.3,1.4,.5,1)}
-@keyframes navpop{0%{scale:1}45%{scale:1.14 1.2}100%{scale:1}}
-.nb.hov{color:var(--accT)}
-.nav.dragging{touch-action:none;user-select:none;-webkit-user-select:none}
-@media (prefers-reduced-motion:reduce){.navdrop.snap{transition:none}.navdrop.pop{animation:none}}
+/* ── 頁籤水滴（液態玻璃，黏稠版）：選中底色是一顆用彈簧物理移動的水滴，後面拖一團會融合的水（SVG goo 濾鏡） ── */
+.nb{position:relative;z-index:2;background:transparent!important;transition:color .25s}
+.navgoo{position:absolute;inset:0;z-index:0;pointer-events:none;filter:url(#navgoo);opacity:0;transition:opacity .2s}
+.navshine.show{opacity:1}
+.navgoo.show{opacity:.13}html[data-theme="dark"] .navgoo.show{opacity:.22}   /* 水滴用實心色＋整層透明，重疊處才不會變深 */
+.navgoo i{position:absolute;left:0;top:0;border-radius:999px;background:rgb(243,111,33);will-change:transform,left,width}
+.navshine{position:absolute;left:0;top:0;border-radius:999px;z-index:1;pointer-events:none;opacity:0;will-change:transform,left,width;
+  box-shadow:inset 0 1px 1.5px rgba(255,255,255,.65),inset 0 -1.5px 2px rgba(0,0,0,.07),inset 0 0 0 .6px rgba(255,255,255,.45),0 4px 14px rgba(150,70,20,.16)}
+.navshine::after{content:"";position:absolute;left:12%;right:12%;top:2px;height:42%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0))}
+html[data-theme="dark"] .navshine{box-shadow:inset 0 1px 1.5px rgba(255,255,255,.25),inset 0 -1.5px 2px rgba(0,0,0,.3),inset 0 0 0 .6px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.35)}
+html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0))}
 /* ── 待辦詳情（Google 式，只顯示資訊） ── */
 .tvw .tvtop{display:flex;justify-content:flex-end;gap:8px;margin:-4px 0 4px}
 .tvw .tvtop .ib{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx2)}
@@ -1096,7 +1090,7 @@ html[data-fs="l"] body{zoom:1.25;}
   <div class="pwrap" id="pwrap"><div id="page"></div></div>
 
   <div class="nav" id="nav">
-    <span class="navdrop" id="navdrop"></span>
+    <span class="navgoo" id="navgoo"><i class="ndtail" id="ndtail"></i><i class="ndmain" id="ndmain"></i></span><span class="navshine" id="navshine"></span>
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
@@ -1111,6 +1105,7 @@ html[data-fs="l"] body{zoom:1.25;}
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<filter id="navgoo"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -12" result="g"/><feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
 <linearGradient id="gsl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ebf0"/></linearGradient>
 <linearGradient id="gso" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#d9560f"/></linearGradient>
 <linearGradient id="gsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f7fd0"/><stop offset="1" stop-color="#1b4f8f"/></linearGradient>
@@ -1134,7 +1129,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05s';
+var APP_VER='2026-10-05w';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1525,59 +1520,79 @@ function permSet(p){
 }
 /* 依權限顯示導覽列；目前所在頁沒權限了就回今日 */
 
-/* ══ 頁籤水滴 ══ 點頁籤：水滴拉長滑過去、到位放大一下；按住頁籤列左右拖：水滴跟著手指，放開吸到最近的頁籤 */
-var NDROP={cur:null,drag:null};
-function navRect(b){return {x:b.offsetLeft,y:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight};}
-function navPlace(r,sx,sy){var d=$('navdrop');if(!d)return;d.style.left=r.x+'px';d.style.top=r.y+'px';d.style.width=r.w+'px';d.style.height=r.h+'px';d.style.transform='scale('+(sx||1)+','+(sy||1)+')';}
-function navPop(delay){var d=$('navdrop');setTimeout(function(){d.classList.remove('pop');void d.offsetWidth;d.classList.add('pop');},delay);}
-function navDrop(anim){
-  var d=$('navdrop'),b=document.querySelector('.nb.on');
-  if(!d)return;
-  if(!b||!b.offsetWidth){d.classList.remove('show');NDROP.cur=null;return;}
-  // 等選中頁籤的寬度（手機版選中會多出文字）算好再量
-  requestAnimationFrame(function(){
-    var r=navRect(b),prev=NDROP.cur;NDROP.cur=b;
-    if(!anim||!prev||prev===b||!d.classList.contains('show')){d.classList.remove('snap');navPlace(r);d.classList.add('show');return;}
-    var p=navRect(prev),l=Math.min(p.x,r.x),rr=Math.max(p.x+p.w,r.x+r.w);
-    d.classList.remove('snap');navPlace({x:l,y:r.y,w:rr-l,h:r.h},1,.86);       // 先拉長
-    requestAnimationFrame(function(){requestAnimationFrame(function(){d.classList.add('snap');navPlace(r);navPop(300);});});
+/* ══ 頁籤水滴（黏稠版，使用者選 B）══
+   點頁籤：水滴帶慣性滑過去、到位「啵」放大；按住頁籤列拖：水滴用彈簧追手指、順方向拉長變扁，後面拖一團水，停下慢慢融回；
+   放開吸到最近的頁籤（甩一下最多多跑半格）。系統「減少動態」時直接定位不做動畫。 */
+var NV={x:0,v:0,w:0,tw:0,y:0,h:0,target:0,tx:0,tvx:0,sq:0,sqv:0,pop:0,popv:0,raf:0,drag:null,init:false,near:null};
+var NV_RM=false;try{NV_RM=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+function nbRect(b){return {x:b.offsetLeft,y:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight};}
+function navRender(){
+  var m=$('ndmain'),t=$('ndtail'),sh=$('navshine');if(!m)return;
+  var st=Math.min(Math.abs(NV.v)/(NV.tap?70:40),NV.tap?.14:.28)+NV.sq,sx=1+st+NV.pop,sy=1-st*.42+NV.pop*1.15,cx=NV.x+NV.w/2;   // 點擊（可能跨很多格）拉伸上限較小
+  [m,sh].forEach(function(n){n.style.left=(cx-NV.w/2)+'px';n.style.top=NV.y+'px';n.style.width=NV.w+'px';n.style.height=NV.h+'px';n.style.transform='scale('+sx.toFixed(3)+','+sy.toFixed(3)+')';});
+  var tcx=NV.tx+NV.w/2,ts=Math.max(.45,1-Math.abs(tcx-cx)/260);
+  t.style.left=(tcx-NV.w*.38)+'px';t.style.top=NV.y+'px';t.style.width=(NV.w*.76)+'px';t.style.height=NV.h+'px';t.style.transform='scale('+ts.toFixed(3)+')';
+}
+function navLoop(){
+  // 黏稠：阻力大（速度保留少）、彈簧軟，移動慢慢的、不太甩
+  if(NV.drag&&NV.drag.moved){var to=NV.drag.fx-NV.w/2;NV.v=NV.v*.62+(to-NV.x)*.18;NV.x+=NV.v;NV.w+=(NV.tw-NV.w)*.15;}
+  else{NV.v=NV.v*.66+(NV.target-NV.x)*.1;NV.x+=NV.v;NV.w+=(NV.tw-NV.w)*.2;}
+  NV.tvx=NV.tvx*.8+(NV.x-NV.tx)*.045;NV.tx+=NV.tvx;
+  NV.sqv=NV.sqv*.7-NV.sq*.18;NV.sq+=NV.sqv;
+  NV.popv=NV.popv*.72-NV.pop*.2;NV.pop+=NV.popv;
+  navRender();
+  var still=!(NV.drag&&NV.drag.moved)&&Math.abs(NV.v)<.05&&Math.abs(NV.x-NV.target)<.3&&Math.abs(NV.w-NV.tw)<.3&&Math.abs(NV.pop)<.002&&Math.abs(NV.sq)<.002&&Math.abs(NV.tx-NV.x)<.3&&Math.abs(NV.tvx)<.05;
+  if(still){NV.x=NV.tx=NV.target;NV.w=NV.tw;NV.v=NV.tvx=NV.pop=NV.sq=0;navRender();NV.raf=0;return;}
+  NV.raf=requestAnimationFrame(navLoop);
+}
+function navKick(){if(!NV.raf)NV.raf=requestAnimationFrame(navLoop);}
+function navDrop(anim,fromDrag){
+  var b=document.querySelector('.nb.on'),g=$('navgoo'),sh=$('navshine');
+  if(!g)return;
+  if(!b||!b.offsetWidth){g.classList.remove('show');sh.classList.remove('show');NV.init=false;return;}
+  requestAnimationFrame(function(){                       // 等選中頁籤（手機版會多出文字）寬度算好
+    var r=nbRect(b);NV.y=r.y;NV.h=r.h;NV.target=r.x;NV.tw=r.w;
+    if(!anim||!NV.init||NV_RM){NV.x=NV.tx=r.x;NV.w=r.w;NV.v=NV.tvx=0;NV.init=true;navRender();g.classList.add('show');sh.classList.add('show');return;}
+    var dist=Math.abs(r.x-NV.x);NV.tap=!fromDrag;
+    setTimeout(function(){NV.popv+=.06;navKick();},Math.min(460,200+dist*.6));   // 到位啵一下
+    navKick();
   });
 }
 (function(){
   var nav=$('nav');if(!nav)return;
   nav.addEventListener('pointerdown',function(e){
-    if(e.button>0||e.target.closest('.who'))return;
-    var b=document.querySelector('.nb.on');if(!b)return;
-    NDROP.drag={x0:e.clientX,last:e.clientX,t:performance.now(),v:0,moved:false,id:e.pointerId,w:b.offsetWidth,h:b.offsetHeight,y:b.offsetTop};
+    if(e.button>0||e.target.closest('.who')||!NV.init||NV_RM)return;
+    var nr=nav.getBoundingClientRect(),px=e.clientX-nr.left+nav.scrollLeft,cx=NV.x+NV.w/2;
+    NV.tap=false;NV.drag={x0:e.clientX,id:e.pointerId,moved:false,off:Math.abs(px-cx)<NV.w/2?px-cx:0,fx:px,vf:0,lt:0};
   });
   nav.addEventListener('pointermove',function(e){
-    var g=NDROP.drag;if(!g||e.pointerId!==g.id)return;
-    if(!g.moved){if(Math.abs(e.clientX-g.x0)<8)return;g.moved=true;try{nav.setPointerCapture(e.pointerId);}catch(_){}nav.classList.add('dragging');}
-    var d=$('navdrop'),nr=nav.getBoundingClientRect(),now=performance.now(),dt=Math.max(1,now-g.t);
-    g.v=g.v*.6+((e.clientX-g.last)/dt)*.4;g.last=e.clientX;g.t=now;
-    var cx=e.clientX-nr.left+nav.scrollLeft,sp=Math.min(Math.abs(g.v)*.18,.35);
-    d.classList.remove('snap','pop');
-    navPlace({x:cx-g.w/2,y:g.y,w:g.w,h:g.h},1+sp,1-sp*.45);
-    // 經過的頁籤先變色
-    var best=null,bd=1e9;
-    document.querySelectorAll('.nb').forEach(function(n){if(!n.offsetWidth)return;var c=n.offsetLeft+n.offsetWidth/2,dd=Math.abs(c-cx);if(dd<bd){bd=dd;best=n;}});
-    document.querySelectorAll('.nb').forEach(function(n){n.classList.toggle('hov',n===best);});
-    g.near=best;
+    var d=NV.drag;if(!d||e.pointerId!==d.id)return;
+    if(!d.moved){if(Math.abs(e.clientX-d.x0)<8)return;d.moved=true;try{nav.setPointerCapture(e.pointerId);}catch(_){}nav.classList.add('dragging');}
+    var nr=nav.getBoundingClientRect(),f=e.clientX-nr.left+nav.scrollLeft-d.off,now=performance.now();
+    var lo=NV.w/2,hi=nav.scrollWidth-NV.w/2;if(f<lo)f=lo-(lo-f)*.25;if(f>hi)f=hi+(f-hi)*.25;   // 兩端有阻力
+    if(d.lt)d.vf=d.vf*.5+((f-d.fx)/Math.max(8,now-d.lt)*16)*.5;d.lt=now;d.fx=f;
+    var best=null,bd=1e9;document.querySelectorAll('.nb').forEach(function(n){if(!n.offsetWidth)return;var dd=Math.abs(n.offsetLeft+n.offsetWidth/2-f);if(dd<bd){bd=dd;best=n;}});
+    if(best!==NV.near){document.querySelectorAll('.nb.hov').forEach(function(n){n.classList.remove('hov');});if(best)best.classList.add('hov');NV.near=best;}
+    navKick();
   });
   function end(e){
-    var g=NDROP.drag;if(!g||(e&&e.pointerId!==g.id))return;NDROP.drag=null;
-    nav.classList.remove('dragging');
-    document.querySelectorAll('.nb.hov').forEach(function(n){n.classList.remove('hov');});
-    if(!g.moved)return;                          // 沒拖：交給原本的點擊
-    var d=$('navdrop'),t=g.near&&g.near.getAttribute('data-t');
-    var blockClick=function(ev){ev.stopPropagation();ev.preventDefault();};
-    nav.addEventListener('click',blockClick,true);setTimeout(function(){nav.removeEventListener('click',blockClick,true);},0);
-    if(t&&g.near!==document.querySelector('.nb.on')){NDROP.cur=null;go(t);}                         // go 會叫 navDrop
-    if(!NDROP.cur||NDROP.cur===document.querySelector('.nb.on')){var b=document.querySelector('.nb.on');if(b){NDROP.cur=b;d.classList.add('snap');navPlace(navRect(b));navPop(260);}}
+    var d=NV.drag;if(!d||(e&&e.pointerId!==d.id))return;NV.drag=null;
+    nav.classList.remove('dragging');document.querySelectorAll('.nb.hov').forEach(function(n){n.classList.remove('hov');});NV.near=null;
+    if(!d.moved)return;                                     // 沒拖：交給原本的點擊
+    var block=function(ev){ev.stopPropagation();ev.preventDefault();};
+    nav.addEventListener('click',block,true);setTimeout(function(){nav.removeEventListener('click',block,true);},0);
+    var proj=d.fx+Math.max(-NV.w*.5,Math.min(NV.w*.5,d.vf*3)),best=null,bd=1e9;
+    document.querySelectorAll('.nb').forEach(function(n){if(!n.offsetWidth)return;var dd=Math.abs(n.offsetLeft+n.offsetWidth/2-proj);if(dd<bd){bd=dd;best=n;}});
+    var cur=document.querySelector('.nb.on');
+    if(best&&best!==cur){NV_FROMDRAG=true;go(best.getAttribute('data-t'));NV_FROMDRAG=false;}
+    else navDrop(true,true);
+    // 「津貼」要點三下：拖到津貼不會切頁，水滴回原位
+    if(document.querySelector('.nb.on')===cur&&best!==cur)navDrop(true,true);
   }
   nav.addEventListener('pointerup',end);nav.addEventListener('pointercancel',end);
   window.addEventListener('resize',function(){navDrop(false);});
 })();
+var NV_FROMDRAG=false;
 
 function navPerm(){
   $('nb-up').style.display=can('upload')?'':'none';   // 手機版由 CSS（.dlm）隱藏，只在桌機出現
@@ -2420,7 +2435,7 @@ function go(t,s){
   document.querySelectorAll('.nb').forEach(function(b){
     b.classList.toggle('on',b.getAttribute('data-t')===t);
   });
-  navDrop(true);
+  navDrop(true,NV_FROMDRAG);
   window.scrollTo(0,0);
   // 進行事曆但手上沒資料時，先標成載入中，第一次 render 才不會閃「本月沒有排程」
   var needMonth=(t==='cal'&&!sub&&!allRows.length);
