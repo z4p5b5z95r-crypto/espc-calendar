@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ESPC 監測行程</title>
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-v3.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-v3.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v3.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512-v3.png">
+<link rel="manifest" href="manifest.json?v=4">
+<link rel="apple-touch-icon" href="icon-v4.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-v4.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v4.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512-v4.png">
 <meta name="theme-color" content="#F36F21">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1110,7 +1110,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05j';
+var APP_VER='2026-10-05k';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -3485,9 +3485,9 @@ function verTap(){
   if(VT.n>=5){VT.n=0;openIconTool();}
 }
 var ICON_OUT=[
-  {f:'icon-v3.png',s:180,d:'iPhone 主畫面（apple-touch-icon）'},
-  {f:'icon-192-v3.png',s:192,d:'Android／瀏覽器分頁'},
-  {f:'icon-512-v3.png',s:512,d:'安裝畫面、maskable 共用'},
+  {f:'icon-v4.png',s:180,d:'iPhone 主畫面（apple-touch-icon）'},
+  {f:'icon-192-v4.png',s:192,d:'Android／瀏覽器分頁'},
+  {f:'icon-512-v4.png',s:512,d:'安裝畫面、maskable 共用'},
   {f:'icon.png',s:192,d:'通知圖示（sw.js 用）'}
 ];
 /** CSS 角度漸層換算成 canvas 的起訖點（正方形） */
