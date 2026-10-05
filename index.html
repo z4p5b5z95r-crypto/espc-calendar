@@ -1103,7 +1103,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05e';
+var APP_VER='2026-10-05f';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -5919,9 +5919,59 @@ function dlPicked(){
   });
   return out;
 }
+/* ── 下載行程：把連續監測合併成「期間」──
+   數量 +1／1＝架設，-1＝收站，0＝監測中，「-1+1」＝假收站（同一天收了又架，其實沒中斷）。
+   空品車：架站日～收站日整段都算監測期間；假收站（-1 後隔天或同天又 +1）不切開。
+   噪音、振動、交通（錄影）：+1、-1 只是前一天架／後一天收，真正監測期間是 0 的那幾天；
+     沒有 0（例如當天架當天收）就用整段。
+   其他項目：照原本一天一列。 */
+function dlKind(t){t=String(t||'');if(/空品車|監測車/.test(t))return 'car';if(/噪音|振動|交通/.test(t))return 'cont';return 'day';}
+function dlQv(list){   // 一天的數量 → {n:數字或 null, x:是否同天收又架}
+  var vals=(list||[]).map(function(v){return String(v==null?'':v).replace(/\s/g,'');}).filter(Boolean);
+  if(!vals.length)return {n:null,x:false};
+  var x=vals.some(function(v){return /-1.*\+1|\+1.*-1/.test(v);});
+  if(x)return {n:null,x:true};
+  if(vals.every(function(v){return /^[+-]?\d+(\.\d+)?$/.test(v);}))return {n:vals.reduce(function(a,b){return a+parseFloat(b);},0),x:false};
+  return {n:null,x:false};
+}
+function dlRows(){
+  var list=dlPicked(),out=[],seg={};
+  list.forEach(function(g){
+    var k=dlKind(g.type);
+    if(k==='day'){out.push({a:g.date,b:g.date,type:g.type,loc:g.loc,time:g.time,q:qtyText(g.qtys)||'—',days:[g.date]});return;}
+    var key=k+'|'+g.type+'|'+g.loc;
+    (seg[key]=seg[key]||{kind:k,type:g.type,loc:g.loc,time:g.time,ds:{}}).ds[g.date]=dlQv(g.qtys);
+    if(!seg[key].time&&g.time)seg[key].time=g.time;
+  });
+  Object.keys(seg).forEach(function(key){
+    var S=seg[key],dates=Object.keys(S.ds).sort(),cur=null;
+    var flush=function(){
+      if(!cur)return;
+      var all=cur.d,mon=all.filter(function(d){return S.ds[d].n===0;});
+      var use=(S.kind==='cont'&&mon.length)?mon:all;
+      out.push({a:use[0],b:use[use.length-1],type:S.type,loc:S.loc,time:S.time,q:use.length+' 天',days:use});
+      cur=null;
+    };
+    dates.forEach(function(d){
+      var v=S.ds[d];
+      if(cur){
+        var prev=cur.d[cur.d.length-1],gap=Math.round((new Date(d+'T00:00:00Z')-new Date(prev+'T00:00:00Z'))/864e5);
+        var pv=S.ds[prev];
+        if(gap>1&&!(pv.n!==null&&pv.n<0&&v.n!==null&&v.n>0&&gap<=2))flush();   // 中間斷掉就另起一段（-1 後隔一天又 +1 視為假收站）
+        else if(pv.n!==null&&pv.n<0&&!(v.n!==null&&v.n>0)&&!v.x)flush();          // 前一天真的收站了
+      }
+      if(!cur)cur={d:[]};
+      cur.d.push(d);
+      if(v.n!==null&&v.n<0&&S.kind==='cont')flush();   // 噪音振動交通：-1 就是收站
+    });
+    flush();
+  });
+  out.sort(function(x,y){return x.a<y.a?-1:x.a>y.a?1:(typeGroup(x.type)+x.type).localeCompare(typeGroup(y.type)+y.type,'zh-Hant');});
+  return out;
+}
 function dlPage(){
   dlInit();
-  if(ROLE!=='admin')
+  if(!can('dl'))
     return '<div class="card"><div class="empty" style="padding:30px">沒有這個功能的權限</div></div>';
   if(!isDesk())
     return '<div class="card"><div class="empty" style="padding:30px">'
@@ -5964,39 +6014,36 @@ function dlOut(){
   if(DL.err)return '<div class="dlout"><div class="dlempty">'+he(DL.err)+'</div></div>';
   if(!DL.proj)
     return '<div class="dlout"><div class="dlempty">選擇期間與專案後，這裡會顯示要給客戶的行程表</div></div>';
-  var list=dlPicked();
+  var list=dlRows();
   var p=null;
   dlProjects().forEach(function(x){if(x.name===DL.proj)p=x;});
-  var days={},nd=0,tot=[];
-  list.forEach(function(g){
-    if(!days[g.date]){days[g.date]=1;nd++;}
-    g.qtys.forEach(function(q){tot.push(q);});
-  });
+  var days={},nd=0;
+  list.forEach(function(g){g.days.forEach(function(d){if(!days[d]){days[d]=1;nd++;}});});
   var h='<div class="dlout" id="dlout">'
     +'<h4>'+he(DL.proj)+'　環境監測行程表</h4>'
     +'<p class="sub">'+(p&&p.no?'計畫編號 '+he(p.no)+'　·　':'')
     +(+DL.from.slice(0,4))+' 年 '+(+DL.from.slice(5,7))+' 月'
     +'　·　製表日期 '+he(twStr())+'</p>';
   if(!list.length)return h+'<div class="dlempty">這段期間沒有符合的行程</div></div>';
+  var md=function(d){return (+d.slice(5,7))+'/'+(+d.slice(8));};
   h+='<table class="dlt"><thead><tr>'
-    +'<th style="width:82px">日期</th><th style="width:44px">星期</th>'
+    +'<th style="width:118px">日期</th><th style="width:56px">星期</th>'
     +'<th style="width:130px">監測類別</th><th>監測點位</th>'
     +'<th style="width:104px">監測時間</th><th class="num" style="width:62px">數量</th>'
     +'</tr></thead><tbody>';
   var last='';
   list.forEach(function(g){
-    var first=(g.date!==last);
+    var rng=g.a!==g.b,lab=rng?md(g.a)+'～'+md(g.b):md(g.a),first=rng||(g.a!==last);
     h+='<tr'+(first?' class="d0"':'')+'>'
-      +'<td>'+(first?he(dlDate(g.date)):'')+'</td>'
-      +'<td>'+(first?DW[dowOf(g.date)]:'')+'</td>'
+      +'<td>'+(first?he(lab):'')+'</td>'
+      +'<td>'+(first?(rng?DW[dowOf(g.a)]+'～'+DW[dowOf(g.b)]:DW[dowOf(g.a)]):'')+'</td>'
       +'<td>'+he(g.type||'—')+'</td>'
       +'<td>'+he(g.loc||'—')+'</td>'
       +'<td>'+he(g.time||'—')+'</td>'
-      +'<td class="num">'+he(qtyText(g.qtys)||'—')+'</td></tr>';
-    last=g.date;
+      +'<td class="num">'+he(g.q||'—')+'</td></tr>';
+    last=rng?'':g.a;
   });
-  h+='</tbody><tfoot><tr><td colspan="5">合計　'+nd+' 個工作天　'+list.length+' 個項目</td>'
-    +'<td class="num">'+he(qtyText(tot)||'—')+'</td></tr></tfoot></table>'
+  h+='</tbody><tfoot><tr><td colspan="6">合計　'+nd+' 個監測天　'+list.length+' 個項目</td></tr></tfoot></table>'
     +'<p class="dlfoot">本表為預定行程，實際監測日期可能因天候或現場狀況調整，異動將另行通知。</p>'
     +'</div>';
   return h;
