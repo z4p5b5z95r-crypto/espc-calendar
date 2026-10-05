@@ -325,7 +325,13 @@ html[data-theme="dark"] .glass::after{
 .pmu b{font-size:14px}.pmu small{color:var(--tx3);font-size:12px}
 
 /* ── 頁籤水滴（液態玻璃，黏稠版）：選中底色是一顆用彈簧物理移動的水滴，後面拖一團會融合的水（SVG goo 濾鏡） ── */
-.nb{position:relative;z-index:2;background:transparent!important;transition:color .25s}
+.nb{position:relative;z-index:2;background:transparent!important;transition:color .25s;-webkit-tap-highlight-color:transparent}
+.nav{-webkit-tap-highlight-color:transparent}
+/* 快速拖曳時甩出的小水珠：實心在 goo 層（跟主水滴黏著、拉遠才分開），外面再疊一顆玻璃高光，看起來是水珠不是影子 */
+.ndds{position:absolute;left:0;top:0;width:0;height:0;border-radius:50%;z-index:1;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85) 0 18%,rgba(255,255,255,0) 40%);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.7),inset 0 -1px 2px rgba(150,70,20,.18),0 2px 5px rgba(150,70,20,.18)}
+html[data-theme="dark"] .ndds{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.45) 0 18%,rgba(255,255,255,0) 40%);box-shadow:inset 0 1px 1px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.3),0 2px 5px rgba(0,0,0,.3)}
 .navgoo{position:absolute;inset:0;z-index:0;pointer-events:none;filter:url(#navgoo);opacity:0;transition:opacity .2s}
 .navshine.show{opacity:1}
 .navgoo.show{opacity:.13}html[data-theme="dark"] .navgoo.show{opacity:.22}   /* 水滴用實心色＋整層透明，重疊處才不會變深 */
@@ -1091,7 +1097,7 @@ html[data-fs="l"] body{zoom:1.25;}
   <div class="pwrap" id="pwrap"><div id="page"></div></div>
 
   <div class="nav" id="nav">
-    <span class="navgoo" id="navgoo"><i class="ndtail" id="ndtail"></i><i class="ndmain" id="ndmain"></i></span><span class="navshine" id="navshine"></span>
+    <span class="navgoo" id="navgoo"><i class="ndd" id="ndd0"></i><i class="ndd" id="ndd1"></i><i class="ndmain" id="ndmain"></i></span><span class="navshine" id="navshine"></span><span class="ndds" id="nds0"></span><span class="ndds" id="nds1"></span>
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
@@ -1130,7 +1136,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-06a';
+var APP_VER='2026-10-06b';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1527,23 +1533,36 @@ function permSet(p){
 var NV={x:0,v:0,w:0,tw:0,y:0,h:0,target:0,tx:0,tvx:0,sq:0,sqv:0,pop:0,popv:0,raf:0,drag:null,init:false,near:null};
 var NV_RM=false;try{NV_RM=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
 function nbRect(b){return {x:b.offsetLeft,y:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight};}
+var NV_DROPS=[{x:0,v:0},{x:0,v:0}];NV.sp=0;NV.fling=0;
 function navRender(){
-  var m=$('ndmain'),t=$('ndtail'),sh=$('navshine');if(!m)return;
+  var m=$('ndmain'),sh=$('navshine');if(!m)return;
   var st=Math.min(Math.abs(NV.v)/(NV.tap?70:40),NV.tap?.14:.28)+NV.sq,sx=1+st+NV.pop,sy=1-st*.42+NV.pop*1.15,cx=NV.x+NV.w/2;   // 點擊（可能跨很多格）拉伸上限較小
   [m,sh].forEach(function(n){n.style.left=(cx-NV.w/2)+'px';n.style.top=NV.y+'px';n.style.width=NV.w+'px';n.style.height=NV.h+'px';n.style.transform='scale('+sx.toFixed(3)+','+sy.toFixed(3)+')';});
-  var tcx=NV.tx+NV.w/2,ts=Math.max(.45,1-Math.abs(tcx-cx)/260);
-  t.style.left=(tcx-NV.w*.38)+'px';t.style.top=NV.y+'px';t.style.width=(NV.w*.76)+'px';t.style.height=NV.h+'px';t.style.transform='scale('+ts.toFixed(3)+')';
+  // 小水珠：大小跟拖曳速度成正比，慢下來就縮小融回主水滴
+  var cy=NV.y+NV.h/2;
+  NV_DROPS.forEach(function(d,i){
+    var dia=NV.h*(i?.3:.44)*NV.sp,f=$('ndd'+i),g=$('nds'+i);if(!f)return;
+    [f,g].forEach(function(n){n.style.left=(d.x-dia/2)+'px';n.style.top=(cy-dia/2+(i?2:1))+'px';n.style.width=dia+'px';n.style.height=dia+'px';});
+    g.style.opacity=Math.min(1,NV.sp*1.6).toFixed(2);
+  });
 }
 function navLoop(){
   // 黏稠：阻力大（速度保留少）、彈簧軟，移動慢慢的、不太甩
-  if(NV.drag&&NV.drag.moved){var to=NV.drag.fx-NV.w/2;NV.v=NV.v*.62+(to-NV.x)*.18;NV.x+=NV.v;NV.w+=(NV.tw-NV.w)*.15;}
+  var dragging=NV.drag&&NV.drag.moved;
+  if(dragging){var to=NV.drag.fx-NV.w/2;NV.v=NV.v*.62+(to-NV.x)*.18;NV.x+=NV.v;NV.w+=(NV.tw-NV.w)*.15;}
   else{NV.v=NV.v*.66+(NV.target-NV.x)*.1;NV.x+=NV.v;NV.w+=(NV.tw-NV.w)*.2;}
-  NV.tvx=NV.tvx*.8+(NV.x-NV.tx)*.045;NV.tx+=NV.tvx;
+  // 水珠：拖得快才甩出來（點擊不出現），一顆追一顆
+  var want=(dragging||NV.fling>0)?Math.min(Math.abs(NV.v)/18,1):0;if(NV.fling>0)NV.fling--;
+  NV.sp+=(want-NV.sp)*(want>NV.sp?.3:.12);
+  // 水珠跟在主水滴「後緣」後面，第二顆再跟第一顆，拉得越快離越遠
+  if(Math.abs(NV.v)>.8)NV.dir=NV.v>0?1:-1;var dir=NV.dir||1,gap=NV.h*.34*NV.sp;
+  var tail=NV.x+NV.w/2-dir*(NV.w/2+gap*.2);
+  NV_DROPS.forEach(function(d,i){var to=i?NV_DROPS[0].x-dir*gap*.95:tail-dir*gap*.4;d.v=d.v*.55+(to-d.x)*(i?.2:.24);d.x+=d.v;});
   NV.sqv=NV.sqv*.7-NV.sq*.18;NV.sq+=NV.sqv;
   NV.popv=NV.popv*.72-NV.pop*.2;NV.pop+=NV.popv;
   navRender();
-  var still=!(NV.drag&&NV.drag.moved)&&Math.abs(NV.v)<.05&&Math.abs(NV.x-NV.target)<.3&&Math.abs(NV.w-NV.tw)<.3&&Math.abs(NV.pop)<.002&&Math.abs(NV.sq)<.002&&Math.abs(NV.tx-NV.x)<.3&&Math.abs(NV.tvx)<.05;
-  if(still){NV.x=NV.tx=NV.target;NV.w=NV.tw;NV.v=NV.tvx=NV.pop=NV.sq=0;navRender();NV.raf=0;return;}
+  var still=!dragging&&Math.abs(NV.v)<.05&&Math.abs(NV.x-NV.target)<.3&&Math.abs(NV.w-NV.tw)<.3&&Math.abs(NV.pop)<.002&&Math.abs(NV.sq)<.002&&NV.sp<.01;
+  if(still){NV.x=NV.target;NV.w=NV.tw;NV.v=NV.pop=NV.sq=NV.sp=0;NV_DROPS.forEach(function(d){d.x=NV.x+NV.w/2;d.v=0;});navRender();NV.raf=0;return;}
   NV.raf=requestAnimationFrame(navLoop);
 }
 function navKick(){if(!NV.raf)NV.raf=requestAnimationFrame(navLoop);}
@@ -1553,7 +1572,7 @@ function navDrop(anim,fromDrag){
   if(!b||!b.offsetWidth){g.classList.remove('show');sh.classList.remove('show');NV.init=false;return;}
   requestAnimationFrame(function(){                       // 等選中頁籤（手機版會多出文字）寬度算好
     var r=nbRect(b);NV.y=r.y;NV.h=r.h;NV.target=r.x;NV.tw=r.w;
-    if(!anim||!NV.init||NV_RM){NV.x=NV.tx=r.x;NV.w=r.w;NV.v=NV.tvx=0;NV.init=true;navRender();g.classList.add('show');sh.classList.add('show');return;}
+    if(!anim||!NV.init||NV_RM){NV.x=r.x;NV.w=r.w;NV.v=0;NV.sp=0;NV_DROPS.forEach(function(d){d.x=r.x+r.w/2;d.v=0;});NV.init=true;navRender();g.classList.add('show');sh.classList.add('show');return;}
     var dist=Math.abs(r.x-NV.x);NV.tap=!fromDrag;
     setTimeout(function(){NV.popv+=.06;navKick();},Math.min(460,200+dist*.6));   // 到位啵一下
     navKick();
@@ -1578,7 +1597,7 @@ function navDrop(anim,fromDrag){
   });
   function end(e){
     var d=NV.drag;if(!d||(e&&e.pointerId!==d.id))return;NV.drag=null;
-    nav.classList.remove('dragging');document.querySelectorAll('.nb.hov').forEach(function(n){n.classList.remove('hov');});NV.near=null;
+    nav.classList.remove('dragging');NV.fling=10;document.querySelectorAll('.nb.hov').forEach(function(n){n.classList.remove('hov');});NV.near=null;
     if(!d.moved)return;                                     // 沒拖：交給原本的點擊
     var block=function(ev){ev.stopPropagation();ev.preventDefault();};
     nav.addEventListener('click',block,true);setTimeout(function(){nav.removeEventListener('click',block,true);},0);
