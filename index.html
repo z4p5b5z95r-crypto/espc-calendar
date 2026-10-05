@@ -955,6 +955,16 @@ html[data-fs="l"] body{zoom:1.25;}
   .fchips{order:3;flex-basis:100%;padding:0 0 11px;}
   /* 使用者（名字、工號、登出）搬到導覽列最右邊；篩選條件搬到篩選按鈕旁邊（JS deskPlace） */
   .nav .who{margin-left:auto;display:flex;align-items:center}
+  .nav .nb{white-space:nowrap;flex:0 0 auto}
+  .nav{overflow-x:auto;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+  .nav .who{flex:0 0 auto;padding-left:10px}
+}
+@media(min-width:900px) and (max-width:1360px){
+  .nav .who-n{display:none}                 /* 頁籤多時只留頭像、通知、登出 */
+  .nb{padding:9px 11px}.nb.on{padding:9px 13px}
+}
+@media(min-width:900px) and (max-width:1180px){.nb:not(.on) em{display:none}}   /* 更窄：其他頁籤只留圖示 */
+@media(min-width:900px){
   .hd .fchips{order:0;flex-basis:auto;padding:0;flex-wrap:wrap;align-items:center}
   /* 待辦開關移到標題列最右邊，月曆往上 */
   .lgbar{position:fixed;top:81px;right:var(--gut);margin:0;z-index:60}
@@ -1093,7 +1103,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05c';
+var APP_VER='2026-10-05e';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -5264,18 +5274,7 @@ function statPage(){
   h+='<div class="sec">使用時段（近 7 天）</div><div class="card scard"><div class="shd">'
     +(hp>=0?'<b>'+hp+':00–'+(hp+1)+':00</b>　'+S.hours[hp]+' 次':'最常用 <b>'+(function(){var b=0;S.hours.forEach(function(v,i){if(v>S.hours[b])b=i;});return b+':00–'+(b+1)+':00';})()+'</b>')+'</div>'
     +statBars(S.hours,S.hours.map(function(v,i){return i%6===0?i+'時':'';}),{w:330,h:80,click:'statHPick',pick:hp})+'</div>';
-  // 廣播
-  var c=S.cast;
-  function bar(lb,a,b){var p=pct(a,b);return '<div class="pbr"><span class="pbl">'+lb+'</span><span class="pbt"><i style="width:'+p+'%"></i></span><span class="pbv">'+p+'%</span></div>';}
-  h+='<div class="sec">廣播（近 7 天）</div><div class="card scard">'
-    +'<div class="shd">案件廣播 <b>'+c.caseN+'</b> 則・群組廣播 <b>'+c.groupN+'</b> 則・共發給 <b>'+c.to+'</b> 人次</div>'
-    +(c.to?bar('送達',c.d,c.to)+bar('已讀',c.r,c.to)+bar('收到',c.a,c.to):'<div class="hint">這 7 天沒有廣播</div>')
-    +(Object.keys(c.senders).length?'<div class="hint" style="margin-top:8px">發送：'+Object.keys(c.senders).sort(function(a,b){return c.senders[b]-c.senders[a];}).map(function(k){return he(k)+' '+c.senders[k];}).join('、')+'</div>':'')
-    +'</div>';
-  // 通知裝置
-  var dv=Object.keys(S.devices||{});
-  if(dv.length)h+='<div class="sec">收通知的裝置</div><div class="card scard"><div class="cchips" style="margin:0">'
-    +dv.sort(function(a,b){return S.devices[b]-S.devices[a];}).map(function(k){return '<span class="gtok">'+he(k)+'・'+S.devices[k]+'</span>';}).join('')+'</div></div>';
+  // 廣播統計、收通知的裝置：不顯示
   // 每個人
   var q=STAT_Q.trim().toLowerCase();
   var ppl=S.people.filter(function(p){return !p.off;}).filter(function(p){
@@ -5853,6 +5852,20 @@ function dlSetDate(which,v){
   if(DL.from&&DL.to&&DL.from>DL.to){if(which==='from')DL.to=DL.from;else DL.from=DL.to;}
   dlLoad();
 }
+/* 下載行程：一律整個月 */
+function dlSetMonth(ym){
+  if(!/^\d{4}-\d{2}$/.test(ym))return;
+  var y=+ym.slice(0,4),m=+ym.slice(5,7);
+  DL.from=ym+'-01';DL.to=ym+'-'+p2(new Date(y,m,0).getDate());
+  dlLoad();
+}
+function dlMove(k){var y=+DL.from.slice(0,4),m=+DL.from.slice(5,7)-1+k;y+=Math.floor(m/12);m=((m%12)+12)%12;dlSetMonth(y+'-'+p2(m+1));}
+function dlMonths(){   // 前 24 個月～後 6 個月
+  var n=twDate(),out=[],cur=DL.from.slice(0,7),seen=false;
+  for(var i=-24;i<=6;i++){var d=new Date(n.getFullYear(),n.getMonth()+i,1),k=d.getFullYear()+'-'+p2(d.getMonth()+1);if(k===cur)seen=true;out.push([k,d.getFullYear()+' 年 '+(d.getMonth()+1)+' 月']);}
+  if(!seen)out.unshift([cur,+cur.slice(0,4)+' 年 '+(+cur.slice(5,7))+' 月']);
+  return out.reverse();
+}
 function dlSetProj(v){DL.proj=v;DL.ty=[];render();}
 function dlTy(t){
   if(!t)DL.ty=[];
@@ -5918,10 +5931,12 @@ function dlPage(){
 function dlSide(){
   var ps=dlProjects(),tys=dlTypes();
   var h='<div class="dlside">'
-    +'<p class="lb">期間</p>'
-    +'<div style="display:flex;gap:8px;margin-bottom:13px">'
-    +'<input class="fld" type="date" value="'+he(DL.from)+'" onchange="dlSetDate(\'from\',this.value)">'
-    +'<input class="fld" type="date" value="'+he(DL.to)+'" onchange="dlSetDate(\'to\',this.value)">'
+    +'<p class="lb">月份</p>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:13px">'
+    +'<button class="ib" onclick="dlMove(-1)" title="上個月">‹</button>'
+    +'<select class="fld" style="flex:1;text-align:center" onchange="dlSetMonth(this.value)">'+dlMonths().map(function(o){
+      return '<option value="'+o[0]+'"'+(DL.from.slice(0,7)===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'
+    +'<button class="ib" onclick="dlMove(1)" title="下個月">›</button>'
     +'</div>'
     +'<p class="lb">專案</p>'
     +'<select class="fld" style="margin-bottom:13px" onchange="dlSetProj(this.value)">'
@@ -5960,7 +5975,7 @@ function dlOut(){
   var h='<div class="dlout" id="dlout">'
     +'<h4>'+he(DL.proj)+'　環境監測行程表</h4>'
     +'<p class="sub">'+(p&&p.no?'計畫編號 '+he(p.no)+'　·　':'')
-    +he(dlDate(DL.from))+' ～ '+he(dlDate(DL.to))
+    +(+DL.from.slice(0,4))+' 年 '+(+DL.from.slice(5,7))+' 月'
     +'　·　製表日期 '+he(twStr())+'</p>';
   if(!list.length)return h+'<div class="dlempty">這段期間沒有符合的行程</div></div>';
   h+='<table class="dlt"><thead><tr>'
