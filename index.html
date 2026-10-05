@@ -629,8 +629,8 @@ html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
 @media(min-width:760px){.kpis{grid-template-columns:repeat(4,1fr);}}
 .kpi{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glLine);border-radius:18px;padding:12px 14px;}
 .kl{font-size:12.5px;color:var(--tx3);}
-.kv{font-size:28px;font-weight:700;margin-top:2px;letter-spacing:-.5px;}
-.kv small{font-size:14px;font-weight:500;color:var(--tx3);margin-left:2px;}
+.kpi .kv{font-size:28px;font-weight:700;margin-top:2px;letter-spacing:-.5px;color:var(--tx);}
+.kpi .kv small{font-size:14px;font-weight:500;color:var(--tx3);margin-left:2px;}
 .ks{font-size:12px;color:var(--tx2);margin-top:1px;}
 .scard{padding:12px 14px;}
 .shd{font-size:13px;color:var(--tx2);margin-bottom:8px;}.shd b{color:var(--tx);}
@@ -1063,7 +1063,6 @@ html[data-fs="l"] body{zoom:1.25;}
     <div class="who" id="who">
       <div class="avt" id="u-av"></div>
       <div class="who-n" id="u-nm"></div>
-      <button class="ib" id="bell" onclick="notesOpen()" title="通知" style="height:32px;min-width:32px"></button>
       <button class="ib" onclick="doLogout()" title="登出" style="width:32px;height:32px"><span data-ic="logout"></span></button>
     </div>
     <div class="hd">
@@ -1111,7 +1110,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05h';
+var APP_VER='2026-10-05j';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
