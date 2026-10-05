@@ -323,6 +323,24 @@ html[data-theme="dark"] .glass::after{
 .pmu{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
 .pmu:first-child{border-top:0}.pmu.on{background:var(--tint)}
 .pmu b{font-size:14px}.pmu small{color:var(--tx3);font-size:12px}
+
+/* ── 頁籤水滴（液態玻璃）：選中的底色是一顆會滑動的玻璃水滴，到定點「啵」一下 ── */
+.nb{position:relative;z-index:1;background:transparent!important;transition:color .25s}
+.navdrop{position:absolute;left:0;top:0;width:0;height:0;border-radius:999px;z-index:0;pointer-events:none;opacity:0;
+  background:var(--tint);
+  box-shadow:inset 0 1px 1.5px rgba(255,255,255,.65),inset 0 -1.5px 2px rgba(0,0,0,.07),inset 0 0 0 .6px rgba(255,255,255,.45),0 4px 14px rgba(150,70,20,.16);
+  will-change:left,width,transform}
+.navdrop::after{content:"";position:absolute;left:12%;right:12%;top:2px;height:42%;border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,0));pointer-events:none}
+html[data-theme="dark"] .navdrop{box-shadow:inset 0 1px 1.5px rgba(255,255,255,.25),inset 0 -1.5px 2px rgba(0,0,0,.3),inset 0 0 0 .6px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.35)}
+html[data-theme="dark"] .navdrop::after{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0))}
+.navdrop.show{opacity:1}
+.navdrop.snap{transition:left .55s cubic-bezier(.3,1.5,.5,1),top .55s cubic-bezier(.3,1.5,.5,1),width .55s cubic-bezier(.3,1.5,.5,1),height .3s ease,transform .55s cubic-bezier(.3,1.6,.5,1),opacity .2s}
+.navdrop.pop{animation:navpop .42s cubic-bezier(.3,1.4,.5,1)}
+@keyframes navpop{0%{scale:1}45%{scale:1.14 1.2}100%{scale:1}}
+.nb.hov{color:var(--accT)}
+.nav.dragging{touch-action:none;user-select:none;-webkit-user-select:none}
+@media (prefers-reduced-motion:reduce){.navdrop.snap{transition:none}.navdrop.pop{animation:none}}
 /* ── 待辦詳情（Google 式，只顯示資訊） ── */
 .tvw .tvtop{display:flex;justify-content:flex-end;gap:8px;margin:-4px 0 4px}
 .tvw .tvtop .ib{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx2)}
@@ -1078,6 +1096,7 @@ html[data-fs="l"] body{zoom:1.25;}
   <div class="pwrap" id="pwrap"><div id="page"></div></div>
 
   <div class="nav" id="nav">
+    <span class="navdrop" id="navdrop"></span>
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
@@ -1115,7 +1134,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05r';
+var APP_VER='2026-10-05s';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1505,6 +1524,61 @@ function permSet(p){
   if(ROLE)navPerm();
 }
 /* 依權限顯示導覽列；目前所在頁沒權限了就回今日 */
+
+/* ══ 頁籤水滴 ══ 點頁籤：水滴拉長滑過去、到位放大一下；按住頁籤列左右拖：水滴跟著手指，放開吸到最近的頁籤 */
+var NDROP={cur:null,drag:null};
+function navRect(b){return {x:b.offsetLeft,y:b.offsetTop,w:b.offsetWidth,h:b.offsetHeight};}
+function navPlace(r,sx,sy){var d=$('navdrop');if(!d)return;d.style.left=r.x+'px';d.style.top=r.y+'px';d.style.width=r.w+'px';d.style.height=r.h+'px';d.style.transform='scale('+(sx||1)+','+(sy||1)+')';}
+function navPop(delay){var d=$('navdrop');setTimeout(function(){d.classList.remove('pop');void d.offsetWidth;d.classList.add('pop');},delay);}
+function navDrop(anim){
+  var d=$('navdrop'),b=document.querySelector('.nb.on');
+  if(!d)return;
+  if(!b||!b.offsetWidth){d.classList.remove('show');NDROP.cur=null;return;}
+  // 等選中頁籤的寬度（手機版選中會多出文字）算好再量
+  requestAnimationFrame(function(){
+    var r=navRect(b),prev=NDROP.cur;NDROP.cur=b;
+    if(!anim||!prev||prev===b||!d.classList.contains('show')){d.classList.remove('snap');navPlace(r);d.classList.add('show');return;}
+    var p=navRect(prev),l=Math.min(p.x,r.x),rr=Math.max(p.x+p.w,r.x+r.w);
+    d.classList.remove('snap');navPlace({x:l,y:r.y,w:rr-l,h:r.h},1,.86);       // 先拉長
+    requestAnimationFrame(function(){requestAnimationFrame(function(){d.classList.add('snap');navPlace(r);navPop(300);});});
+  });
+}
+(function(){
+  var nav=$('nav');if(!nav)return;
+  nav.addEventListener('pointerdown',function(e){
+    if(e.button>0||e.target.closest('.who'))return;
+    var b=document.querySelector('.nb.on');if(!b)return;
+    NDROP.drag={x0:e.clientX,last:e.clientX,t:performance.now(),v:0,moved:false,id:e.pointerId,w:b.offsetWidth,h:b.offsetHeight,y:b.offsetTop};
+  });
+  nav.addEventListener('pointermove',function(e){
+    var g=NDROP.drag;if(!g||e.pointerId!==g.id)return;
+    if(!g.moved){if(Math.abs(e.clientX-g.x0)<8)return;g.moved=true;try{nav.setPointerCapture(e.pointerId);}catch(_){}nav.classList.add('dragging');}
+    var d=$('navdrop'),nr=nav.getBoundingClientRect(),now=performance.now(),dt=Math.max(1,now-g.t);
+    g.v=g.v*.6+((e.clientX-g.last)/dt)*.4;g.last=e.clientX;g.t=now;
+    var cx=e.clientX-nr.left+nav.scrollLeft,sp=Math.min(Math.abs(g.v)*.18,.35);
+    d.classList.remove('snap','pop');
+    navPlace({x:cx-g.w/2,y:g.y,w:g.w,h:g.h},1+sp,1-sp*.45);
+    // 經過的頁籤先變色
+    var best=null,bd=1e9;
+    document.querySelectorAll('.nb').forEach(function(n){if(!n.offsetWidth)return;var c=n.offsetLeft+n.offsetWidth/2,dd=Math.abs(c-cx);if(dd<bd){bd=dd;best=n;}});
+    document.querySelectorAll('.nb').forEach(function(n){n.classList.toggle('hov',n===best);});
+    g.near=best;
+  });
+  function end(e){
+    var g=NDROP.drag;if(!g||(e&&e.pointerId!==g.id))return;NDROP.drag=null;
+    nav.classList.remove('dragging');
+    document.querySelectorAll('.nb.hov').forEach(function(n){n.classList.remove('hov');});
+    if(!g.moved)return;                          // 沒拖：交給原本的點擊
+    var d=$('navdrop'),t=g.near&&g.near.getAttribute('data-t');
+    var blockClick=function(ev){ev.stopPropagation();ev.preventDefault();};
+    nav.addEventListener('click',blockClick,true);setTimeout(function(){nav.removeEventListener('click',blockClick,true);},0);
+    if(t&&g.near!==document.querySelector('.nb.on')){NDROP.cur=null;go(t);}                         // go 會叫 navDrop
+    if(!NDROP.cur||NDROP.cur===document.querySelector('.nb.on')){var b=document.querySelector('.nb.on');if(b){NDROP.cur=b;d.classList.add('snap');navPlace(navRect(b));navPop(260);}}
+  }
+  nav.addEventListener('pointerup',end);nav.addEventListener('pointercancel',end);
+  window.addEventListener('resize',function(){navDrop(false);});
+})();
+
 function navPerm(){
   $('nb-up').style.display=can('upload')?'':'none';   // 手機版由 CSS（.dlm）隱藏，只在桌機出現
   $('nb-adm').style.display=can('acct')?'':'none';
@@ -2346,6 +2420,7 @@ function go(t,s){
   document.querySelectorAll('.nb').forEach(function(b){
     b.classList.toggle('on',b.getAttribute('data-t')===t);
   });
+  navDrop(true);
   window.scrollTo(0,0);
   // 進行事曆但手上沒資料時，先標成載入中，第一次 render 才不會閃「本月沒有排程」
   var needMonth=(t==='cal'&&!sub&&!allRows.length);
