@@ -3,7 +3,7 @@
         2) 讓網站可「加入主畫面」成為 PWA
    注意：不做離線快取，永遠走網路，避免舊版卡住 */
 
-const SW_VERSION = 'espc-v7';
+const SW_VERSION = 'espc-v8';
 
 /* 通知紀錄＋App 圖示紅點：每則推播記在 Cache Storage（最多 60 則），
    紅點數字＝還沒看過的則數；點通知、或在 App 的通知列表點開／全部已讀，才會減少（index.html notes*） */
@@ -27,6 +27,12 @@ self.addEventListener('install', function (e) {
 
 self.addEventListener('activate', function (e) {
   e.waitUntil(self.clients.claim());
+});
+
+/* App 問版本（更多頁顯示「推播服務 espc-vN」，確認手機已換成新版） */
+self.addEventListener('message', function (e) {
+  const d = e.data || {};
+  if (d.type === 'ver' && e.source) e.source.postMessage({ type: 'ver', v: SW_VERSION, badge: !!(self.navigator && self.navigator.setAppBadge) });
 });
 
 /* 推播：後端送的是 data 訊息 {title, body, url}；也相容 notification 格式 */

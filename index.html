@@ -1093,9 +1093,24 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05b';
+var APP_VER='2026-10-05c';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
-var NOTES=[];
+var NOTES=[],SW_VER='';
+/* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
+function swVer(){
+  try{
+    if(!navigator.serviceWorker)return;
+    navigator.serviceWorker.getRegistration().then(function(r){if(r)r.update().catch(function(){});}).catch(function(){});
+    navigator.serviceWorker.ready.then(function(r){if(r.active)r.active.postMessage({type:'ver'});});
+  }catch(e){}
+}
+/* 更多頁「測試圖示紅點」：看這支手機能不能顯示 */
+function badgeTest(){
+  if(!navigator.setAppBadge){toast('這個瀏覽器不支援圖示紅點（iPhone 要從主畫面打開 App）','no',3500);return;}
+  navigator.setAppBadge(Math.max(1,notesUnread())).then(function(){
+    toast('已設定紅點，回主畫面看 App 圖示；沒出現請到「設定 › 通知 › ESPC 行程」打開「標記」','ok',5000);
+  }).catch(function(e){toast('設定失敗：'+((e&&e.message)||e),'no',4000);});
+}
 function notesEdit(fn){
   if(!window.caches)return Promise.resolve();
   return caches.open('espc-badge').then(function(c){
@@ -2006,6 +2021,7 @@ function boot(u,r,eng){
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   navPerm();   // 上傳、帳號、廣播、下載、統計、津貼：依功能權限（管理員可在「更多 › 功能權限」調整）
   notesEdit(null);   // 通知鈴鐺＋App 圖示紅點
+  setTimeout(swVer,1500);
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -3577,7 +3593,9 @@ function morePage(){
     +'<div class="hint" style="margin:18px 6px">登入身分：'+he(UNAME)+'（'+roleLabel(ROLE)+'）'
     +(ENGNAME?'<br>對應人員：'+he(ENGNAME):'')
     +'<br><span onclick="verTap()" style="-webkit-user-select:none;user-select:none">版本：'+he(APP_VER)+'</span>'
-    +'　<a href="#" onclick="hardReload();return false" style="color:var(--accT)">強制更新</a></div>';
+    +'　<a href="#" onclick="hardReload();return false" style="color:var(--accT)">強制更新</a>'
+    +'<br><span id="swver">推播服務：'+he(SW_VER||'檢查中…')+'</span>'
+    +'　<a href="#" onclick="badgeTest();return false" style="color:var(--accT)">測試圖示紅點</a></div>';
   return h;
 }
 
@@ -7103,6 +7121,7 @@ function appInit(){
   if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){
     var d=e.data||{};
     if(d.type==='open'){deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
+    if(d.type==='ver'){SW_VER=d.v+(d.badge?'':'（不支援紅點）');var el=$('swver');if(el)el.textContent='推播服務：'+SW_VER;return;}
     if(d.type!=='push')return;
     if(d.cid){inboxLoad(true);if(EV_D)castLoad(EV_D,true);}
     setTimeout(function(){notesEdit(null);},400);   // 通知列表＋紅點更新
