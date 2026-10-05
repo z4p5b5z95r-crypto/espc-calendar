@@ -300,6 +300,7 @@ html[data-theme="dark"] .glass::after{
 .ntrow b{font-size:14.5px;font-weight:500;display:block}.ntrow.un b{font-weight:700}
 .ntrow p{margin:2px 0 0;font-size:13px;color:var(--tx2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line}
 .ntrow small{font-size:11.5px;color:var(--tx3)}
+.ct a.lk,.ntrow a.lk{color:#0a64d6;text-decoration:underline;word-break:break-all}
 /* ── 功能權限（管理員） ── */
 .pmseg{display:flex;background:var(--card2);border-radius:12px;padding:3px;margin-bottom:12px}
 .pmseg button{flex:1;border:0;background:none;padding:8px 0;border-radius:9px;font-size:14px;color:var(--tx2);font-weight:600}
@@ -1110,7 +1111,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05g';
+var APP_VER='2026-10-05h';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1133,12 +1134,26 @@ function notesEdit(fn){
   return caches.open('espc-badge').then(function(c){
     return c.match('./__notes').then(function(r){return r?r.json():[];}).catch(function(){return [];}).then(function(list){
       list=list||[];if(fn)list=fn(list)||list;NOTES=list;
+      notesInbox();
       var n=list.filter(function(x){return !x.r;}).length;
       try{if(navigator.setAppBadge)(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(function(){});}catch(e){}
       bellPaint();
       return fn?c.put('./__notes',new Response(JSON.stringify(list.slice(0,60)))):null;
     });
   }).catch(function(){});
+}
+/* 點廣播通知進來時，伺服器的收件匣還沒讀回來：先用通知內容把那則廣播放上去，讀回來後自動換成正式的 */
+function notesInbox(){
+  if(!TOKEN)return;
+  var have={},add=0;(INBOX.inbox||[]).forEach(function(x){have[String(x.id)]=1;});
+  NOTES.forEach(function(n){
+    if(!n.c||have[n.c]||n.r||(INBOX.at&&INBOX.at>n.at)||Date.now()-n.at>7*864e5)return;   // 伺服器資料比通知新就以伺服器為準
+    var m=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at);
+    var at=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+    INBOX.inbox=[{id:n.c,from:m?m[1]:'廣播',at:at,text:n.b||'',toMe:true,pend:true}].concat(INBOX.inbox||[]);
+    have[n.c]=1;add++;
+  });
+  if(add&&tab==='today'&&!sub&&!$('ov').classList.contains('open'))render();
 }
 function notesUnread(){return NOTES.filter(function(x){return !x.r;}).length;}
 function bellPaint(){
@@ -2917,7 +2932,7 @@ var TV_IC={e:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg>'};
 function tvLink(s){   // 備註：先跳脫，再把電話、網址變成可點
   return he(s).replace(/(https?:\/\/[^\s<]+)|((?:\+?886[-\s]?|0)\d{1,3}[-\s]?\d{3,4}[-\s]?\d{3,4}(?:#\d+)?)/g,function(m,u,tel){
-    if(u)return '<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>';
+    if(u)return '<a href="#" data-u="'+u+'" onclick="openLink(this.getAttribute(\'data-u\'));return false">'+u+'</a>';
     return '<a href="tel:'+tel.replace(/[^\d+#]/g,'').replace('#',',')+'">'+tel+'</a>';
   });
 }
@@ -4701,8 +4716,22 @@ function castItem(x,mine){
 /* ── 回條：收件人按「👍 收到」；發送人看送達／已讀／收到 ── */
 var RC_ITEMS={},SEEN=null,SEEN_Q=[],SEEN_T=null;
 /** 內容：收回後收件人只看到「已收回」，發送人看到劃掉的原文 */
+/* 文字裡的網址變成可點；點了先問要不要開，再用新視窗開 */
+function linkify(t){
+  return he(t).replace(/https?:\/\/[^\s<>"']+/g,function(u){
+    var clean=u.replace(/[.,;:!?)）。，、]+$/,''),tail=u.slice(clean.length);
+    return '<a href="#" class="lk" data-u="'+clean+'" onclick="event.stopPropagation();openLink(this.getAttribute(\'data-u\'));return false">'+clean+'</a>'+tail;
+  });
+}
+function openLink(u){
+  u=String(u||'').replace(/&amp;/g,'&');
+  if(!/^https?:\/\//i.test(u))return;
+  if(!confirm('要開啟這個連結嗎？\n\n'+u))return;
+  var w=window.open(u,'_blank','noopener');
+  if(!w)location.href=u;     // 被擋就直接開
+}
 function castText(x){
-  if(!x.recalled)return '<div class="ct">'+he(x.text)+'</div>';
+  if(!x.recalled)return '<div class="ct">'+linkify(x.text)+'</div>';
   if(x.mine)return '<div class="ct" style="text-decoration:line-through;color:var(--tx3)">'+he(x.text)+'</div>'
     +'<div class="cm" style="margin-top:3px">🚫 已收回，收件人看不到內容</div>';
   return '<div class="ct" style="color:var(--tx3);font-size:13.5px">🚫 '+he(x.from)+' 收回了這則廣播</div>';
@@ -4821,7 +4850,7 @@ function inboxBox(){
 /** 今日頁最下方：7 天內已收到／已收回的廣播，預設收起來 */
 function histItem(x){
   return '<div class="ci"><div class="cm">'+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
-    +(x.recalled?'　已收回':'　✓ 已收到')+'</div>'+(x.recalled?'':'<div class="ct">'+he(x.text)+'</div>')+'</div>';
+    +(x.recalled?'　已收回':'　✓ 已收到')+'</div>'+(x.recalled?'':'<div class="ct">'+linkify(x.text)+'</div>')+'</div>';
 }
 /** 今日頁最下方「今日廣播」：今天收到、已按收到（或已收回）的，預設收起來；更早的在「更多 → 歷史廣播」 */
 function inboxHist(){
