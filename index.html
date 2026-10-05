@@ -470,6 +470,9 @@ html[data-theme="dark"] .ov{background:rgba(0,0,0,.4);}
 /* 登入頁：鍵盤一出來就把整塊內容貼到上方，輸入框本來就在鍵盤上方，iOS 不用捲、畫面不會跳 */
 body.kbl #login{align-items:flex-start;padding-top:calc(14px + env(safe-area-inset-top));}
 body.kbl .lhead{margin-bottom:14px;}
+/* 登入頁 App 圖示：跟主畫面圖示同一張 */
+.lappic{display:block;width:96px;height:96px;margin:0 auto 18px;border-radius:22px;box-shadow:0 10px 28px rgba(90,45,10,.22),0 2px 6px rgba(0,0,0,.08);}
+body.kbl .lappic{width:64px;height:64px;margin-bottom:10px;border-radius:15px;}
 body.kbl .lhead .glass{width:64px;height:64px;margin-bottom:10px;border-radius:16px;}
 body.kbl .lhead .glass::after{border-radius:16px;}
 body.kbl .lhead .logo svg{width:36px;height:36px;}
@@ -1030,10 +1033,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="lth" onclick="toggleTheme()" title="切換深／淺色"><span data-ic="moon"></span></button>
 
     <div class="lhead">
-      <div class="glass">
-        <span class="blob b1"></span><span class="blob b2"></span>
-        <div class="logo"><span data-ic="logo"></span></div>
-      </div>
+      <img class="lappic" src="icon-512-v4.png" alt="ESPC 行程">
       <h1>ESPC 監測行程</h1>
     </div>
 
@@ -1110,7 +1110,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-05k';
+var APP_VER='2026-10-05l';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
