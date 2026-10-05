@@ -292,6 +292,14 @@ html[data-theme="dark"] .glass::after{
 .lgs.isOn .lgt{transform:translateX(45px)}
 .lgs.drag .lgt{transition:scale .2s}
 .lgs.press .lgt{scale:1.12 1.08}
+/* ── 通知列表 ── */
+.ntrow{display:flex;gap:10px;padding:11px 14px;border-top:1px solid var(--line);cursor:pointer}
+.ntrow:first-child{border-top:0}
+.ntrow i{width:8px;height:8px;border-radius:50%;flex:0 0 8px;margin-top:7px;background:transparent}
+.ntrow.un i{background:var(--err)}
+.ntrow b{font-size:14.5px;font-weight:500;display:block}.ntrow.un b{font-weight:700}
+.ntrow p{margin:2px 0 0;font-size:13px;color:var(--tx2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line}
+.ntrow small{font-size:11.5px;color:var(--tx3)}
 /* ── 功能權限（管理員） ── */
 .pmseg{display:flex;background:var(--card2);border-radius:12px;padding:3px;margin-bottom:12px}
 .pmseg button{flex:1;border:0;background:none;padding:8px 0;border-radius:9px;font-size:14px;color:var(--tx2);font-weight:600}
@@ -1037,6 +1045,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <div class="who" id="who">
       <div class="avt" id="u-av"></div>
       <div class="who-n" id="u-nm"></div>
+      <button class="ib" id="bell" onclick="notesOpen()" title="通知" style="height:32px;min-width:32px"></button>
       <button class="ib" onclick="doLogout()" title="登出" style="width:32px;height:32px"><span data-ic="logout"></span></button>
     </div>
     <div class="hd">
@@ -1084,7 +1093,52 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-03a';      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
+var APP_VER='2026-10-05b';
+/* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
+var NOTES=[];
+function notesEdit(fn){
+  if(!window.caches)return Promise.resolve();
+  return caches.open('espc-badge').then(function(c){
+    return c.match('./__notes').then(function(r){return r?r.json():[];}).catch(function(){return [];}).then(function(list){
+      list=list||[];if(fn)list=fn(list)||list;NOTES=list;
+      var n=list.filter(function(x){return !x.r;}).length;
+      try{if(navigator.setAppBadge)(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(function(){});}catch(e){}
+      bellPaint();
+      return fn?c.put('./__notes',new Response(JSON.stringify(list.slice(0,60)))):null;
+    });
+  }).catch(function(){});
+}
+function notesUnread(){return NOTES.filter(function(x){return !x.r;}).length;}
+function bellPaint(){
+  var b=$('bell');if(!b)return;var n=notesUnread();
+  b.innerHTML=ic('bell',17)+(n?'<span class="bdg">'+(n>99?'99+':n)+'</span>':'');
+  b.classList.toggle('act',!!n);b.classList.toggle('w',!!n);
+}
+function notesAgo(ms){var m=Math.round((Date.now()-ms)/60000);if(m<1)return '剛剛';if(m<60)return m+' 分鐘前';var h=Math.round(m/60);if(h<24)return h+' 小時前';
+  var d=new Date(ms);return (d.getMonth()+1)+'/'+d.getDate()+' '+p2(d.getHours())+':'+p2(d.getMinutes());}
+function notesOpen(){
+  notesEdit(null).then(function(){
+    var l=NOTES,n=notesUnread();
+    var h='<div class="shh" style="align-items:center"><h3>通知</h3>'+(n?'<button class="lnk" style="margin-left:auto;margin-right:6px" onclick="notesAllRead()">全部標為已讀</button>':'')
+      +'<button class="ib" onclick="closeSheet()">✕</button></div>';
+    if(!l.length)h+='<div class="empty" style="padding:28px 0">還沒有通知</div>';
+    else h+='<div class="card" style="padding:0">'+l.map(function(x){
+      return '<div class="ntrow'+(x.r?'':' un')+'" onclick="notesGo(\''+x.id+'\')"><i></i><div style="flex:1;min-width:0"><b>'+he(x.t)+'</b>'
+        +(x.b?'<p>'+he(x.b)+'</p>':'')+'<small>'+notesAgo(x.at)+'</small></div></div>';}).join('')+'</div>';
+    openSheet(h);
+  });
+}
+function notesGo(id){
+  var x=NOTES.filter(function(n){return n.id===id;})[0];
+  notesEdit(function(list){list.forEach(function(n){if(n.id===id)n.r=1;});return list;}).then(function(){
+    closeSheet();
+    if(x&&x.u&&x.u!=='./')deepGo(x.u);          // 跳到對應的那一天／待辦／廣播（不重新載入）
+    else if(x&&x.c){go('today');setTimeout(inboxAll,300);}
+  });
+}
+function notesAllRead(){notesEdit(function(list){list.forEach(function(n){n.r=1;});return list;}).then(notesOpen);}
+function notesReadCid(cids){if(cids&&cids.length)notesEdit(function(list){list.forEach(function(n){if(n.c&&cids.indexOf(n.c)>=0)n.r=1;});return list;});}
+document.addEventListener('visibilitychange',function(){if(!document.hidden)notesEdit(null);});      // 台灣日期＋流水字母，用來確認瀏覽器抓到的是不是新檔
 /* Firebase 推播：這兩段是公開設定（本來就會出現在網頁裡），服務帳戶私鑰只放在 Apps Script 指令碼屬性 */
 var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
@@ -1951,6 +2005,7 @@ function boot(u,r,eng){
   $('u-nm').innerHTML=he((eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）')
     +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
   navPerm();   // 上傳、帳號、廣播、下載、統計、津貼：依功能權限（管理員可在「更多 › 功能權限」調整）
+  notesEdit(null);   // 通知鈴鐺＋App 圖示紅點
   var n=twDate();curY=n.getFullYear();curM=n.getMonth();
 
   var t=twStr(),last=ls('espc_sync'),fresh=(last!==t);
@@ -1968,6 +2023,7 @@ function boot(u,r,eng){
       if(back)go(back.t,back.s);
       else loadToday(false);
       checkDueNotice();
+      if(TODO_DEEP)todoDeep();
     });
   },false);
 }
@@ -2150,12 +2206,42 @@ function restoreTab(){
 }
 
 /* ══ 從推播通知點進來：網址帶 ?d=日期（&p=案子），開月曆並展開那一天 ══ */
-var DEEP=null,DUE_DEEP=false;   // DUE_DEEP：從證照到期推播點進來
+var DEEP=null,DUE_DEEP=false,TODO_DEEP='';
+/* 點通知時 App 已經開著：不重新載入，直接跳到對應畫面 */
+function deepGo(url){
+  try{
+    var q=new URL(url||'./',location.href).searchParams;
+    if($('ov').classList.contains('open'))closeSheet();
+    var d=q.get('d')||'';
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d)){
+      DEEP={d:d,p:q.get('p')||''};
+      curY=parseInt(d.slice(0,4),10);curM=parseInt(d.slice(5,7),10)-1;
+      go('cal');
+      var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
+      if(MONTH_DONE[ck])setTimeout(function(){openDeep(curY,curM);},80);   // 這個月已經有資料：馬上開
+      return;
+    }
+    if(q.get('todo')){TODO_DEEP=q.get('todo');todoDeep();return;}
+    if(q.get('inbox')){go('today');setTimeout(inboxAll,300);return;}
+    if(q.get('due')){DUE_DEEP=true;checkDueNotice();return;}
+  }catch(e){}
+}
+/* 從待辦通知進來：待辦載好就打開那一筆 */
+function todoDeep(){
+  if(!TODO_DEEP||!todoCan())return;
+  if(!TODOS){todoLoad();return;}
+  var id=TODO_DEEP;TODO_DEEP='';
+  var t=TODOS.filter(function(x){return x.id===id;})[0];if(!t)return;
+  var today=twStr(),ds=t.rep?(todoOn(t,today)?today:(todoOn(t,addDays(today,1))?addDays(today,1):t.date)):t.date;
+  if(tab!=='today'&&tab!=='cal')go('today');
+  setTimeout(function(){tdView(id,ds);},120);
+}   // DUE_DEEP：從證照到期推播點進來
 function takeDeep(){
   try{
     var q=new URLSearchParams(location.search||'');
     if(q.get('inbox')){INBOX_DEEP=true;q.delete('inbox');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     if(q.get('due')){DUE_DEEP=true;q.delete('due');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
+    if(q.get('todo')){TODO_DEEP=q.get('todo');q.delete('todo');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     var d=q.get('d')||'';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;
     DEEP={d:d,p:q.get('p')||''};
@@ -2488,7 +2574,8 @@ function todoLoad(force){
     if(force&&!(r&&r.ok)){if(force)toast('待辦更新失敗','no');return;}
     var pend=(TODOS||[]).filter(function(x){return String(x.id).indexOf('tmp_')===0;});   // 還在儲存的先留著
     TODOS=((r&&r.ok&&r.list)||[]).concat(pend);
-    if((tab==='cal'||tab==='today')&&!sub&&!$('ov').classList.contains('open'))render();})
+    if((tab==='cal'||tab==='today')&&!sub&&!$('ov').classList.contains('open'))render();
+    if(TODO_DEEP)todoDeep();})
     .catch(function(){TODO_BUSY=false;TODOS=TODOS||[];});
 }
 function calvSet(v){CALV=v;lsS('espc_calv',v);render();}
@@ -4634,6 +4721,7 @@ function seenMark(list){
     gas('castSeen',TOKEN,q).then(function(r){
       if(!r||!r.ok)return;
       SEEN=SEEN.concat(q).slice(-400);lsS('espc_seen',JSON.stringify(SEEN));
+      notesReadCid(q.map(String));   // 廣播在畫面上被看到：通知列表那則也算已讀
     }).catch(function(){});
   },800);
 }
@@ -7014,8 +7102,10 @@ function appInit(){
   // 推播進來時 sw.js 會通知畫面：App 開著也馬上更新廣播、跳提示
   if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){
     var d=e.data||{};
+    if(d.type==='open'){deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
     if(d.type!=='push')return;
     if(d.cid){inboxLoad(true);if(EV_D)castLoad(EV_D,true);}
+    setTimeout(function(){notesEdit(null);},400);   // 通知列表＋紅點更新
     if(!d.recall)toast('🔔 '+(d.title||'收到新通知'),'ok',4000);   // App 開著時 iPhone 常不跳橫幅，畫面上也提示一次
   });
   // 同一支手機換帳號登入後，推播要重新綁到新帳號（之前開過、權限還在就自動重綁，不再問）
