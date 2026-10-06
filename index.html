@@ -1059,6 +1059,11 @@ html[data-fs="l"] body{zoom:1.25;}
 }
 @media(min-width:900px) and (max-width:1180px){.nb:not(.on) em{display:none}}
 /* 手機：使用者自選下方頁籤（順序用 --o；沒選的藏起來，從「更多」進去） */
+/* 證照詳情：每張卡片左上角外側掛對應圖示 */
+.cbox.cbx{position:relative;overflow:visible}
+.cbic{position:absolute;left:-9px;top:-13px;width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--glLine);
+  box-shadow:0 2px 8px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;color:var(--tx3);z-index:2}
+.cbic .cbiw{width:21px;height:21px;display:block}.cbic .cbie{font-size:17px;line-height:1}
 @media(max-width:899px){.nav .nb{order:var(--o,50)}.nav .nb[data-t="more"]{order:99}.nav .nb.nbx{display:none!important}}
 @media(min-width:900px){.mobonly{display:none!important}}
 .ncrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--line)}
@@ -2288,6 +2293,18 @@ function certBadges(name){
   });
   return b;
 }
+/** 單張證照對應的圖示（證照詳情卡片左上角用）；對不到就用盾牌 */
+function certIcon(t){
+  t=String(t||'');
+  if(/EMT|救護技術員/i.test(t))return EMT_SVG.replace('class="pavemt"','class="cbiw"');
+  if(/急救/.test(t))return KIT_SVG.replace('class="pavkit"','class="cbiw"');
+  if(/缺氧|侷限空間|局限空間/.test(t))return MASK_SVG.replace('class="pavmask"','class="cbiw"');
+  if(/出海|研究作業人員安全/.test(t))return RING_SVG.replace('class="pavring"','class="cbiw"');
+  if(/船員|海員|船舶/.test(t))return SHIP_SVG.replace('class="pavship"','class="cbiw"');
+  if(/貯存系統|儲存系統|貯槽|儲槽/.test(t))return '<span class="cbie">🛢️</span>';
+  if(/職安|職業安全|安全衛生|營造業[甲乙丙]種/.test(t))return '<span class="cbie">⛑️</span>';
+  return ic('shield',17);
+}
 /** 讓標記可以點開證照詳情 */
 function badgeClick(n){
   return ' style="pointer-events:auto;cursor:pointer" onclick="event.stopPropagation();showSafety(\''
@@ -2359,7 +2376,7 @@ function showSafety(n){
     else if(o.state==='ok'){st='有效，剩 '+o.days+' 天';col='var(--ok)';}
     else if(o.state==='forever'){st='無期限，不需回訓';col='var(--ok)';}
     else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
-    h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'><div class="kv">'
+    h+='<div class="cbox cbx" style="margin-top:'+(i?18:14)+'px"><span class="cbic">'+certIcon(o.type)+'</span><div class="kv">'
       +kr('shield','證照',he(o.type||'未填'))
       +(o.cert?kr('hash','證書字號',he(o.cert)):'')
       +(o.state==='forever'?(o.train?kr('clock','訓練日期',he(o.train)):'')
@@ -2537,13 +2554,12 @@ window.addEventListener('DOMContentLoaded',function(){
     if($('pk').classList.contains('open')&&!$('pk').contains(e.target)&&!e.target.closest('#h-ttl'))
       $('pk').classList.remove('open');
   });
-  // 背景只認「真的點一下」：表單面板不關，手指有移動（滑動）也不關
+  // 背景只認「真的點一下」：手指有移動（滑動）不關
   var _ovD=null;
   $('ov').addEventListener('pointerdown',function(e){
     _ovD=(e.target===$('ov'))?{x:e.clientX,y:e.clientY}:null;});
   $('ov').addEventListener('click',function(e){
-    if(e.target!==$('ov'))return;
-    if(SHEET_FORM)return;
+    if(e.target!==$('ov'))return;   // 2026-10-07z：點面板外面一律直接關閉（表單也一樣，不存檔）
     if(_ovD&&(Math.abs(e.clientX-_ovD.x)>10||Math.abs(e.clientY-_ovD.y)>10))return;
     closeSheet();});
 
@@ -5219,6 +5235,7 @@ var CAST_ICON='<svg width="21" height="21" viewBox="0 0 24 24" fill="none" strok
 var CASTS={},CAST_TPL=null,CAST={p:'',sel:{},text:'',edit:false,busy:false};
 function canCast(g){
   if(!g.staff||!g.staff.length)return false;
+  if(qtyAllZero(g))return false;               // 數量全是 0：當天沒人去現場，不能廣播
   if(ROLE==='supervisor'||ROLE==='scheduler')return true;
   if(ROLE!=='pm')return false;
   var me=String(ENGNAME||'').trim();
@@ -6018,6 +6035,13 @@ function qtyAllZero(g){
 /** 一個案子的完整明細：各測項一段，最後是共用資訊 */
 function evDetail(g){
   var c=pcolor(g.project),multi=g.tlist.length>1,h=castBox(g);
+  // 2026-10-07z：數量全部是 0＝設備放在現場，當天不架設也不收站 → 不顯示公務車、現場，也不另開「人員與車輛」區塊
+  var idle=qtyAllZero(g);
+  var shared=dr('PM',g.engs.map(telLink).join('<br>'))
+    +(idle?'':dr('公務車',he(g.cars.join('、'))))
+    +(idle?'':dr('現場',g.staff.map(telLink).join('<br>')))
+    +dr('備註',he(g.notes.join('；')));
+  var inline=idle&&!multi;   // 單一測項：PM、備註直接接在同一張卡片裡
   g.tlist.forEach(function(t){
     var tg=g.tmap[t],q=qtyText(tg.qtys);
     var rows=dr('點位',locList(tg.locs))
@@ -6032,17 +6056,12 @@ function evDetail(g){
         +(q?'<span>'+he(q)+'</span>':'')+'</div>'
         +'<div class="tcb">'+rows+'</div></div>';
     }else{
-      h+='<div class="dcard">'+dr('數量',he(q))+rows+'</div>';
+      h+='<div class="dcard">'+dr('數量',he(q))+rows+(inline?shared:'')+'</div>';
     }
   });
-  // 2026-10-07z：數量全部是 0＝設備放在現場，當天不架設也不收站（自動監測中、或等收站／啟動）→ 不顯示公務車、現場
-  var idle=qtyAllZero(g);
-  var shared=dr('PM',g.engs.map(telLink).join('<br>'))
-    +(idle?'':dr('公務車',he(g.cars.join('、'))))
-    +(idle?'':dr('現場',g.staff.map(telLink).join('<br>')))
-    +dr('備註',he(g.notes.join('；')));
-  if(shared)
-    h+='<div class="shbox"><p class="shh2">'+(multi?'以下為本案共用':'人員與車輛')+'</p>'
+  if(shared&&!inline)
+    h+=idle?'<div class="dcard" style="margin-top:10px">'+shared+'</div>'
+      :'<div class="shbox"><p class="shh2">'+(multi?'以下為本案共用':'人員與車輛')+'</p>'
       +'<div class="dcard">'+shared+'</div></div>';
   return h;
 }
