@@ -345,7 +345,7 @@ html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(
 .nbdg{display:none!important}
 .bgsvg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
 .bgpc{fill:#f6e2d7}html[data-theme="dark"] .bgpc{fill:#523427}
-.bgnum{font:800 11.5px/1 -apple-system,BlinkMacSystemFont,sans-serif;fill:#fff}
+.bgnum{font:900 13px/1 -apple-system,BlinkMacSystemFont,sans-serif;fill:#fff}
 .nbdg-old{position:absolute;left:0;top:0;height:20px;min-width:20px;padding:0 5px;margin:-10px 0 0 -10px;border-radius:10px;z-index:3;pointer-events:none;
   display:flex;align-items:center;justify-content:center;opacity:0;will-change:transform;transform-origin:50% 50%;
   background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.8) 0 13%,rgba(255,255,255,0) 36%),radial-gradient(circle at 50% 65%,#ff6255,#e1261a 72%);
@@ -1169,7 +1169,7 @@ html[data-fs="l"] body{zoom:1.25;}
   <div class="pwrap" id="pwrap"><div id="page"></div></div>
 
   <div class="nav" id="nav">
-    <span class="navgoo" id="navgoo"><i class="ndd" id="ndd0"></i><i class="ndd" id="ndd1"></i><i class="ndmain" id="ndmain"></i></span><svg class="bgsvg" id="bgsvg" aria-hidden="true" style="display:none"><defs><filter id="bggoo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.6"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -8"/></filter><radialGradient id="bggr" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#ff7a52"/><stop offset="1" stop-color="#e0402a"/></radialGradient><radialGradient id="bgmg"><stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient><mask id="bgmask" maskUnits="userSpaceOnUse" x="-500" y="-500" width="6000" height="1200"><circle id="bgmc" r="26" fill="url(#bgmg)"/></mask></defs><g mask="url(#bgmask)"><g filter="url(#bggoo)"><rect id="bgpc" class="bgpc"/><g id="bgbg"><rect id="bgb" fill="url(#bggr)"/></g></g></g><g id="bgtop"><ellipse id="bghl" rx="3.7" ry="1.9" fill="#fff" opacity=".8"/><text id="bgnum" class="bgnum" y="4.1" text-anchor="middle"></text></g></svg><span class="navshine" id="navshine"></span><span class="ndds" id="nds0"></span><span class="ndds" id="nds1"></span><span class="nbdg" id="nbdg"><b id="nbdgn"></b></span>
+    <span class="navgoo" id="navgoo"><i class="ndd" id="ndd0"></i><i class="ndd" id="ndd1"></i><i class="ndmain" id="ndmain"></i></span><svg class="bgsvg" id="bgsvg" aria-hidden="true" style="display:none"><defs><filter id="bggoo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.6"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -8"/></filter><radialGradient id="bggr" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#ff7a52"/><stop offset="1" stop-color="#e0402a"/></radialGradient><radialGradient id="bgmg"><stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient><mask id="bgmask" maskUnits="userSpaceOnUse" x="-500" y="-500" width="6000" height="1200"><circle id="bgmc" r="26" fill="url(#bgmg)"/></mask></defs><g mask="url(#bgmask)"><g filter="url(#bggoo)"><rect id="bgpc" class="bgpc"/><g id="bgbg"><rect id="bgb" fill="url(#bggr)"/></g></g></g><g id="bgtop"><path id="bghl" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".75"/><text id="bgnum" class="bgnum" y="4.7" text-anchor="middle"></text></g></svg><span class="navshine" id="navshine"></span><span class="ndds" id="nds0"></span><span class="ndds" id="nds1"></span><span class="nbdg" id="nbdg"><b id="nbdgn"></b></span>
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" id="nb-msg" data-t="msg"><span data-ic="msg"></span><em>訊息</em></button>
@@ -1210,7 +1210,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07w';
+var APP_VER='2026-10-07x';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1839,7 +1839,7 @@ var BG={x:0,y:0,vx:0,vy:0,s:0,vs:0,mode:'',raf:0,n:0,w:0,free:false,wt:0};
    頸部顏色是兩邊混出來的；主水滴的影子只在水珠附近（遮罩）露出。
    沒選到訊息時水珠在圖示右上（帶數字）；主水滴碰到才被吸進去；在訊息放手→咕嚕→從右上擠出來（細頸）；
    在訊息上一開始拖→馬上縮回；點別的頁籤→當下分離、留在圖示上。吸入／擠出快，分離慢。 */
-var BG_R=10,BG_MERGE=1.15,BG_SPLIT=.45;
+var BG_R=11,BG_MERGE=1.15,BG_SPLIT=.45;
 function bgDesk(){try{return matchMedia('(min-width:900px)').matches;}catch(e){return false;}}
 function bgPos(mode){
   var b=$('nb-msg'),nav=$('nav');if(!b||!b.offsetWidth||!nav)return null;
@@ -1911,12 +1911,13 @@ function bgRender(){
   var sx=NV.sx||1,sy=NV.sy||1,pw=NV.w*sx,ph=NV.h*sy,pc=$('bgpc');
   pc.setAttribute('x',(NV.x+NV.w/2-pw/2).toFixed(1));pc.setAttribute('y',(NV.y+NV.h/2-ph/2).toFixed(1));
   pc.setAttribute('width',pw.toFixed(1));pc.setAttribute('height',ph.toFixed(1));pc.setAttribute('rx',(ph/2).toFixed(1));
-  var txt=BG.n>99?'99+':String(BG.n),e=txt.length<2?0:(txt.length===2?5:10),R=BG_R;
+  var txt=BG.n>99?'99+':String(BG.n),e=txt.length<2?0:(txt.length===2?5.5:11),R=BG_R;
   var sp=Math.hypot(BG.vx,BG.vy),st=Math.min(sp/14,.55),a=Math.atan2(BG.vy,BG.vx)*180/Math.PI;
   var tr='translate('+BG.x.toFixed(2)+','+BG.y.toFixed(2)+') rotate('+a.toFixed(1)+') scale('+(s*(1+st)).toFixed(3)+','+(s*(1-st*.45)).toFixed(3)+') rotate('+(-a).toFixed(1)+')';
   var b=$('bgb');b.setAttribute('x',-R-e/2);b.setAttribute('y',-R);b.setAttribute('width',2*R+e);b.setAttribute('height',2*R);b.setAttribute('rx',R);
   $('bgbg').setAttribute('transform',tr);$('bgtop').setAttribute('transform',tr);
-  var hl=$('bghl');hl.setAttribute('cx',-3.7-e/2);hl.setAttribute('cy',-4.8);hl.style.display=s>.2?'':'none';
+  // 高光：貼著左上邊緣的一道細弧，不壓到數字（使用者選 B）
+  var hl=$('bghl'),x0=-R-e/2+2.2;hl.setAttribute('d','M'+x0+' -1.5 A'+(R-2.2)+' '+(R-2.2)+' 0 0 1 '+(x0+R*.75).toFixed(2)+' '+(-R+2.4));hl.style.display=s>.2?'':'none';
   var nm=$('bgnum');if(nm.textContent!==txt)nm.textContent=txt;nm.style.opacity=s>.6?Math.min(1,(s-.6)/.2).toFixed(2):'0';
   var mc=$('bgmc');mc.setAttribute('cx',BG.x.toFixed(1));mc.setAttribute('cy',BG.y.toFixed(1));
 }
