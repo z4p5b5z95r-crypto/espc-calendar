@@ -858,6 +858,10 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
 .pavr3.bk{z-index:0;clip-path:inset(0 0 52% 0)}.pavr3.ft{z-index:3;clip-path:inset(48% 0 0 0)}
 .pavring{position:absolute;left:50%;bottom:-10px;width:21px;height:21px;margin-left:-10.5px;z-index:5;pointer-events:none;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+/* 初級救護技術員（EMT-1）：生命之星，右下角；同時有急救箱時急救箱往左讓、星星壓在急救箱右下 */
+.pavemt{position:absolute;right:-6px;bottom:-4px;width:21px;height:21px;z-index:6;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+.pavemt.up{bottom:-6px;right:-11px;width:18px;height:18px;z-index:7}
+.pavkit.l{right:5px}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.32));}
@@ -1157,6 +1161,7 @@ html[data-fs="l"] body{zoom:1.25;}
 <filter id="navgoo"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -12" result="g"/><feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
 <linearGradient id="gsl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ebf0"/></linearGradient>
 <linearGradient id="gso" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#d9560f"/></linearGradient>
+<linearGradient id="gemt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a8be6"/><stop offset="1" stop-color="#1757b8"/></linearGradient>
 <linearGradient id="gsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f7fd0"/><stop offset="1" stop-color="#1b4f8f"/></linearGradient>
 <linearGradient id="gmb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79828c"/><stop offset=".55" stop-color="#525a63"/><stop offset="1" stop-color="#3a4149"/></linearGradient>
 <linearGradient id="gmv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf6ff"/><stop offset=".6" stop-color="#bcd8e9"/><stop offset="1" stop-color="#95b8ce"/></linearGradient>
@@ -1178,7 +1183,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07l';
+var APP_VER='2026-10-07m';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1992,7 +1997,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 // 證照種類建議清單，可自行輸入其他值
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
-  '貯存系統污染監測人員','船員證','研究作業人員安全實務訓練(出海資格)'];
+  '貯存系統污染監測人員','船員證','研究作業人員安全實務訓練(出海資格)','初級救護技術員(EMT-1)'];
 var F={rg:'',en:'',ty:[],q:'',st:''};
 var tab='today',sub='';
 
@@ -2083,6 +2088,14 @@ var MASK_SVG='<svg class="pavmask" viewBox="0 0 40 40">'
  +'<rect x="15.6" y="25.2" width="8.8" height="1.8" rx=".9" fill="#ffffff" opacity=".34"/>'
  +'<circle cx="17.4" cy="29.6" r="1.15" fill="#7c3204"/><circle cx="20" cy="29.6" r="1.15" fill="#7c3204"/>'
  +'<circle cx="22.6" cy="29.6" r="1.15" fill="#7c3204"/></svg>';
+var EMT_SVG='<svg class="pavemt" viewBox="0 0 24 24">'   // 初級救護技術員：生命之星（藍色六芒星＋白色蛇杖）
+ +'<g transform="translate(12 12)" stroke="#fff" stroke-width="1.6" stroke-linejoin="round">'
+ +'<rect x="-3" y="-11" width="6" height="22" rx="1" fill="url(#gemt)"/><rect x="-3" y="-11" width="6" height="22" rx="1" fill="url(#gemt)" transform="rotate(60)"/><rect x="-3" y="-11" width="6" height="22" rx="1" fill="url(#gemt)" transform="rotate(-60)"/></g>'
+ +'<g transform="translate(12 12)" fill="url(#gemt)"><rect x="-2.2" y="-10.2" width="4.4" height="20.4" rx=".7"/><rect x="-2.2" y="-10.2" width="4.4" height="20.4" rx=".7" transform="rotate(60)"/><rect x="-2.2" y="-10.2" width="4.4" height="20.4" rx=".7" transform="rotate(-60)"/></g>'
+ +'<path d="M12 4.6v14.8" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/>'
+ +'<path d="M10.3 7.2c2.9.5 2.9 2.2 0 2.8s-2.9 2.3 0 2.8 2.9 2.3 0 2.8" fill="none" stroke="#fff" stroke-width="1.05" stroke-linecap="round"/>'
+ +'<circle cx="12.9" cy="6.6" r=".75" fill="#fff"/>'
+ +'</svg>';
 var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24">'
  +'<path d="M9.6 5.6V4.4c0-.8.6-1.4 1.4-1.4h2c.8 0 1.4.6 1.4 1.4v1.2" fill="none" stroke="#a82820" stroke-width="2.1" stroke-linecap="round"/>'
  +'<rect x="2.3" y="5.4" width="19.4" height="15.2" rx="3.4" fill="url(#gkb)" stroke="#8e211a" stroke-width="1"/>'
@@ -2119,9 +2132,10 @@ var SHIP_SVG='<svg class="pavship" viewBox="0 0 28 28">'   // 小帆船：白帆
  *  kit   ：急救人員       → 急救箱
  *  tank  ：貯存系統污染監測 → 儲槽
  *  ship  ：船員證           → 小帆船
- *  ring  ：研究作業人員安全實務訓練（出海資格）→ 游泳圈 */
+ *  ring  ：研究作業人員安全實務訓練（出海資格）→ 游泳圈
+ *  emt   ：初級救護技術員（EMT-1）→ 生命之星 */
 function certBadges(name){
-  var b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false};
+  var b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
   safetyList(name).forEach(function(o){
     var t=o.type||'';
     if(/職安|職業安全|安全衛生|營造業[甲乙丙]種/.test(t))b.safety=true;
@@ -2130,6 +2144,7 @@ function certBadges(name){
     if(/貯存系統|儲存系統|貯槽|儲槽/.test(t))b.tank=true;
     if(/船員|海員|船舶/.test(t))b.ship=true;
     if(/出海|研究作業人員安全/.test(t))b.ring=true;
+    if(/EMT|救護技術員/i.test(t))b.emt=true;
   });
   return b;
 }
@@ -2151,7 +2166,7 @@ function avatarHat(name){
   var o=safetyOf(n);
   var b=certBadges(n);
   // 證照超過三張：頭像不掛東西（太擠），只留燈號；圖示都在名字後面的小標
-  if(safetyList(n).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false};
+  if(safetyList(n).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
   var h='<div class="pavw'+(b.ring?' rg':'')+'"><div class="pav">'+he(n.slice(0,1))+'</div>';
   if(b.mask)h+=MASK_SVG.replace('<svg','<svg'+badgeClick(n));     // 面罩罩住圓圈
   if(b.safety){
@@ -2164,7 +2179,8 @@ function avatarHat(name){
       +' onclick="event.stopPropagation();showSafety(\''+esc(n)+'\')">🛢️</button>';
   if(b.ship)h+=SHIP_SVG.replace('<svg','<svg'+badgeClick(n));     // 船停在圓圈下方
   if(b.ring)h+=RING3D.replace('pavr3','pavr3 bk')+RING3D.replace('<svg','<svg'+badgeClick(n)).replace('pavr3','pavr3 ft');   // 頭像坐在游泳圈裡：後半圈在圓圈後面、前半圈在前面
-  if(b.kit)h+=KIT_SVG.replace('<svg','<svg'+badgeClick(n));       // 急救箱壓在最上層
+  if(b.kit)h+=KIT_SVG.replace('<svg','<svg'+badgeClick(n)).replace('class="pavkit"','class="pavkit'+(b.emt?' l':'')+'"');       // 急救箱壓在最上層
+  if(b.emt)h+=EMT_SVG.replace('<svg','<svg'+badgeClick(n)).replace('class="pavemt"','class="pavemt'+(b.kit?' up':'')+'"');   // 生命之星在右下（有急救箱就壓在它右下角）
   // 沒戴帽子的人，燈號單獨放在圓圈右上角（全身只會有一顆）
   if(!b.safety&&o)h+='<span class="pavdot '+dotClass(o)+'"></span>';
   return h+'</div>';
@@ -2181,6 +2197,7 @@ function hatMark(n){
   if(b.ship)inner+=SHIP_SVG.replace('class="pavship"','class="mkw"');
   if(b.ring)inner+=RING_SVG.replace('class="pavring"','class="mki"');
   if(b.kit)inner+=KIT_SVG.replace('class="pavkit"','class="mki"');
+  if(b.emt)inner+=EMT_SVG.replace('class="pavemt"','class="mki"');
   if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
     +'showSafety(\''+esc(n)+'\')" title="證照">'+inner+hatDot(o)+'</button>';
