@@ -844,6 +844,13 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
 /* 船員證：小帆船，圓圈左下（稍微往中間靠） */
 .pavship{position:absolute;bottom:-3px;left:-5px;width:27px;height:27px;z-index:5;pointer-events:none;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+/* 出海資格（研究作業人員安全實務訓練）：游泳圈，圓圈正下方 */
+.pavw.rg .pav{position:relative;z-index:1}
+/* 頭像坐在游泳圈上（斜看的扁圈）：同一張圖畫兩次，上半在頭像後面、下半在前面 */
+.pavr3{position:absolute;left:-9px;bottom:-10px;width:56px;height:26px;pointer-events:none;filter:drop-shadow(0 1.5px 1.5px rgba(0,0,0,.25))}
+.pavr3.bk{z-index:0;clip-path:inset(0 0 52% 0)}.pavr3.ft{z-index:3;clip-path:inset(48% 0 0 0)}
+.pavring{position:absolute;left:50%;bottom:-10px;width:21px;height:21px;margin-left:-10.5px;z-index:5;pointer-events:none;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
 /* 急救箱：右下角，壓在最上層 */
 .pavkit{position:absolute;right:-5px;bottom:-3px;width:21px;height:21px;z-index:6;
   pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.32));}
@@ -1164,7 +1171,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07g';
+var APP_VER='2026-10-07k';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1925,7 +1932,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 // 證照種類建議清單，可自行輸入其他值
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
-  '貯存系統污染監測人員','船員證'];
+  '貯存系統污染監測人員','船員證','研究作業人員安全實務訓練(出海資格)'];
 var F={rg:'',en:'',ty:[],q:'',st:''};
 var tab='today',sub='';
 
@@ -2023,6 +2030,22 @@ var KIT_SVG='<svg class="pavkit" viewBox="0 0 24 24">'
  +'<rect x="10.6" y="9.1" width="2.8" height="7.8" rx="1.3" fill="#fff"/>'
  +'<rect x="8.1" y="11.6" width="7.8" height="2.8" rx="1.3" fill="#fff"/></svg>';
 
+var RING_SVG='<svg class="pavring" viewBox="0 0 24 24">'   // 游泳圈：紅白相間＋繩子＋高光
+ +'<circle cx="12" cy="12" r="8.2" fill="none" stroke="#fff" stroke-width="5.6"/>'
+ +'<circle cx="12" cy="12" r="8.2" fill="none" stroke="#e5392b" stroke-width="5.6" stroke-dasharray="6.44 6.44" stroke-dashoffset="3.22"/>'
+ +'<circle cx="12" cy="12" r="10.9" fill="none" stroke="#b3261c" stroke-width=".9"/>'
+ +'<circle cx="12" cy="12" r="5.3" fill="none" stroke="#b3261c" stroke-width=".9"/>'
+ +'<path d="M7.6 4.4a9 9 0 0 1 7.2-.6" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity=".75"/>'
+ +'<path d="M3.2 12h2.9M17.9 12h2.9M12 3.2v2.9M12 17.9v2.9" stroke="#e9dcc0" stroke-width=".9" opacity=".9"/>'
+ +'</svg>';
+var RING3D='<svg class="pavr3" viewBox="0 0 56 26">'      // 斜看的胖游泳圈：紅白相間、外框、上緣高光
+ +'<ellipse cx="28" cy="13" rx="19.6" ry="6.6" fill="none" stroke="#fff" stroke-width="10.5"/>'
+ +'<ellipse cx="28" cy="13" rx="19.6" ry="6.6" fill="none" stroke="#e5392b" stroke-width="10.5" stroke-dasharray="11.45 11.45"/>'
+ +'<ellipse cx="28" cy="13" rx="24.9" ry="11.9" fill="none" stroke="#a8241a" stroke-width=".9"/>'
+ +'<ellipse cx="28" cy="13" rx="14.3" ry="1.6" fill="none" stroke="#a8241a" stroke-width=".8"/>'
+ +'<path d="M9.5 8.2C15 4 41 4 46.5 8.2" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>'
+ +'<path d="M7 18.6C15 24 41 24 49 18.6" fill="none" stroke="#7a1a12" stroke-width="1" opacity=".35"/>'
+ +'</svg>';
 var SHIP_SVG='<svg class="pavship" viewBox="0 0 28 28">'   // 小帆船：白帆＋橘帆＋藍船身
  +'<path d="M13.4 2.5v15.5H4.6z" fill="url(#gsl)" stroke="#6a7682" stroke-width=".9" stroke-linejoin="round"/>'
  +'<path d="M15 5.5l8 12.5h-8z" fill="url(#gso)" stroke="#a8450c" stroke-width=".8" stroke-linejoin="round"/>'
@@ -2035,9 +2058,10 @@ var SHIP_SVG='<svg class="pavship" viewBox="0 0 28 28">'   // 小帆船：白帆
  *  mask  ：缺氧／侷限空間 → 防毒面罩
  *  kit   ：急救人員       → 急救箱
  *  tank  ：貯存系統污染監測 → 儲槽
- *  ship  ：船員證           → 小帆船 */
+ *  ship  ：船員證           → 小帆船
+ *  ring  ：研究作業人員安全實務訓練（出海資格）→ 游泳圈 */
 function certBadges(name){
-  var b={safety:false,mask:false,kit:false,tank:false,ship:false};
+  var b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false};
   safetyList(name).forEach(function(o){
     var t=o.type||'';
     if(/職安|職業安全|安全衛生|營造業[甲乙丙]種/.test(t))b.safety=true;
@@ -2045,6 +2069,7 @@ function certBadges(name){
     if(/急救/.test(t))b.kit=true;
     if(/貯存系統|儲存系統|貯槽|儲槽/.test(t))b.tank=true;
     if(/船員|海員|船舶/.test(t))b.ship=true;
+    if(/出海|研究作業人員安全/.test(t))b.ring=true;
   });
   return b;
 }
@@ -2065,7 +2090,9 @@ function avatarHat(name){
   var n=String(name||'').trim();
   var o=safetyOf(n);
   var b=certBadges(n);
-  var h='<div class="pavw"><div class="pav">'+he(n.slice(0,1))+'</div>';
+  // 證照超過三張：頭像不掛東西（太擠），只留燈號；圖示都在名字後面的小標
+  if(safetyList(n).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false};
+  var h='<div class="pavw'+(b.ring?' rg':'')+'"><div class="pav">'+he(n.slice(0,1))+'</div>';
   if(b.mask)h+=MASK_SVG.replace('<svg','<svg'+badgeClick(n));     // 面罩罩住圓圈
   if(b.safety){
     // 只有職安類證照才戴帽子；燈號掛在帽沿，有面罩時帽子上移露出面罩
@@ -2076,6 +2103,7 @@ function avatarHat(name){
     h+='<button class="pavtank" title="貯存系統污染監測人員"'
       +' onclick="event.stopPropagation();showSafety(\''+esc(n)+'\')">🛢️</button>';
   if(b.ship)h+=SHIP_SVG.replace('<svg','<svg'+badgeClick(n));     // 船停在圓圈下方
+  if(b.ring)h+=RING3D.replace('pavr3','pavr3 bk')+RING3D.replace('<svg','<svg'+badgeClick(n)).replace('pavr3','pavr3 ft');   // 頭像坐在游泳圈裡：後半圈在圓圈後面、前半圈在前面
   if(b.kit)h+=KIT_SVG.replace('<svg','<svg'+badgeClick(n));       // 急救箱壓在最上層
   // 沒戴帽子的人，燈號單獨放在圓圈右上角（全身只會有一顆）
   if(!b.safety&&o)h+='<span class="pavdot '+dotClass(o)+'"></span>';
@@ -2091,6 +2119,7 @@ function hatMark(n){
   if(b.mask)inner+=MASK_SVG.replace('class="pavmask"','class="mki"');
   if(b.tank)inner+='<span class="mke">🛢️</span>';
   if(b.ship)inner+=SHIP_SVG.replace('class="pavship"','class="mkw"');
+  if(b.ring)inner+=RING_SVG.replace('class="pavring"','class="mki"');
   if(b.kit)inner+=KIT_SVG.replace('class="pavkit"','class="mki"');
   if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
