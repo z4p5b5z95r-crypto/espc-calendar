@@ -342,7 +342,11 @@ html[data-theme="dark"] .ndds{background:radial-gradient(circle at 35% 30%,rgba(
 html[data-theme="dark"] .navshine{box-shadow:inset 0 1px 1.5px rgba(255,255,255,.25),inset 0 -1.5px 2px rgba(0,0,0,.3),inset 0 0 0 .6px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.35)}
 html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0))}
 /* ── 訊息頁籤的紅色水珠：沒選時是圖示右上的小紅點；選到時被主水滴吸進去，再從右上擠出一顆有數字的水珠，已讀完才消失 ── */
-.nbdg{position:absolute;left:0;top:0;height:20px;min-width:20px;padding:0 5px;margin:-10px 0 0 -10px;border-radius:10px;z-index:3;pointer-events:none;
+.nbdg{display:none!important}
+.bgsvg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
+.bgpc{fill:#f6e2d7}html[data-theme="dark"] .bgpc{fill:#523427}
+.bgnum{font:800 11.5px/1 -apple-system,BlinkMacSystemFont,sans-serif;fill:#fff}
+.nbdg-old{position:absolute;left:0;top:0;height:20px;min-width:20px;padding:0 5px;margin:-10px 0 0 -10px;border-radius:10px;z-index:3;pointer-events:none;
   display:flex;align-items:center;justify-content:center;opacity:0;will-change:transform;transform-origin:50% 50%;
   background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.8) 0 13%,rgba(255,255,255,0) 36%),radial-gradient(circle at 50% 65%,#ff6255,#e1261a 72%);
   box-shadow:inset 0 1px 1px rgba(255,255,255,.65),inset 0 -1.5px 2.5px rgba(110,0,0,.35),0 2px 6px rgba(210,30,20,.35)}
@@ -1155,7 +1159,7 @@ html[data-fs="l"] body{zoom:1.25;}
   <div class="pwrap" id="pwrap"><div id="page"></div></div>
 
   <div class="nav" id="nav">
-    <span class="navgoo" id="navgoo"><i class="ndd" id="ndd0"></i><i class="ndd" id="ndd1"></i><i class="ndmain" id="ndmain"></i></span><span class="navshine" id="navshine"></span><span class="ndds" id="nds0"></span><span class="ndds" id="nds1"></span><span class="nbdg" id="nbdg"><b id="nbdgn"></b></span>
+    <span class="navgoo" id="navgoo"><i class="ndd" id="ndd0"></i><i class="ndd" id="ndd1"></i><i class="ndmain" id="ndmain"></i></span><svg class="bgsvg" id="bgsvg" aria-hidden="true" style="display:none"><defs><filter id="bggoo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceGraphic" stdDeviation="2.6"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -8"/></filter><radialGradient id="bggr" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#ff7a52"/><stop offset="1" stop-color="#e0402a"/></radialGradient><radialGradient id="bgmg"><stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient><mask id="bgmask" maskUnits="userSpaceOnUse" x="-500" y="-500" width="6000" height="1200"><circle id="bgmc" r="26" fill="url(#bgmg)"/></mask></defs><g mask="url(#bgmask)"><g filter="url(#bggoo)"><rect id="bgpc" class="bgpc"/><g id="bgbg"><rect id="bgb" fill="url(#bggr)"/></g></g></g><g id="bgtop"><ellipse id="bghl" rx="3.7" ry="1.9" fill="#fff" opacity=".8"/><text id="bgnum" class="bgnum" y="4.1" text-anchor="middle"></text></g></svg><span class="navshine" id="navshine"></span><span class="ndds" id="nds0"></span><span class="ndds" id="nds1"></span><span class="nbdg" id="nbdg"><b id="nbdgn"></b></span>
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
     <button class="nb" id="nb-msg" data-t="msg"><span data-ic="msg"></span><em>訊息</em></button>
@@ -1196,7 +1200,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07s';
+var APP_VER='2026-10-07v';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1597,7 +1601,7 @@ function nbRect(b){return {x:b.offsetLeft,y:b.offsetTop,w:b.offsetWidth,h:b.offs
 var NV_DROPS=[{x:0,v:0},{x:0,v:0}];NV.sp=0;NV.fling=0;
 function navRender(){
   var m=$('ndmain'),sh=$('navshine');if(!m)return;
-  var st=Math.min(Math.abs(NV.v)/(NV.tap?70:40),NV.tap?.14:.28)+NV.sq,sx=1+st+NV.pop,sy=1-st*.42+NV.pop*1.15,cx=NV.x+NV.w/2;   // 點擊（可能跨很多格）拉伸上限較小
+  var st=Math.min(Math.abs(NV.v)/(NV.tap?70:40),NV.tap?.14:.28)+NV.sq,sx=1+st+NV.pop,sy=1-st*.42+NV.pop*1.15,cx=NV.x+NV.w/2;NV.sx=sx;NV.sy=sy;   // 點擊（可能跨很多格）拉伸上限較小
   [m,sh].forEach(function(n){n.style.left=(cx-NV.w/2)+'px';n.style.top=NV.y+'px';n.style.width=NV.w+'px';n.style.height=NV.h+'px';n.style.transform='scale('+sx.toFixed(3)+','+sy.toFixed(3)+')';});
   // 小水珠：大小跟拖曳速度成正比，慢下來就縮小融回主水滴
   var cy=NV.y+NV.h/2;
@@ -1820,66 +1824,90 @@ function msgAllRead(){
    count = 從主水滴右上角擠出來、有數字
    out   = 離開訊息頁：數字水珠縮回主水滴，等主水滴走了再在圖示上冒出小紅點
    hide  = 沒有未讀 */
-var BG={x:0,y:0,vx:0,vy:0,s:0,vs:0,mode:'',raf:0,n:0,w:0};
+var BG={x:0,y:0,vx:0,vy:0,s:0,vs:0,mode:'',raf:0,n:0,w:0,free:false,wt:0};
+/* 2026-10-07v：水珠和頁籤水滴是同一團水（A2）——SVG goo 濾鏡把「主水滴的影子＋水珠」融在一起，
+   頸部顏色是兩邊混出來的；主水滴的影子只在水珠附近（遮罩）露出。
+   沒選到訊息時水珠在圖示右上（帶數字）；主水滴碰到才被吸進去；在訊息放手→咕嚕→從右上擠出來（細頸）；
+   在訊息上一開始拖→馬上縮回；點別的頁籤→當下分離、留在圖示上。吸入／擠出快，分離慢。 */
+var BG_R=10,BG_MERGE=1.15,BG_SPLIT=.45;
+function bgDesk(){try{return matchMedia('(min-width:900px)').matches;}catch(e){return false;}}
 function bgPos(mode){
   var b=$('nb-msg'),nav=$('nav');if(!b||!b.offsetWidth||!nav)return null;
   if(mode==='dot'){
     var sv=b.querySelector('svg'),nr=nav.getBoundingClientRect(),r=(sv||b).getBoundingClientRect();
-    return {x:r.right-nr.left+nav.scrollLeft-1,y:r.top-nr.top+2,s:.5};
+    return {x:r.right-nr.left+nav.scrollLeft+5,y:r.top-nr.top-4,s:.84};
   }
-  if(mode==='count')return {x:NV.x+NV.w-NV.h*.16,y:NV.y+NV.h*.1,s:1};
-  return {x:NV.x+NV.w/2,y:NV.y+NV.h/2,s:0};          // in / out / hide：往主水滴中心
+  if(mode==='count'){
+    var cx=NV.x+NV.w-NV.h/2,cy=NV.y+NV.h/2,d=NV.h/2+BG_R+2.4,a=52*Math.PI/180,minTop=bgDesk()?2:-16;
+    if(cy-d*Math.sin(a)-BG_R<minTop)a=Math.asin(Math.max(0,Math.min(1,(cy-BG_R-minTop)/d)));   // 上面空間不夠就壓低角度
+    return {x:cx+d*Math.cos(a),y:cy-d*Math.sin(a),s:1};
+  }
+  return {x:NV.x+NV.w/2,y:NV.y+NV.h/2,s:0};          // in / out：往主水滴中心
 }
+function bgSS(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x);}
+/* 主水滴離圖示上的水珠多近：0＝還沒碰到，1＝整個蓋住 */
+function bgPull(dp){var g=Math.abs(NV.x+NV.w/2-dp.x)-NV.w/2,c=BG_R*dp.s+2;return {f:Math.max(0,Math.min(1,(c-g)/(c+NV.w*.38))),g:g};}
 function bgSync(anim){
-  var el=$('nbdg');if(!el||!NV.init){return;}
+  if(!$('bgsvg')||!NV.init)return;
   var n=msgUnread(),on=(tab==='msg'),m=BG.mode;
-  BG.n=n;$('nbdgn').textContent=n>99?'99+':String(n);
+  BG.n=n;
   var want=!n?'hide':(on?'count':'dot');
-  if(!anim||NV_RM){var p=bgPos(want==='hide'?'dot':want)||{x:0,y:0};BG.mode=want;BG.x=p.x;BG.y=p.y;BG.vx=BG.vy=BG.vs=0;BG.s=want==='hide'?0:p.s;bgRender();return;}
-  if(want==='count'&&m==='dot')BG.mode='in';
-  else if(want==='count'&&(m==='hide'||m===''||m==='out')){var c=bgPos('in');if(c&&BG.s<.05){BG.x=c.x;BG.y=c.y;}BG.mode='count';}
-  else if(want==='dot'&&(m==='count'||m==='in'))BG.mode='out';
-  else if(want==='dot'&&(m==='hide'||m==='')){var d=bgPos('dot');if(d){BG.x=d.x;BG.y=d.y;BG.s=0;}BG.mode='dot';}
-  else if(want==='hide'&&m!=='hide')BG.mode='hide';
+  if(!anim||NV_RM){var p=bgPos(want==='hide'?'dot':want)||{x:0,y:0,s:0};BG.mode=want;BG.free=false;BG.x=p.x;BG.y=p.y;BG.vx=BG.vy=BG.vs=0;BG.s=want==='hide'?0:p.s;bgRender();return;}
+  if(want==='hide'){if(m!=='hide')BG.mode='hide';}
+  else if(want==='count'){
+    if(m==='dot'||m==='out')BG.mode='in';
+    else if(m==='hide'||m===''){var c=bgPos('in');if(c){BG.x=c.x;BG.y=c.y;}BG.s=0;BG.vs=.05;BG.mode='count';}
+  }else{
+    if(m==='count'||m==='in'||m==='wait'){BG.mode='dot';BG.free=true;}       // 點別的頁籤：當下分離，留在圖示上
+    else if(m==='hide'||m===''){var d=bgPos('dot');if(d){BG.x=d.x;BG.y=d.y;}BG.s=0;BG.mode='dot';BG.free=false;}
+  }
   bgKick();
 }
 function bgKick(){if(!BG.raf)BG.raf=requestAnimationFrame(bgLoop);}
 function bgLoop(){
-  BG.raf=0;
-  var m=BG.mode,t;
-  if(m==='in'){
-    var d=bgPos('dot'),c=bgPos('in');if(!d||!c){return;}
-    // 主水滴靠近才開始吸
-    t=Math.abs(c.x-d.x)<NV.w*.75?{x:c.x,y:c.y,s:0}:d;
-  }else if(m==='out'){
-    t=bgPos('out');
-  }else if(m==='hide'){t={x:BG.x,y:BG.y,s:0};}
-  else t=bgPos(m);
+  BG.raf=0;if(!NV.init)return;
+  var m=BG.mode,t=null,drag=!!(NV.drag&&NV.drag.moved);
+  if(m==='dot'&&tab==='msg'&&!drag&&BG.n)BG.mode=m='in';       // 拖回訊息放手（頁籤沒換）也要擠出來
+  if(m==='hide')t={x:BG.x,y:BG.y,s:0};
+  if(m==='dot'){
+    var dp=bgPos('dot');if(!dp)return;
+    var ip=bgPos('in'),pl=bgPull(dp),f=pl.f,dir=NV.x+NV.w/2>dp.x?1:-1;
+    if(BG.free&&f<=0)BG.free=false;                                // 分離出來的：主水滴完全離開後才恢復「靠近就吸」
+    if(BG.free)t={x:dp.x,y:dp.y,s:dp.s};
+    else if(f<=0){var lean=Math.max(0,Math.min(1,(BG_R*dp.s+12-pl.g)/11))*3;t={x:dp.x+dir*lean,y:dp.y,s:dp.s};}   // 快碰到：微微被吸過去
+    else{var g2=bgSS(0,1,f);t={x:dp.x+(ip.x-dp.x)*g2,y:dp.y+(ip.y-dp.y)*g2,s:dp.s*(1-bgSS(.3,.78,f))};}             // 碰到：黏上、被拉進中心
+  }
+  if(m==='in'){t=bgPos('in');
+    if(t&&Math.hypot(t.x-BG.x,t.y-BG.y)<3&&BG.s<.06){BG.mode='wait';BG.wt=performance.now();BG.s=0;BG.vs=0;NV.popv+=.045;navKick();}}
+  if(m==='wait'){t=bgPos('in');if(performance.now()-BG.wt>80){BG.mode='count';if(t){BG.x=t.x;BG.y=t.y;}BG.vs=.05;}}
+  if(m==='count'){t=bgPos('count');if(drag)BG.mode='out';}         // 一按住拖動就縮回主水滴
+  if(m==='out'){t=bgPos('in');if(t&&BG.s<.05&&Math.hypot(t.x-BG.x,t.y-BG.y)<4){BG.mode='dot';BG.s=0;BG.vs=0;BG.free=false;}}
   if(!t)return;
-  var k=(m==='in'||m==='out')?.2:.15;
-  BG.vx=BG.vx*.66+(t.x-BG.x)*k;BG.vy=BG.vy*.66+(t.y-BG.y)*k;BG.x+=BG.vx;BG.y+=BG.vy;
-  BG.vs=BG.vs*.62+(t.s-BG.s)*(m==='count'?.16:.22);BG.s+=BG.vs;if(BG.s<0){BG.s=0;BG.vs=0;}
+  var kb=(BG.mode!=='dot'||t.s<BG.s-.005)?BG_MERGE:BG_SPLIT;       // 只有「被吐回圖示」用慢速
+  var kk=(BG.mode==='in'||BG.mode==='out')?.2:.15;
+  BG.vx=BG.vx*Math.pow(.66,kb)+(t.x-BG.x)*kk*kb;BG.vy=BG.vy*Math.pow(.66,kb)+(t.y-BG.y)*kk*kb;BG.x+=BG.vx*kb;BG.y+=BG.vy*kb;
+  BG.vs=BG.vs*Math.pow(.62,kb)+(t.s-BG.s)*(BG.mode==='count'?.16:.22)*kb;BG.s+=BG.vs*kb;if(BG.s<0){BG.s=0;BG.vs=0;}
   bgRender();
   var dist=Math.hypot(t.x-BG.x,t.y-BG.y);
-  if(m==='in'&&t.s===0&&dist<3&&BG.s<.06){                // 吸進去了：主水滴「咕嚕」一下，再從右上擠出數字水珠
-    BG.s=0;BG.vs=0;BG.mode='wait';NV.popv+=.045;navKick();
-    setTimeout(function(){if(BG.mode!=='wait')return;BG.mode=tab==='msg'&&BG.n?'count':'hide';var c=bgPos('in');if(c){BG.x=c.x;BG.y=c.y;}BG.vs=.05;bgKick();},170);
-    return;
-  }
-  if(m==='out'&&BG.s<.05&&dist<4){
-    BG.s=0;BG.vs=0;BG.mode='wait';bgRender();
-    setTimeout(function(){if(BG.mode!=='wait')return;var d=bgPos('dot');if(d){BG.x=d.x;BG.y=d.y;}BG.mode=BG.n&&tab!=='msg'?'dot':'hide';bgKick();},Math.abs(NV.x-NV.target)>2?380:120);
-    return;
-  }
-  var still=Math.abs(BG.vx)<.03&&Math.abs(BG.vy)<.03&&Math.abs(BG.vs)<.002&&Math.abs(t.s-BG.s)<.003&&dist<.3&&!NV.raf;
+  var still=BG.mode!=='wait'&&BG.mode!=='in'&&BG.mode!=='out'&&Math.abs(BG.vx)<.03&&Math.abs(BG.vy)<.03&&Math.abs(BG.vs)<.002&&Math.abs(t.s-BG.s)<.003&&dist<.3&&!NV.raf;
   if(!still)BG.raf=requestAnimationFrame(bgLoop);
 }
 function bgRender(){
-  var el=$('nbdg');if(!el)return;
-  var sp=Math.hypot(BG.vx,BG.vy),st=Math.min(sp/14,.55),a=Math.atan2(BG.vy,BG.vx)*180/Math.PI,s=Math.max(0,BG.s);
-  el.style.transform='translate('+BG.x.toFixed(1)+'px,'+BG.y.toFixed(1)+'px) rotate('+a.toFixed(1)+'deg) scale('+(s*(1+st)).toFixed(3)+','+(s*(1-st*.45)).toFixed(3)+') rotate('+(-a).toFixed(1)+'deg)';
-  el.style.opacity=s>.02?'1':'0';
-  el.classList.toggle('n',BG.mode==='count'&&s>.55);
+  var sv=$('bgsvg');if(!sv)return;
+  var s=Math.max(0,BG.s),vis=s>.015&&BG.n>0;
+  sv.style.display=vis?'':'none';if(!vis)return;
+  // 主水滴的影子（跟著主水滴的伸縮）
+  var sx=NV.sx||1,sy=NV.sy||1,pw=NV.w*sx,ph=NV.h*sy,pc=$('bgpc');
+  pc.setAttribute('x',(NV.x+NV.w/2-pw/2).toFixed(1));pc.setAttribute('y',(NV.y+NV.h/2-ph/2).toFixed(1));
+  pc.setAttribute('width',pw.toFixed(1));pc.setAttribute('height',ph.toFixed(1));pc.setAttribute('rx',(ph/2).toFixed(1));
+  var txt=BG.n>99?'99+':String(BG.n),e=txt.length<2?0:(txt.length===2?5:10),R=BG_R;
+  var sp=Math.hypot(BG.vx,BG.vy),st=Math.min(sp/14,.55),a=Math.atan2(BG.vy,BG.vx)*180/Math.PI;
+  var tr='translate('+BG.x.toFixed(2)+','+BG.y.toFixed(2)+') rotate('+a.toFixed(1)+') scale('+(s*(1+st)).toFixed(3)+','+(s*(1-st*.45)).toFixed(3)+') rotate('+(-a).toFixed(1)+')';
+  var b=$('bgb');b.setAttribute('x',-R-e/2);b.setAttribute('y',-R);b.setAttribute('width',2*R+e);b.setAttribute('height',2*R);b.setAttribute('rx',R);
+  $('bgbg').setAttribute('transform',tr);$('bgtop').setAttribute('transform',tr);
+  var hl=$('bghl');hl.setAttribute('cx',-3.7-e/2);hl.setAttribute('cy',-4.8);hl.style.display=s>.2?'':'none';
+  var nm=$('bgnum');if(nm.textContent!==txt)nm.textContent=txt;nm.style.opacity=s>.6?Math.min(1,(s-.6)/.2).toFixed(2):'0';
+  var mc=$('bgmc');mc.setAttribute('cx',BG.x.toFixed(1));mc.setAttribute('cy',BG.y.toFixed(1));
 }
 
 function navPerm(){
@@ -2239,10 +2267,10 @@ function showSafety(n){
     else {st='未填訓練日期，無法計算效期';col='var(--warn)';}
     h+='<div class="cbox"'+(i?' style="margin-top:9px"':'')+'><div class="kv">'
       +kr('shield','證照',he(o.type||'未填'))
-      +kr('hash','證書字號',o.cert?he(o.cert):'<span style="color:var(--tx3)">未填</span>')
-      +kr('clock','訓練日期',he(o.train||'未填'))
-      +kr('clip','有效期限',o.state==='forever'?'<span style="color:var(--tx3)">無期限</span>'
-        :(o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+o.years+' 年）</span>'
+      +(o.cert?kr('hash','證書字號',he(o.cert)):'')
+      +(o.state==='forever'?(o.train?kr('clock','訓練日期',he(o.train)):'')
+        :kr('clock','訓練日期',he(o.train||'未填'))
+         +kr('clip','有效期限',o.expire?he(o.expire)+' <span style="color:var(--tx3)">（'+o.years+' 年）</span>'
                   :'<span style="color:var(--tx3)">—</span>'))
       +'<div class="kr">'+ic('note',16)+'<span class="kk">狀態</span>'
       +'<span class="kvv" style="color:'+col+';font-weight:600">'+he(st)+'</span></div>'
@@ -3928,6 +3956,8 @@ function bookList(){
 function sfNote(name){
   var o=bookSf?certByType(name,bookSf):safetyOf(name);
   if(!o)return '';
+  if(o.state==='forever')                      // 無期限：不寫剩幾天，只留證書字號
+    return o.cert?'<div style="font-size:11px;color:var(--tx3);white-space:nowrap;flex-shrink:0">'+he(o.cert)+'</div>':'';
   var col=o.state==='expired'?'var(--err)':(o.state==='ok'?'var(--ok)':'var(--warn)');
   var t=o.state==='nodate'?'未填訓練日期'
     :(o.state==='expired'?'逾期 '+Math.abs(o.days)+' 天':'剩 '+o.days+' 天');
@@ -5176,11 +5206,23 @@ function inboxLoad(force){
     INBOX.busy=false;
     if(!r||!r.ok)return;
     INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.sentCase=r.sentCase||[];INBOX.at=Date.now();INBOX.fresh=true;
+    inboxAckSync();
     if(r.tpl)CAST_TPL=r.tpl;inboxSave();
     if(!$('ov').classList.contains('open')&&(((tab==='today'||tab==='msg')&&!sub)||sub==='hist'))render();
     msgPaint();
     if(INBOX_DEEP){INBOX_DEEP=false;setTimeout(inboxAll,400);}
   }).catch(function(){INBOX.busy=false;});
+}
+/* 這支手機記成已收到、伺服器卻沒有「收到」紀錄（舊版只記在本機，或當時送出失敗）→ 背景補報，別的裝置才會同步 */
+var ACK_SYNC={};
+function inboxAckSync(){
+  var rs=msgReadSet();
+  (INBOX.inbox||[]).forEach(function(x){
+    var id=String(x.id||'');
+    if(!id||x.pend||!x.toMe||x.acked||x.recalled||rs.indexOf(id)<0||ACK_SYNC[id])return;
+    ACK_SYNC[id]=1;x.acked=true;
+    gas('castAck',TOKEN,id).then(function(r){if(!r||!r.ok)delete ACK_SYNC[id];}).catch(function(){delete ACK_SYNC[id];});
+  });
 }
 function castItem(x,mine){
   return '<div class="ci"><div class="cm">'+icI('mega',13)+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
