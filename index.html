@@ -1136,7 +1136,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-06b';
+var APP_VER='2026-10-06c';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1158,7 +1158,10 @@ function notesEdit(fn){
   if(!window.caches)return Promise.resolve();
   return caches.open('espc-badge').then(function(c){
     return c.match('./__notes').then(function(r){return r?r.json():[];}).catch(function(){return [];}).then(function(list){
-      list=list||[];if(fn)list=fn(list)||list;NOTES=list;
+      list=list||[];if(fn)list=fn(list)||list;
+      // 行程／待辦提醒：App 開在前景就等於看到了（行程就在畫面上），直接算已讀；廣播要真的出現在畫面上才算
+      var chg=false;if(TOKEN&&!document.hidden)list.forEach(function(x){if(!x.r&&!x.c){x.r=1;chg=true;}});
+      if(chg&&!fn)fn=1;NOTES=list;
       notesInbox();
       var n=list.filter(function(x){return !x.r;}).length;
       try{if(navigator.setAppBadge)(n?navigator.setAppBadge(n):navigator.clearAppBadge()).catch(function(){});}catch(e){}
@@ -4879,9 +4882,12 @@ function castRecallDo(id,from){
 /** 看到就算已讀：收件人的畫面出現這則時，背景回報一次（同一支手機只報一次） */
 function seenMark(list){
   if(!SEEN){try{SEEN=JSON.parse(ls('espc_seen')||'[]');}catch(e){SEEN=[];}}
+  var vis=[];
   (list||[]).forEach(function(x){
+    if(x.toMe&&x.id)vis.push(String(x.id));
     if(x.toMe&&x.id&&!x.recalled&&SEEN.indexOf(x.id)<0&&SEEN_Q.indexOf(x.id)<0)SEEN_Q.push(x.id);
   });
+  if(vis.length&&NOTES.some(function(n){return !n.r&&n.c&&vis.indexOf(n.c)>=0;}))notesReadCid(vis);   // 之前看過的廣播也要把紅點消掉
   if(!SEEN_Q.length||SEEN_T)return;
   SEEN_T=setTimeout(function(){
     var q=SEEN_Q.splice(0,50);SEEN_T=null;
