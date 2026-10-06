@@ -137,8 +137,13 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .note{background:var(--warnBg);color:var(--warn);border-radius:var(--r);padding:11px 14px;
   font-size:13px;line-height:1.7;margin-bottom:10px;}
 .note.bad{background:var(--errBg);color:var(--err);}
-/* 2026-10-07z：載入中改成玻璃水珠（使用者選 C）：底下一灘水，三顆水珠輪流跳起、落下融回；整張是 SVG 圖，動畫和 goo 濾鏡都在圖裡 */
-.spin{width:48px;height:32px;flex-shrink:0;margin-top:-17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='52 22 96 64'%3E%3Cstyle%3E %40keyframes j%7B0%,60%,100%%7Btransform:translateY(0) scale(1,1)%7D20%%7Btransform:translateY(-26px) scale(.9,1.1)%7D40%%7Btransform:translateY(0) scale(1.15,.85)%7D%7D .j%7Banimation:j 1.5s cubic-bezier(.4,0,.3,1) infinite;transform-box:fill-box;transform-origin:center bottom%7D .j2%7Banimation-delay:.18s%7D.j3%7Banimation-delay:.36s%7D %3C/style%3E%3Cdefs%3E%3Cfilter id='g' x='-40%' y='-60%' width='180%' height='220%' color-interpolation-filters='sRGB'%3E %3CfeGaussianBlur in='SourceGraphic' stdDeviation='5'/%3E%3CfeColorMatrix mode='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 22 -9' result='goo'/%3E %3CfeColorMatrix in='goo' mode='matrix' values='0 0 0 0 .97 0 0 0 0 .55 0 0 0 0 .25 0 0 0 .26 0' result='body'/%3E %3CfeMorphology in='goo' operator='erode' radius='1.2' result='er'/%3E%3CfeComposite in='goo' in2='er' operator='out' result='edge'/%3E %3CfeColorMatrix in='edge' mode='matrix' values='0 0 0 0 .95 0 0 0 0 .48 0 0 0 0 .18 0 0 0 .6 0' result='rim'/%3E %3CfeGaussianBlur in='goo' stdDeviation='4' result='gb'/%3E%3CfeOffset in='gb' dy='-4' result='gbo'/%3E%3CfeComposite in='goo' in2='gbo' operator='out' result='low'/%3E %3CfeColorMatrix in='low' mode='matrix' values='0 0 0 0 .95 0 0 0 0 .45 0 0 0 0 .15 0 0 0 .35 0' result='lowc'/%3E %3CfeMorphology in='goo' operator='erode' radius='3' result='e3'/%3E%3CfeOffset in='e3' dx='2.5' dy='3.5' result='e3o'/%3E%3CfeComposite in='e3' in2='e3o' operator='out' result='c'/%3E %3CfeGaussianBlur in='c' stdDeviation='.8' result='cb'/%3E%3CfeColorMatrix in='cb' mode='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .85 0' result='hi'/%3E %3CfeMerge%3E%3CfeMergeNode in='body'/%3E%3CfeMergeNode in='lowc'/%3E%3CfeMergeNode in='rim'/%3E%3CfeMergeNode in='hi'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E %3Cg filter='url(%23g)' fill='%23F36F21'%3E%3Crect x='58' y='70' width='84' height='12' rx='6'/%3E%3Ccircle class='j' cx='74' cy='64' r='9'/%3E%3Ccircle class='j j2' cx='100' cy='64' r='9'/%3E%3Ccircle class='j j3' cx='126' cy='64' r='9'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;}
+/* 2026-10-07z：載入中改成玻璃水珠（使用者選 C）：底下一灘水，三顆水珠輪流跳起、落下融回。用內嵌 SVG（濾鏡 #ldgoo），高解析度螢幕也清楚 */
+.spin{width:48px;height:32px;flex-shrink:0;margin-top:-17px;overflow:visible;display:block}
+.spin .ldj{animation:ldj 1.5s cubic-bezier(.4,0,.3,1) infinite;transform-box:fill-box;transform-origin:center bottom}
+.spin .ldj2{animation-delay:.18s}.spin .ldj3{animation-delay:.36s}
+@keyframes ldj{0%,60%,100%{transform:translateY(0) scale(1,1)}20%{transform:translateY(-26px) scale(.9,1.1)}40%{transform:translateY(0) scale(1.15,.85)}}
+/* 整頁載入時放在畫面正中間 */
+#page>.load,#page>[id]>.load:only-child{min-height:calc(100vh - 300px);min-height:calc(100dvh - 300px)}
 @keyframes sp{to{transform:rotate(360deg)}}
 .load{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--tx3);font-size:13px;}
 .empty{text-align:center;color:var(--tx3);font-size:14px;padding:36px 20px;}
@@ -1190,6 +1195,7 @@ html[data-fs="l"] body{zoom:1.25;}
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<filter id="ldgoo" x="-40%" y="-60%" width="180%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter>
 <filter id="navgoo"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -12" result="g"/><feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
 <linearGradient id="gsl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ebf0"/></linearGradient>
 <linearGradient id="gso" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#d9560f"/></linearGradient>
@@ -1591,6 +1597,7 @@ function canManage(r){return canWrite(r);}
 var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['supervisor','scheduler','office']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
   cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]}};
+var SPIN='<svg class="spin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><rect x="58" y="70" width="84" height="12" rx="6"/><circle class="ldj" cx="74" cy="64" r="9"/><circle class="ldj ldj2" cx="100" cy="64" r="9"/><circle class="ldj ldj3" cx="126" cy="64" r="9"/></g></svg>';
 var PERMS=null;
 (function(){try{var o=JSON.parse(ls('espc_perm')||'null');if(o&&o.u&&o.u===ls('espc_user'))PERMS=o.p;}catch(e){}})();
 function permDefOf(k,role,team){
@@ -3092,7 +3099,7 @@ function clrF(k,v){
 /* ══ 頁面內容 ══ */
 /** 統一的載入動畫，放在資料將要出現的位置 */
 function loader(txt){
-  return '<div class="load"><div class="spin"></div> '+he(txt||'載入中…')+'</div>';
+  return '<div class="load">'+SPIN+' '+he(txt||'載入中…')+'</div>';
 }
 
 function pageHTML(){
@@ -3825,7 +3832,7 @@ function calPage(){
   var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
   var busy=calLoading||!MONTH_DONE[ck];
   h='<div class="calwrap'+(busy?' busy':'')+'">'+h
-    +(busy?'<div class="calload"><div class="spin"></div> 載入行程…</div>':'')
+    +(busy?'<div class="calload">'+SPIN+' 載入行程…</div>':'')
     +'</div>';
   if(!busy&&!Object.keys(pmap).length)
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
@@ -6800,7 +6807,7 @@ function paintParse(uploading){
     +'<span class="tag'+(ok.length?' g':'')+'">'+ok.length+' / '+pRows.length+'</span></div>';
   if(!pRows.length)return void($('parse').innerHTML=h+'<p class="hint">找不到有效資料，請確認檔案格式。</p></div>');
   if(uploading){
-    h+='<div style="display:flex;align-items:center;gap:10px"><div class="spin"></div>'
+    h+='<div style="display:flex;align-items:center;gap:10px">'+SPIN+''
       +'<div><div style="font-size:14px">地區「'+he(det)+'」，上傳中…</div>'
       +'<div class="hint" style="margin-top:2px">'+ok.length+' 筆資料寫入試算表，可能需要 1～2 分鐘，請不要關閉頁面'
       +(PSTRUCK?'<br>已略過 '+PSTRUCK+' 筆畫刪除線（已取消）的行程':'')+'</div></div></div>';
