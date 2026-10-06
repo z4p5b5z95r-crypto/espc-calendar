@@ -1057,7 +1057,17 @@ html[data-fs="l"] body{zoom:1.25;}
   .nav .who-n{display:none}                 /* 頁籤多時只留頭像、通知、登出 */
   .nb{padding:9px 11px}.nb.on{padding:9px 13px}
 }
-@media(min-width:900px) and (max-width:1180px){.nb:not(.on) em{display:none}}   /* 更窄：其他頁籤只留圖示 */
+@media(min-width:900px) and (max-width:1180px){.nb:not(.on) em{display:none}}
+/* 手機：使用者自選下方頁籤（順序用 --o；沒選的藏起來，從「更多」進去） */
+@media(max-width:899px){.nav .nb{order:var(--o,50)}.nav .nb[data-t="more"]{order:99}.nav .nb.nbx{display:none!important}}
+@media(min-width:900px){.mobonly{display:none!important}}
+.ncrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--line)}
+.ncrow:first-child{border-top:0}
+.ncrow .nci{width:34px;height:34px;border-radius:10px;background:var(--tint);color:var(--accT);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ncrow.off .nci{background:var(--card2);color:var(--tx3)}
+.ncrow b{flex:1;font-size:15px;font-weight:600}.ncrow.off b{font-weight:500;color:var(--tx2)}
+.ncrow .ib{width:32px;height:32px;font-size:15px}
+.ncrow .ib:disabled{opacity:.3}   /* 更窄：其他頁籤只留圖示 */
 @media(min-width:900px){
   .hd .fchips{order:0;flex-basis:auto;padding:0;flex-wrap:wrap;align-items:center}
   /* 待辦開關移到標題列最右邊，月曆往上 */
@@ -1200,7 +1210,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07v';
+var APP_VER='2026-10-07w';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1866,6 +1876,7 @@ function bgSync(anim){
 function bgKick(){if(!BG.raf)BG.raf=requestAnimationFrame(bgLoop);}
 function bgLoop(){
   BG.raf=0;if(!NV.init)return;
+  var mb=$('nb-msg');if(!mb||!mb.offsetWidth){$('bgsvg').style.display='none';return;}   // 訊息沒放在下方：不畫水珠（未讀數在「更多」裡）
   var m=BG.mode,t=null,drag=!!(NV.drag&&NV.drag.moved);
   if(m==='dot'&&tab==='msg'&&!drag&&BG.n)BG.mode=m='in';       // 拖回訊息放手（頁籤沒換）也要擠出來
   if(m==='hide')t={x:BG.x,y:BG.y,s:0};
@@ -1920,6 +1931,73 @@ function navPerm(){
   var bad={upload:'upload',admin:'acct',cast:'cast',dl:'dl',stat:'stat',allow:'allow'}[tab];
   if(bad&&!can(bad)&&typeof go==='function')go('today');
   if(sub==='cast'&&!can('cast')&&typeof go==='function')go('msg');
+  navCustom();
+}
+/* ══ 下方頁籤自選（只影響手機；電腦版頂部照舊全部顯示）══
+   設定存在這支手機（localStorage espc_nav_<帳號>）：選的頁籤照順序放下面，最多 5 個，「更多」固定最右邊；沒選的從「更多」進去 */
+var NAV_MAX=5;
+function navAll(){   // 這個帳號可以用的頁籤（照權限）
+  return [['today','今日','sun',1],['cal','行事曆','cal',1],['msg','訊息','msg',1],['book','通訊錄','book',1],
+    ['admin','帳號','users',can('acct')],['allow','津貼','money',can('allow')],['stat','統計','chart',can('stat')]]
+    .filter(function(x){return x[3];});
+}
+function navKey(){return 'espc_nav_'+(UNAME||ls('espc_user')||'');}
+function navChosen(){
+  var all=navAll().map(function(x){return x[0];}),v=null;
+  try{v=JSON.parse(ls(navKey())||'null');}catch(e){}
+  if(!Array.isArray(v))return all.slice(0,NAV_MAX);                       // 沒設定過：照原本順序放前 5 個
+  v=v.filter(function(k,i){return all.indexOf(k)>=0&&v.indexOf(k)===i;}).slice(0,NAV_MAX);
+  return v.length?v:['today'];
+}
+function navSave(v){lsS(navKey(),JSON.stringify(v));navCustom();if(sub==='navcfg')render();}
+function navMobile(){try{return matchMedia('(max-width:899px)').matches;}catch(e){return true;}}
+function navCustom(){
+  var ch=navChosen();
+  document.querySelectorAll('#nav .nb').forEach(function(b){
+    var t=b.getAttribute('data-t');if(t==='more')return;
+    var i=ch.indexOf(t);b.classList.toggle('nbx',i<0);b.style.setProperty('--o',i<0?60:i);
+  });
+  navOnFix();navDrop(false);if(typeof bgSync==='function')bgSync(false);
+}
+/** 目前的頁面在手機下方沒有頁籤 → 「更多」亮起來 */
+function navOnFix(){
+  var cur=document.querySelector('#nav .nb[data-t="'+tab+'"]'),more=document.querySelector('#nav .nb[data-t="more"]');
+  var hidden=!cur||(navMobile()&&cur.classList.contains('nbx'));
+  document.querySelectorAll('#nav .nb').forEach(function(b){b.classList.toggle('on',b===(hidden?more:cur));});
+}
+(function(){var was=null;window.addEventListener('resize',function(){var m=navMobile();if(m!==was){was=m;if(UNAME)navCustom();}});})();
+function navMove(k,d){var v=navChosen(),i=v.indexOf(k),j=i+d;if(i<0||j<0||j>=v.length)return;v[i]=v[j];v[j]=k;navSave(v);}
+function navToggle(k){
+  var v=navChosen(),i=v.indexOf(k);
+  if(i>=0){if(v.length<=1){toast('至少要留 1 個','',2000);return;}v.splice(i,1);}
+  else{if(v.length>=NAV_MAX){toast('下方最多放 '+NAV_MAX+' 個，先拿掉一個','',2400);return;}v.push(k);}
+  navSave(v);
+}
+function navReset(){try{localStorage.removeItem(navKey());}catch(e){}navCustom();if(sub==='navcfg')render();}
+function navCfgPage(){
+  var all=navAll(),ch=navChosen(),name={};all.forEach(function(x){name[x[0]]=x;});
+  var row=function(x,on,i,n){
+    return '<div class="ncrow'+(on?'':' off')+'"><span class="nci">'+ic(x[2],19)+'</span><b>'+he(x[1])+'</b>'
+      +(on?'<button class="ib" '+(i===0?'disabled':'')+' onclick="navMove(\''+x[0]+'\',-1)" title="往前">↑</button>'
+          +'<button class="ib" '+(i===n-1?'disabled':'')+' onclick="navMove(\''+x[0]+'\',1)" title="往後">↓</button>':'')
+      +'<button class="sw'+(on?' on':'')+'" onclick="navToggle(\''+x[0]+'\')"></button></div>';
+  };
+  var h='<p class="hint" style="margin:2px 4px 12px">選要放在畫面下方的頁籤（最多 '+NAV_MAX+' 個，用 ↑↓ 排順序）。「更多」固定在最右邊，沒放在下方的頁面都在「更多」裡。只影響這支手機，電腦版頂部照舊全部顯示。</p>';
+  h+='<div class="sec">放在下方（'+ch.length+'／'+NAV_MAX+'）</div><div class="card" style="padding:0">'
+    +ch.map(function(k,i){return row(name[k],true,i,ch.length);}).join('')+'</div>';
+  var rest=all.filter(function(x){return ch.indexOf(x[0])<0;});
+  if(rest.length)h+='<div class="sec">放在「更多」裡</div><div class="card" style="padding:0">'+rest.map(function(x){return row(x,false);}).join('')+'</div>';
+  h+='<button class="btn btn-full" style="margin-top:16px" onclick="navReset()">恢復預設</button>';
+  return h;
+}
+/** 「更多」頁最上面：沒放在下方的頁面（只在手機顯示） */
+function navMoreLinks(){
+  var ch=navChosen(),rest=navAll().filter(function(x){return ch.indexOf(x[0])<0;});
+  if(!rest.length)return '';
+  return '<div class="mobonly"><div class="sec" style="margin-top:4px">頁面</div>'+rest.map(function(x){
+    var u=x[0]==='msg'?msgUnread():0;
+    return '<button class="link" onclick="go(\''+x[0]+'\')"><span style="display:inline-flex;align-items:center;gap:10px">'+ic(x[2],19)+he(x[1])+'</span>'
+      +(u?'<span class="adot">'+u+'</span>':'')+'<span style="flex:1"></span>›</button>';}).join('')+'</div>';
 }
 /** 非管理員不能動管理員帳號，也不能指派管理員 */
 /* 角色層級：數字越小權力越大；只能編層級比自己低、且同地區的帳號 */
@@ -2842,6 +2920,7 @@ function go(t,s){
   document.querySelectorAll('.nb').forEach(function(b){
     b.classList.toggle('on',b.getAttribute('data-t')===t);
   });
+  navOnFix();
   navDrop(true,NV_FROMDRAG);bgSync(true);
   window.scrollTo(0,0);
   // 進行事曆但手上沒資料時，先標成載入中，第一次 render 才不會閃「本月沒有排程」
@@ -2894,6 +2973,7 @@ function titleText(){
   if(sub==='hist')return '歷史廣播';
   if(sub==='ann')return '公告';
   if(sub==='perm')return '功能權限';
+  if(sub==='navcfg')return '下方頁籤';
   if(sub==='annNew')return '發布公告';
   if(sub==='cast')return '發通知';
   if(tab==='msg')return '訊息';
@@ -2991,6 +3071,7 @@ function pageHTML(){
   if(sub==='hist')return histPage();
   if(sub==='ann')return annPage();
   if(sub==='perm')return permPage();
+  if(sub==='navcfg')return navCfgPage();
   if(sub==='annNew')return annNewPage();
   if(sub==='cast')return gcastPage();
   if(tab==='msg')return msgPage();
@@ -4094,7 +4175,7 @@ function icDownloadAll(){
 }
 
 function morePage(){
-  var h='<div class="sec" style="margin-top:4px">帳號</div>'
+  var h=navMoreLinks()+'<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>'
 
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>';
@@ -4102,6 +4183,7 @@ function morePage(){
     +'<button class="link" onclick="viewPick()"><div><div>切換使用者視角</div><div class="hint" style="margin-top:2px">選一個人，看他打開 App 看到的畫面（唯讀）</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>'
     +'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
+    +'<button class="link mobonly" onclick="go(\'more\',\'navcfg\')"><div><div>下方頁籤</div><div class="hint" style="margin-top:2px">自己選下面那排要放哪些，其他放在「更多」</div></div><span style="flex:1"></span>'+ic('menu',19)+'</button>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
       +'<div>行程提醒推播通知</div>'
       +'<div class="hint" style="margin-top:2px">'+(remindOn()&&pushIsOn()?'已開啟，點這裡設定提醒時間':'關閉時仍會收到廣播與證照到期通知'+(todoCan()?'、待辦事項通知':''))+(todoCan()?'<br>待辦事項的通知在每個待辦裡個別開關（預設關閉）':'')+'</div></div>'
