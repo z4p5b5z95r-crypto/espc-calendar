@@ -383,11 +383,11 @@ body.vwon{padding-top:40px}
   background:var(--tint);color:var(--accT);-webkit-tap-highlight-color:transparent}
 .mgrb button:active{transform:scale(.94)}
 /* ── 訊息頁電腦版兩欄：右邊發通知 ── */
-.mg2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
-.mgcomp{position:sticky;top:76px}
-.mgcomp h2{font-size:20px;margin:2px 2px 10px}
-.mgcomp .gdock{position:static;transform:none;width:auto;max-width:none;margin-top:12px}
-.mgcomp .gpad{display:none}
+.mgfab{position:fixed;right:18px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:46;display:inline-flex;align-items:center;gap:6px;
+  border:0;border-radius:999px;padding:14px 22px;background:var(--brand);color:#fff;font-size:16px;font-weight:800;font-family:inherit;
+  box-shadow:0 8px 22px rgba(243,111,33,.42),inset 0 1px 0 rgba(255,255,255,.35);-webkit-tap-highlight-color:transparent}
+.mgfab:active{transform:scale(.95)}
+@media(min-width:900px){.mgfab{right:28px;bottom:28px}}
 /* ── 待辦詳情（Google 式，只顯示資訊） ── */
 .tvw .tvtop{display:flex;justify-content:flex-end;gap:8px;margin:-4px 0 4px}
 .tvw .tvtop .ib{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx2)}
@@ -1196,7 +1196,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07q';
+var APP_VER='2026-10-07r';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1746,10 +1746,8 @@ function msgRow(m){
 var MSG_HIST=false,GC_EMBED=false;
 /* 訊息頁（設計 A）：電腦版左右兩欄，左邊收到的／我發的，右邊直接「發通知」；手機版單欄＋右上「＋ 發通知」 */
 function msgPage(){
-  var left=msgPageList();
-  if(!isDesk()||!can('cast'))return left;
-  GC_EMBED=true;var right;try{right=gcastPage();}finally{GC_EMBED=false;}
-  return '<div class="mg2"><div>'+left+'</div><div class="mgcomp"><h2>發通知</h2>'+right+'</div></div>';
+  // 不分欄：電腦、手機都一欄；「發通知」是右下角浮動按鈕
+  return msgPageList()+(can('cast')?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發通知</button>':'');
 }
 function msgPageList(){
   var all=msgItems(),sent=msgSent(),seg=(MSG_SEG==='sent'?'sent':'in');
@@ -2827,7 +2825,7 @@ function go(t,s){
   else if(t==='today'&&!todayFor)loadToday();
   else if(t==='book')loadStaff(null);
   else if(t==='stat')statLoad(!STAT);
-  else if(t==='msg'){if(sub==='cast'||(isDesk()&&can('cast')))loadStaff(function(){if(tab==='msg')render();});inboxLoad(true);notesEdit(null);}
+  else if(t==='msg'){if(sub==='cast')loadStaff(function(){if(tab==='msg')render();});inboxLoad(true);notesEdit(null);}
   else if(sub==='ann')annLoad(true);
   else if(sub==='perm')permLoad();
   else if(sub==='annNew')loadStaff(function(){if(sub==='annNew')render();});
@@ -2909,7 +2907,7 @@ function rightButtons(){
     return '<button class="ib" onclick="dlLoad(true)" title="重新讀取">↻</button>';
   if(tab==='msg')
     return '<button class="ib" onclick="inboxLoad(true);notesEdit(null)" title="重新整理">↻</button>'
-      +(can('cast')&&!isDesk()?'<button class="ib w act" style="width:auto;padding:0 12px;font-size:14px;font-weight:600" onclick="go(\'msg\',\'cast\')">＋ 發通知</button>':'');   // 電腦版右邊直接是發通知
+      +'';   // 發通知改成右下角浮動按鈕
   if(tab==='stat')
     return '<button class="ib" onclick="statLoad(true)" title="重新整理">↻</button>';
   return '';
