@@ -1164,7 +1164,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07f';
+var APP_VER='2026-10-07g';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1515,8 +1515,8 @@ function newPin(){
   for(var i=0;i<PW_MIN;i++)n+=Math.floor(Math.random()*10);
   return n;
 }
-var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',pm:'PM',sampler:'現場'};
-var ROLE_ORDER=['admin','supervisor','scheduler','pm','sampler'];
+var ROLE_LABEL={admin:'管理員',supervisor:'主管',scheduler:'排程',office:'行政',pm:'PM',sampler:'現場'};
+var ROLE_ORDER=['admin','supervisor','scheduler','office','pm','sampler'];
 var ROLE_WRITE=['admin','supervisor','scheduler'];
 /** 舊資料寫 viewer / Sampler 都收斂成 sampler */
 function normRole(r){
@@ -1526,7 +1526,7 @@ function normRole(r){
 }
 /** 可否編輯這個人：排程／主管／管理員能編所有人，其他人只能編自己 */
 function canEditStaff(name){
-  if(canWrite(ROLE))return true;
+  if(can('staff'))return true;                 // 編輯通訊錄（預設主管／排程／行政）
   var me=String(ENGNAME||'').trim();
   return !!me&&String(name||'').trim()===me;
 }
@@ -1535,7 +1535,7 @@ function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
 /** 可進帳號管理：管理員、主管、排程 */
 function canManage(r){return canWrite(r);}
 /* ── 功能權限：後台（Perm.gs）依角色／組別／個人算好，登入與 getMe 時帶下來；沒拿到前用預設 ── */
-var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
+var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['supervisor','scheduler','office']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
   cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]}};
 var PERMS=null;
@@ -1857,7 +1857,7 @@ function navPerm(){
 }
 /** 非管理員不能動管理員帳號，也不能指派管理員 */
 /* 角色層級：數字越小權力越大；只能編層級比自己低、且同地區的帳號 */
-var ROLE_RANK={admin:0,supervisor:1,scheduler:2,pm:3,sampler:4};
+var ROLE_RANK={admin:0,supervisor:1,scheduler:2,office:3,pm:4,sampler:5};
 function rankOf(r){var k=normRole(r);return ROLE_RANK[k]===undefined?9:ROLE_RANK[k];}
 function canTouchUser(u){
   if(!u)return false;
@@ -2490,7 +2490,7 @@ function gateProfile(after){
 function selfName(){
   var n=String(ENGNAME||'').trim();
   if(!n)return '';
-  if(ROLE==='admin')return '';                       // 管理員是系統帳號，不綁行程
+  if(ROLE==='admin'||ROLE==='office')return '';      // 管理員是系統帳號、行政不跑現場：都直接看全部行程
   if(n===String(UNAME||'').trim())return '';         // 姓名就是工號 → 不是真人姓名
   var ok=false;
   STAFF.forEach(function(s){if(s.name===n)ok=true;});
@@ -3189,7 +3189,7 @@ function tdUp(e){
 }
 /* ══ 功能權限（管理員）══ 角色／組別／個人 三層，個人＞組別＞角色＞預設 */
 var PM={d:null,busy:false,err:'',mode:'role',sel:'supervisor',q:'',tm:null};
-var PM_ROLES=[['supervisor','主管'],['scheduler','排程'],['pm','PM'],['sampler','現場']];
+var PM_ROLES=[['supervisor','主管'],['scheduler','排程'],['office','行政'],['pm','PM'],['sampler','現場']];
 function permLoad(){
   PM.busy=true;PM.err='';if(sub==='perm')render();
   gas('permLoad',TOKEN).then(function(r){PM.busy=false;if(!r||!r.ok){PM.err=(r&&r.error)||'讀取失敗';}else{PM.d=r;r.cfg=pmNorm(r.cfg);r.teams=r.teams||[];r.users=r.users||[];}if(sub==='perm')render();})
@@ -3688,10 +3688,10 @@ function bookPage(){
 
   var h='';
   // 新增人員放最上方，和帳號管理的「新增帳號」一致
-  if(canWrite(ROLE))
+  if(can('staff'))
     h+='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="editStaff()">新增人員</button>';
   // 回訓提醒：只有可維護通訊錄的人看得到
-  if(canWrite(ROLE)){
+  if(can('staff')){
     var due=safetyDue();
     if(due.length){
       var bad=due.filter(function(x){return x.o.state==='expired';}).length;
@@ -6084,7 +6084,7 @@ function editStaff(name){
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
     +'<div style="height:6px"></div>'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
-    +(name&&canWrite(ROLE)
+    +(name&&can('staff')
       ?'<button class="btn btn-d btn-full" style="margin-top:9px" onclick="delStaff(\''+esc(name)+'\')">刪除此人員</button>':'');
   openSheet(h);
   bindPhone();
