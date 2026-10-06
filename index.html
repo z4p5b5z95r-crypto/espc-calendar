@@ -1196,7 +1196,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07r';
+var APP_VER='2026-10-07s';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1231,7 +1231,7 @@ function notesInbox(){
   if(!TOKEN)return;
   var have={},add=0;(INBOX.inbox||[]).forEach(function(x){have[String(x.id)]=1;});
   NOTES.forEach(function(n){
-    if(!n.c||have[n.c]||n.r||(INBOX.at&&INBOX.at>n.at)||Date.now()-n.at>7*864e5)return;   // 伺服器資料比通知新就以伺服器為準
+    if(!n.c||have[n.c]||n.r||!INBOX.at||INBOX.at>n.at||Date.now()-n.at>7*864e5)return;   // 伺服器（或上次存的）資料比通知新就以伺服器為準；還沒任何資料就等伺服器
     var m=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at);
     var at=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
     INBOX.inbox=[{id:n.c,from:m?m[1]:'廣播',at:at,text:n.b||'',toMe:true,pend:true}].concat(INBOX.inbox||[]);
@@ -1703,8 +1703,10 @@ function msgItems(){
   });
   NOTES.forEach(function(n){
     if(!n.c||have[n.c])return;                     // 只放廣播（行程／待辦提醒只跳手機通知）；以伺服器那份為準
-    var k='c';
-    out.push({k:k,key:'n'+n.id,at:n.at||0,un:!n.r,n:n,rd:n.rd||(n.c?msgReadDay()[n.c]||'':'')});
+    if(!INBOX.at||(n.at||0)<=INBOX.at)return;      // 伺服器資料比這則推播新（或還沒讀到）→ 不用推播那份，免得閃出舊的未讀
+    var mm=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at||0);
+    var x={id:n.c,from:mm?mm[1]:'通知',text:n.b||'',at:d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes()),toMe:true,pend:true};
+    out.push({k:'c',key:'n'+n.id,at:n.at||0,un:!n.r,n:n,x:x,rd:n.rd||msgReadDay()[n.c]||''});
   });
   var td=twStr();
   out.forEach(function(m){
@@ -1757,7 +1759,7 @@ function msgPageList(){
     +'<button class="'+(seg==='in'?'on':'')+'" onclick="MSG_SEG=\'in\';render()">收到的'+(unN?'<sup>'+(unN>99?'99+':unN)+'</sup>':'')+'</button>'
     +'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button></div>':'';
   if(seg==='sent')return h+msgSentList(sent);
-  if(!INBOX.at&&!all.length){inboxLoad(true);return h+loader('讀取訊息…');}
+  if(!INBOX.at){inboxLoad(true);return h+loader('讀取訊息…');}
   var un=all.filter(function(m){return m.un;}),td=all.filter(function(m){return !m.un&&m.keep;}),old=all.filter(function(m){return !m.keep;});
   var vx=un.concat(td).filter(function(m){return m.x;}).map(function(m){return m.x;});if(vx.length&&!document.hidden)seenMark(vx);   // 打開訊息頁看到＝已讀（回報發送者）
   if(un.length)h+='<div class="mgsec">未收到<b class="mgn">'+un.length+'</b><a href="#" class="mgall" onclick="msgAllRead();return false">'+ic('check',13)+'全部收到</a></div><div class="mgl">'+un.map(msgRow).join('')+'</div>';
@@ -5160,6 +5162,10 @@ function castSend(){
    選一或多個組別（全組），或展開組別只勾個別人員；也能搜尋姓名直接加人。
    收到的群組廣播：未收到的在「今日」頁上方，今天已收到的在「今日廣播」，更早的在「更多 → 歷史廣播」（保留 7 天）。 */
 var INBOX={inbox:[],sent:[],at:0,busy:false},INBOX_DEEP=false,SENT_OPEN=false;
+/* 訊息先用上次存的那份（同一個帳號）馬上畫出來，再去伺服器更新：避免一打開先閃出舊的未讀、過一下才消失 */
+(function(){try{var c=JSON.parse(ls('espc_inbox_c')||'null');
+  if(c&&c.u&&c.u===ls('espc_user')){INBOX.inbox=c.inbox||[];INBOX.sent=c.sent||[];INBOX.sentCase=c.sentCase||[];INBOX.at=c.at||0;}}catch(e){}})();
+function inboxSave(){try{lsS('espc_inbox_c',JSON.stringify({u:UNAME||ls('espc_user'),at:INBOX.at,inbox:(INBOX.inbox||[]).filter(function(x){return !x.pend;}),sent:INBOX.sent,sentCase:INBOX.sentCase}));}catch(e){}}
 var GC={ppl:{},open:{},text:'',q:'',busy:false};
 var GC_CAST=GC, GC_ANN={ppl:{},open:{},text:'',q:'',busy:false};   // 公告頁用自己的一份選人狀態
 function inboxLoad(force){
@@ -5169,8 +5175,8 @@ function inboxLoad(force){
   gas('getInbox',TOKEN).then(function(r){
     INBOX.busy=false;
     if(!r||!r.ok)return;
-    INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.sentCase=r.sentCase||[];INBOX.at=Date.now();
-    if(r.tpl)CAST_TPL=r.tpl;
+    INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.sentCase=r.sentCase||[];INBOX.at=Date.now();INBOX.fresh=true;
+    if(r.tpl)CAST_TPL=r.tpl;inboxSave();
     if(!$('ov').classList.contains('open')&&(((tab==='today'||tab==='msg')&&!sub)||sub==='hist'))render();
     msgPaint();
     if(INBOX_DEEP){INBOX_DEEP=false;setTimeout(inboxAll,400);}
