@@ -368,6 +368,13 @@ html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(
 .mgi .ct{font-size:13.5px;margin-top:3px}
 .mgi.rd{opacity:.6}.mgi.rd .mgt b{font-weight:500}
 .mggo{align-self:center;color:var(--tx3);flex:none}
+/* ── 管理員檢視別人畫面時的提示條 ── */
+.vwbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(6px + env(safe-area-inset-top));z-index:400;display:flex;align-items:center;gap:10px;
+  padding:6px 6px 6px 14px;border-radius:999px;background:rgba(28,28,30,.86);color:#fff;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);max-width:calc(100vw - 20px);white-space:nowrap}
+.vwbar span{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis}.vwbar b{font-weight:700}
+.vwbar button{border:0;border-radius:999px;background:var(--brand);color:#fff;font-weight:700;font-size:13px;padding:6px 12px;font-family:inherit;flex:none}
+body.vwon{padding-top:40px}
 /* ── 待辦詳情（Google 式，只顯示資訊） ── */
 .tvw .tvtop{display:flex;justify-content:flex-end;gap:8px;margin:-4px 0 4px}
 .tvw .tvtop .ib{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;color:var(--tx2)}
@@ -1171,7 +1178,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07k';
+var APP_VER='2026-10-07l';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1281,6 +1288,7 @@ function gas(fn){
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.perms){if(fn==='login'&&j.username)lsS('espc_user',j.username);permSet(j.perms);}   // 功能權限   // 採樣津貼入口要看組別
       clearTimeout(timer);
       gasLog(fn,t0,!!(j&&j.ok),j);
+      if(j&&j.viewBlock)toast('檢視模式（唯讀），不能修改','no',2500);
       // 後端說還沒授權（profile_ok 被清掉等）→ 立刻擋下，叫出確認畫面
       if(j&&j.needProfile&&typeof openOnboarding==='function'){
         PROFILE_OK=false;lsD('espc_prof');
@@ -1893,7 +1901,59 @@ function roleChoices(){
 function saveSession(t,r,u,e,ok){TOKEN=t;ROLE=r;UNAME=u;ENGNAME=e||'';
   lsS('espc_token',t);lsS('espc_role',r);lsS('espc_user',u);lsS('espc_eng',ENGNAME);
   if(ok!==undefined){PROFILE_OK=!!ok;lsS('espc_prof',ok?'1':'');}}
+/* ══ 管理員「切換使用者視角」══ 先把管理員的登入收起來，換上那個人的唯讀臨時登入，重新載入；按「返回」再換回來 */
+var VIEWAS=String(ls('espc_token')||'').indexOf('VIEW-')===0&&!!ls('espc_viewback');
+function viewPick(){
+  var h='<div class="shh"><div><h3>切換使用者視角</h3><p class="hint" style="margin-top:3px">看這個人打開 App 會看到什麼（唯讀，2 小時內有效）</p></div><button class="ib" onclick="closeSheet()">✕</button></div>'
+    +'<input class="fld" id="vw-q" placeholder="搜尋姓名、帳號、組別" oninput="viewList()" style="margin-bottom:10px"><div id="vw-l">'+loader('讀取帳號…')+'</div>';
+  openSheet(h);
+  gas('listUsers',TOKEN).then(function(r){
+    if(!r||!r.ok){$('vw-l').innerHTML='<div class="empty">'+he((r&&r.error)||'讀取失敗')+'</div>';return;}
+    VIEW_US=(r.users||[]).filter(function(u){return u.active!==false;});viewList();
+  }).catch(function(){var l=$('vw-l');if(l)l.innerHTML='<div class="empty">連線失敗</div>';});
+}
+var VIEW_US=[];
+function viewList(){
+  var el=$('vw-l');if(!el)return;var q=String(($('vw-q')||{}).value||'').trim().toLowerCase();
+  var l=VIEW_US.filter(function(u){return !q||[u.engineerName,u.username,u.team,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;});
+  el.innerHTML=l.length?'<div class="card" style="padding:0">'+l.slice(0,80).map(function(u){
+    return '<div class="pmu" onclick="viewGo(\''+esc(u.username)+'\')"><div class="pav" style="width:32px;height:32px;font-size:13px">'+he(String(u.engineerName||u.username).slice(0,1))+'</div>'
+      +'<div style="flex:1;min-width:0"><b>'+he(u.engineerName||u.username)+'</b><br><small>'+he(roleLabel(u.role))+(u.team?'・'+he(u.team):'')+'・'+he(u.username)+'</small></div>'+ic('right',16)+'</div>';}).join('')+'</div>'
+    :'<div class="empty">找不到</div>';
+}
+function viewGo(un){
+  toast('切換中…','',1500);
+  gas('viewAs',TOKEN,un).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'切換失敗','no',3000);return;}
+    lsS('espc_viewback',JSON.stringify({t:TOKEN,r:ROLE,u:UNAME,e:ENGNAME,ok:PROFILE_OK?1:0,perm:ls('espc_perm')||'',team:ls('espc_team')||''}));
+    lsS('espc_token',r.token);lsS('espc_role',r.role);lsS('espc_user',r.username);lsS('espc_eng',r.engineerName||'');
+    if(r.profileOk)lsS('espc_prof','1');else lsD('espc_prof');
+    lsS('espc_team',r.team||'');lsS('espc_perm',JSON.stringify({u:r.username,p:r.perms||{}}));lsD('espc_tab');
+    location.reload();
+  }).catch(function(){toast('連線失敗','no');});
+}
+function viewRestore(){
+  var b=null;try{b=JSON.parse(ls('espc_viewback')||'null');}catch(e){}
+  lsD('espc_viewback');lsD('espc_tab');
+  try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf('espc_c_')===0)localStorage.removeItem(k);}}catch(e){}
+  if(!b||!b.t)return false;
+  lsS('espc_token',b.t);lsS('espc_role',b.r);lsS('espc_user',b.u);lsS('espc_eng',b.e||'');
+  if(b.ok)lsS('espc_prof','1');else lsD('espc_prof');
+  if(b.perm)lsS('espc_perm',b.perm);if(b.team!==undefined)lsS('espc_team',b.team);
+  return true;
+}
+function viewBack(){
+  var t=ls('espc_token');if(String(t||'').indexOf('VIEW-')===0)gas('logout',t).catch(function(){});
+  viewRestore();setTimeout(function(){location.reload();},150);
+}
+function viewBar(){
+  if(!VIEWAS||$('vwbar'))return;
+  var d=document.createElement('div');d.id='vwbar';d.className='vwbar';
+  d.innerHTML='<span>'+ic('user',15)+'正在看 <b>'+he(ENGNAME||UNAME)+'</b>（'+he(roleLabel(ROLE))+'）的畫面・唯讀</span><button onclick="viewBack()">返回管理員</button>';
+  document.body.appendChild(d);document.body.classList.add('vwon');
+}
 function clearSession(){
+  if(VIEWAS&&viewRestore())return;          // 檢視中的臨時登入過期／登出：回到管理員
   TOKEN=ROLE=UNAME=ENGNAME='';
   PROFILE_OK=false;
   ['espc_token','espc_role','espc_user','espc_eng','espc_sync','espc_tab','espc_prof'].forEach(lsD);
@@ -2393,6 +2453,7 @@ function doLogin(){
   }).catch(function(){$('l-err').textContent='連線失敗，請稍後再試';btn.disabled=false;btn.textContent='登入';});
 }
 function doLogout(){
+  if(VIEWAS){viewBack();return;}
   if(!confirm('確定要登出？'))return;
   var pt=ls('espc_push');                   // 登出就不再讓這支手機收這個人的推播
   if(pt){try{gas('savePush',TOKEN,pt,false).catch(function(){});}catch(e){}lsD('espc_push');}
@@ -2401,6 +2462,7 @@ function doLogout(){
 }
 
 function boot(u,r,eng){
+  setTimeout(viewBar,0);
   r=normRole(r);
   ROLE=r;UNAME=u;ENGNAME=eng;lsS('espc_eng',eng||'');
   $('login').style.display='none';
@@ -3972,6 +4034,7 @@ function morePage(){
 
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>';
   if(normRole(ROLE)==='admin')h+='<div class="sec">管理</div>'
+    +'<button class="link" onclick="viewPick()"><div><div>切換使用者視角</div><div class="hint" style="margin-top:2px">選一個人，看他打開 App 看到的畫面（唯讀）</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>'
     +'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
@@ -7454,7 +7517,7 @@ function pushOnbClose(){lsS(PUSH_ASK_KEY,String(Date.now()));$('onb').classList.
 var PUSH_CHK_AT=0;
 function pushRefresh(){
   try{
-    if(!TOKEN||!FCM_VAPID||!pushSupported()||Notification.permission!=='granted')return;
+    if(VIEWAS||!TOKEN||!FCM_VAPID||!pushSupported()||Notification.permission!=='granted')return;   // 檢視別人時不綁推播
     if(!ls('espc_push')&&ls('espc_push_want')!=='1')return;
     if(Date.now()-PUSH_CHK_AT<3600000)return;
     PUSH_CHK_AT=Date.now();
