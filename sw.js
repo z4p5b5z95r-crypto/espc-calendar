@@ -3,7 +3,7 @@
         2) 讓網站可「加入主畫面」成為 PWA
    注意：不做離線快取，永遠走網路，避免舊版卡住 */
 
-const SW_VERSION = 'espc-v11';
+const SW_VERSION = 'espc-v12';
 
 /* 通知紀錄＋App 圖示紅點：每則推播記在 Cache Storage（最多 60 則），
    紅點數字＝還沒看過的則數；點通知、或在 App 的通知列表點開／全部已讀，才會減少（index.html notes*） */
@@ -13,7 +13,7 @@ function notesEdit(fn) {
   return caches.open('espc-badge').then(function (c) {
     return notesGet(c).then(function (list) {
       list = fn(list || []) || list;
-      const n = list.filter(function (x) { return !x.r; }).length;
+      const n = list.filter(function (x) { return !x.r && x.c; }).length;   // 紅點只算廣播；行程／待辦提醒只跳通知
       return c.put(NOTE_KEY, new Response(JSON.stringify(list.slice(0, 60)))).then(function () {
         if (self.navigator && self.navigator.setAppBadge) return n ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge();
       });

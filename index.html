@@ -355,6 +355,8 @@ html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(
 .mgseg sup{color:#e1261a;font-size:11px;font-weight:700;margin-left:2px}
 .mgsec{display:flex;align-items:center;font-size:13px;font-weight:600;color:var(--tx3);margin:16px 4px 8px}
 .mgsec a{margin-left:auto;color:var(--accT);font-weight:500;text-decoration:none}
+.mgsec .mgn{background:#e1261a;color:#fff;border-radius:9px;padding:0 7px;font-size:11.5px;line-height:18px;margin-left:6px}
+.mgsec .mgall{display:inline-flex;align-items:center;gap:4px;background:var(--tint);color:var(--accT);font-weight:700;border-radius:999px;padding:4px 11px;font-size:12.5px}
 .mgl{background:var(--card);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .mgi{display:flex;gap:11px;padding:12px 13px;border-top:1px solid var(--line);align-items:flex-start;cursor:pointer;transition:opacity .3s}
 .mgi:first-child{border-top:0}
@@ -1145,7 +1147,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <span class="navgoo" id="navgoo"><i class="ndd" id="ndd0"></i><i class="ndd" id="ndd1"></i><i class="ndmain" id="ndmain"></i></span><span class="navshine" id="navshine"></span><span class="ndds" id="nds0"></span><span class="ndds" id="nds1"></span><span class="nbdg" id="nbdg"><b id="nbdgn"></b></span>
     <button class="nb on" data-t="today"><span data-ic="sun"></span><em>今日</em></button>
     <button class="nb" data-t="cal"><span data-ic="cal"></span><em>行事曆</em></button>
-    <button class="nb" id="nb-msg" data-t="msg"><span data-ic="bell"></span><em>通知</em></button>
+    <button class="nb" id="nb-msg" data-t="msg"><span data-ic="msg"></span><em>訊息</em></button>
     <button class="nb" data-t="book"><span data-ic="book"></span><em>通訊錄</em></button>
     <button class="nb dlm" id="nb-up" data-t="upload" style="display:none"><span data-ic="upload"></span><em>上傳排程</em></button>
     <button class="nb dlm" id="nb-dl" data-t="dl" style="display:none"><span data-ic="file"></span><em>下載行程</em></button>
@@ -1183,7 +1185,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07m';
+var APP_VER='2026-10-07n';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1226,7 +1228,7 @@ function notesInbox(){
   });
   if(add&&tab==='today'&&!sub&&!$('ov').classList.contains('open'))render();
 }
-function notesUnread(){return NOTES.filter(function(x){return !x.r;}).length;}
+function notesUnread(){return msgUnread();}
 function bellPaint(){
   var b=$('bell');if(!b)return;var n=notesUnread();
   b.innerHTML=ic('bell',17)+(n?'<span class="bdg">'+(n>99?'99+':n)+'</span>':'');
@@ -1251,7 +1253,7 @@ function notesGo(id){
   notesEdit(function(list){list.forEach(function(n){if(n.id===id)n.r=1;});return list;}).then(function(){
     closeSheet();
     if(x&&x.u&&x.u!=='./')deepGo(x.u);          // 跳到對應的那一天／待辦／廣播（不重新載入）
-    else if(x&&x.c){MSG_SEG='cast';go('msg');}
+    else if(x&&x.c){MSG_SEG='in';go('msg');}
   });
 }
 function notesAllRead(){notesEdit(function(list){list.forEach(function(n){n.r=1;});return list;}).then(notesOpen);}
@@ -1666,7 +1668,7 @@ var NV_FROMDRAG=false;
 /* ══ 訊息頁：廣播＋行程提醒＋待辦提醒放一起 ══
    廣播來自伺服器（保留 7 天）；行程／待辦提醒來自這支手機收到的推播（sw.js 記在 Cache Storage）。
    看過才算已讀：點一下那則、按「收到」、或「全部已讀」。超過 7 天的放「已過期」，不算未讀。 */
-var MSG_SEG='all',MSGR=null,MSG_DAY=864e5;
+var MSG_SEG='in',MSGR=null,MSG_DAY=864e5;
 function msgReadSet(){if(!MSGR){try{MSGR=JSON.parse(ls('espc_msgr')||'[]');}catch(e){MSGR=[];}}return MSGR;}
 var MSGRT=null;     // 廣播哪一天看的：看過的當天還留在列表（變淡），隔天才移到「歷史」
 function msgReadDay(){if(!MSGRT){try{MSGRT=JSON.parse(ls('espc_msgrt')||'{}');}catch(e){MSGRT={};}}return MSGRT;}
@@ -1689,8 +1691,8 @@ function msgItems(){
     out.push({k:'c',key:'c'+id,at:msgAt(x.at),un:un,x:x,rd:msgReadDay()[id]||''});
   });
   NOTES.forEach(function(n){
-    if(n.c&&have[n.c])return;                      // 廣播以伺服器那份為準
-    var k=n.c?'c':(/待辦/.test(n.t||'')||/[?&]todo=/.test(n.u||'')?'t':'s');
+    if(!n.c||have[n.c])return;                     // 只放廣播（行程／待辦提醒只跳手機通知）；以伺服器那份為準
+    var k='c';
     out.push({k:k,key:'n'+n.id,at:n.at||0,un:!n.r,n:n,rd:n.rd||(n.c?msgReadDay()[n.c]||'':'')});
   });
   var td=twStr();
@@ -1729,38 +1731,29 @@ function msgRow(m){
     +(n.b?'<div class="mgp">'+linkify(n.b)+'</div>':'');
   return h+'</div>'+(go?'<span class="mggo">'+ic('right',16)+'</span>':'')+'</div>';
 }
+var MSG_HIST=false;
 function msgPage(){
-  var all=msgItems(),seg=MSG_SEG;
-  var cnt={all:0,c:0,r:0};all.forEach(function(m){if(!m.un)return;cnt.all++;if(m.k==='c')cnt.c++;else cnt.r++;});
-  var sup=function(n){return n?'<sup>'+(n>99?'99+':n)+'</sup>':'';};
-  var sent=msgSent(),segs=[['all','全部',cnt.all],['c','廣播',cnt.c],['r','提醒',cnt.r]];
-  if(sent.length||can('cast'))segs.push(['sent','我發的',0]);else if(seg==='sent')seg=MSG_SEG='all';
-  segs.push(['old','歷史',0]);
-  var h='<div class="mgseg">'+segs.map(function(o){
-      return '<button class="'+(seg===o[0]?'on':'')+'" onclick="MSG_SEG=\''+o[0]+'\';render()">'+o[1]+sup(o[2])+'</button>';}).join('')+'</div>';
+  var all=msgItems(),sent=msgSent(),seg=(MSG_SEG==='sent'?'sent':'in');
+  var showSent=sent.length||can('cast');if(!showSent)seg='in';
+  var unN=all.filter(function(m){return m.un;}).length;
+  var h=showSent?'<div class="mgseg">'
+    +'<button class="'+(seg==='in'?'on':'')+'" onclick="MSG_SEG=\'in\';render()">收到的'+(unN?'<sup>'+(unN>99?'99+':unN)+'</sup>':'')+'</button>'
+    +'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button></div>':'';
   if(seg==='sent')return h+msgSentList(sent);
-  // 未讀＋今天看過的在全部／廣播／提醒；看過的隔天移到「歷史」
-  var list=all.filter(function(m){
-    if(seg==='old')return !m.keep;if(!m.keep)return false;
-    return seg==='all'||(seg==='c'?m.k==='c':(seg==='r'&&m.k!=='c'));
-  });
-  if(!list.length){
-    var e={all:'沒有新通知',c:'沒有新廣播',r:'沒有新提醒',old:'還沒有看過的通知'}[seg];
-    return h+'<div class="card" style="margin-top:14px"><div class="empty" style="padding:26px">'+e
-      +(seg!=='old'?'<br><span style="font-size:12px">以前看過的在「歷史」</span>':'')+'</div></div>';
-  }
-  var un=list.filter(function(m){return m.un;}).length,grp='',first=true;
-  list.forEach(function(m){
-    var g=msgGroup(m.at);
-    if(g!==grp){
-      if(grp)h+='</div>';
-      h+='<div class="mgsec">'+g+'</div><div class="mgl">';
-      grp=g;first=false;
+  if(!INBOX.at&&!all.length){inboxLoad(true);return h+loader('讀取訊息…');}
+  var un=all.filter(function(m){return m.un;}),td=all.filter(function(m){return !m.un&&m.keep;}),old=all.filter(function(m){return !m.keep;});
+  if(un.length)h+='<div class="mgsec">未讀<b class="mgn">'+un.length+'</b><a href="#" class="mgall" onclick="msgAllRead();return false">'+ic('check',13)+'全部已讀</a></div><div class="mgl">'+un.map(msgRow).join('')+'</div>';
+  if(td.length)h+='<div class="mgsec">今天看過</div><div class="mgl">'+td.map(msgRow).join('')+'</div>';
+  if(!un.length&&!td.length)h+='<div class="card" style="margin-top:14px"><div class="empty" style="padding:26px">沒有新訊息</div></div>';
+  if(old.length){
+    h+='<button class="fold" style="margin-top:14px" onclick="MSG_HIST=!MSG_HIST;render()"><span>歷史訊息</span><span class="foldn">'+old.length+' 則</span><span class="foldc'+(MSG_HIST?' on':'')+'">'+ic('right',15)+'</span></button>';
+    if(MSG_HIST){
+      var grp='';
+      old.forEach(function(m){var g=msgGroup(m.at);if(g!==grp){h+=(grp?'</div>':'')+'<div class="mgsec">'+g+'</div><div class="mgl">';grp=g;}h+=msgRow(m);});
+      h+='</div>';
     }
-    h+=msgRow(m);
-  });
-  h+='</div>';
-  h+='<p class="hint" style="text-align:center;margin:14px 0 4px">'+(seg==='old'?'廣播保留 7 天；行程、待辦提醒記在收到推播的這支手機上':'看過的隔天會移到「歷史」')+'</p>';
+  }
+  h+='<p class="hint" style="text-align:center;margin:14px 0 4px">看過的隔天移到「歷史訊息」；廣播保留 7 天</p>';
   return h;
 }
 /* 我發出的廣播（群組＋個案），含回條、收回；伺服器保留 7 天 */
@@ -1792,7 +1785,7 @@ function msgTap(key){
   if(m.n&&!m.n.c&&m.n.u&&m.n.u!=='./')setTimeout(function(){deepGo(m.n.u);},m.un?220:0);   // 提醒：跳到那一天／那筆待辦
 }
 function msgAllRead(){
-  var seg=MSG_SEG,l=msgItems().filter(function(m){return m.un&&(seg!=='c'&&seg!=='r'||(seg==='c'?m.k==='c':m.k!=='c'));});
+  var l=msgItems().filter(function(m){return m.un;});
   if(l.length)msgMark(l);
 }
 
@@ -2706,7 +2699,7 @@ function deepGo(url){
       return;
     }
     if(q.get('todo')){TODO_DEEP=q.get('todo');todoDeep();return;}
-    if(q.get('inbox')){MSG_SEG='cast';go('msg');return;}
+    if(q.get('inbox')){MSG_SEG='in';go('msg');return;}
     if(q.get('due')){DUE_DEEP=true;checkDueNotice();return;}
   }catch(e){}
 }
@@ -2787,7 +2780,7 @@ function allowNav(){var b=$('nb-allow');if(b)b.style.display=can('allow')?'':'no
 function go(t,s){
   if(t==='allow'){allowTap();return;}
   if(t==='cast'){t='msg';s=s||'cast';}
-  if(s==='hist'){t='msg';s='';MSG_SEG=(INBOX.sent||[]).length||(INBOX.sentCase||[]).length?'sent':'c';}   // 歷史廣播併進訊息頁          // 舊的「廣播」頁籤併進訊息頁
+  if(s==='hist'){t='msg';s='';MSG_SEG=(INBOX.sent||[]).length||(INBOX.sentCase||[]).length?'sent':'in';}   // 歷史廣播併進訊息頁          // 舊的「廣播」頁籤併進訊息頁
   tab=t;sub=s||'';
   GC=(sub==='annNew')?GC_ANN:GC_CAST;
   saveTab();
@@ -2850,7 +2843,7 @@ function titleText(){
   if(sub==='perm')return '功能權限';
   if(sub==='annNew')return '發布公告';
   if(sub==='cast')return '發廣播';
-  if(tab==='msg')return '通知';
+  if(tab==='msg')return '訊息';
   if(tab==='today')return '今日';
   if(tab==='cal')return curY+' 年 '+MO[curM];
   if(tab==='book')return '通訊錄';
@@ -2891,8 +2884,7 @@ function rightButtons(){
     return '<button class="ib" onclick="dlLoad(true)" title="重新讀取">↻</button>';
   if(tab==='msg')
     return '<button class="ib" onclick="inboxLoad(true);notesEdit(null)" title="重新整理">↻</button>'
-      +'<button class="ib'+(msgUnread()?' w act':'')+'" style="width:auto;padding:0 11px;gap:4px;font-size:14px;font-weight:600'+(msgUnread()?'':';opacity:.45')+'" onclick="msgAllRead()"'+(msgUnread()?'':' disabled')+'>'+ic('check',15)+'全部已讀</button>'
-      +(can('cast')?'<button class="ib w act" style="width:auto;padding:0 12px;font-size:14px;font-weight:600" onclick="go(\'msg\',\'cast\')">＋ 廣播</button>':'');
+      +(can('cast')?'<button class="ib w act" style="width:auto;padding:0 12px;font-size:14px;font-weight:600" onclick="go(\'msg\',\'cast\')">＋ 發廣播</button>':'');
   if(tab==='stat')
     return '<button class="ib" onclick="statLoad(true)" title="重新整理">↻</button>';
   return '';
