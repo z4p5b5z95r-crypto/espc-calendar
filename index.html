@@ -2503,14 +2503,12 @@ function inBook(n){
   n=String(n||'').trim();
   return !!n&&(PHONE.hasOwnProperty(n)||TEAM.hasOwnProperty(n));
 }
-/** 行程裡的 PM、現場：不顯示證照圖示（2026-10-07z） */
-function telLinkP(n){telLink.noHat=true;try{return telLink(n);}finally{telLink.noHat=false;}}
 function telLink(n){
   if(!n)return '';n=String(n).trim();
   // 通訊錄查無此人（已刪除帳號）→ 灰字、不給電話
   if(STAFF_READY&&!inBook(n))
     return '<span style="color:var(--tx3)" title="已無通訊錄資料">'+he(n)+'</span>';
-  var ph=PHONE[n],hat=telLink.noHat?'':hatMark(n);
+  var ph=PHONE[n],hat=hatMark(n);
   if(!ph)return he(n)+hat;
   return '<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(n)
     +' <span style="color:var(--tx3);font-size:.92em">'+he(ph)+'</span></a>'+hat;
@@ -3192,8 +3190,8 @@ function evCard(g,d,full){
     +'<div class="evt" style="color:'+c+';margin-top:3px">'+he(typeLabel(g))+'</div>';
   if(full){
     if(g.samp)h+='<div class="evm">採樣時間：'+he(g.samp)+'</div>';
-    if(g.engs.length)h+='<div class="evm">PM：'+g.engs.map(telLinkP).join('、')+'</div>';
-    if(g.staff.length)h+='<div class="evm">現場：'+g.staff.map(telLinkP).join('、')+'</div>';
+    if(g.engs.length)h+='<div class="evm">PM：'+g.engs.map(telLink).join('、')+'</div>';
+    if(g.staff.length)h+='<div class="evm">現場：'+g.staff.map(telLink).join('、')+'</div>';
     if(g.cars.length)h+='<div class="evm">公務車：'+he(g.cars.join('、'))+'</div>';
   }
   return h+'</div></div>';
@@ -6046,9 +6044,9 @@ function evDetail(g){
   var c=pcolor(g.project),multi=g.tlist.length>1,h=castBox(g);
   // 2026-10-07z：數量全部是 0＝設備放在現場，當天不架設也不收站 → 不顯示公務車、現場，也不另開「人員與車輛」區塊
   var idle=qtyAllZero(g);
-  var shared=dr('PM',g.engs.map(telLinkP).join('<br>'))
+  var shared=dr('PM',g.engs.map(telLink).join('<br>'))
     +(idle?'':dr('公務車',he(g.cars.join('、'))))
-    +(idle?'':dr('現場',g.staff.map(telLinkP).join('<br>')))
+    +(idle?'':dr('現場',g.staff.map(telLink).join('<br>')))
     +dr('備註',he(g.notes.join('；')));
   var inline=idle&&!multi;   // 單一測項：PM、備註直接接在同一張卡片裡
   g.tlist.forEach(function(t){
