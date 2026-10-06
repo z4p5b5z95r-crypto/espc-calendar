@@ -1210,7 +1210,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-07x';
+var APP_VER='2026-10-07z';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -1317,7 +1317,8 @@ function gas(fn){
   return req.then(function(r){return r.json();})
     .then(function(j){
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&'team' in j){lsS('espc_team',j.team||'');allowNav();}
-      if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.perms){if(fn==='login'&&j.username)lsS('espc_user',j.username);permSet(j.perms);}   // 功能權限   // 採樣津貼入口要看組別
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.perms){if(fn==='login'&&j.username)lsS('espc_user',j.username);permSet(j.perms);}
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.hideRg)hideRgSet(j.hideRg);   // 管理員隱藏的地區   // 功能權限   // 採樣津貼入口要看組別
       clearTimeout(timer);
       gasLog(fn,t0,!!(j&&j.ok),j);
       if(j&&j.viewBlock)toast('檢視模式（唯讀），不能修改','no',2500);
@@ -1595,6 +1596,20 @@ function can(k){
   var r=normRole(ROLE);if(r==='admin')return true;
   if(PERMS&&typeof PERMS[k]==='boolean')return PERMS[k];
   return permDefOf(k,r,ls('espc_team'));
+}
+/* ── 管理員隱藏的地區（2026-10-07y）：下拉選單不列（管理員照常全部看得到，好維護資料）；行事曆下方「檔案更新時間」所有人都不顯示 ── */
+var RG_ALL=['台北','台中','高雄'],HIDE_RG=[];
+try{HIDE_RG=JSON.parse(ls('espc_hiderg')||'[]')||[];}catch(e){HIDE_RG=[];}
+function hideRgSet(a){HIDE_RG=Array.isArray(a)?a:[];lsS('espc_hiderg',JSON.stringify(HIDE_RG));}
+function rgShow(cur){return RG_ALL.filter(function(k){return normRole(ROLE)==='admin'||HIDE_RG.indexOf(k)<0||k===cur;});}
+function rgHideToggle(k){
+  var a=HIDE_RG.slice(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);
+  if(a.length>=RG_ALL.length){toast('至少要留一個地區','',2200);return;}
+  var old=HIDE_RG;hideRgSet(a);render();
+  gas('setHiddenRegions',TOKEN,a).then(function(r){
+    if(!r||!r.ok){hideRgSet(old);render();toast((r&&r.error)||'儲存失敗','no');return;}
+    hideRgSet(r.list||a);toast(i>=0?k+' 已重新顯示':k+' 已隱藏','ok',1800);
+  }).catch(function(){hideRgSet(old);render();toast('連線失敗','no');});
 }
 function permSet(p){
   if(!p)return;PERMS=p;lsS('espc_perm',JSON.stringify({u:UNAME||ls('espc_user'),p:p}));
@@ -3810,6 +3825,7 @@ function regionUpdatesHTML(){
   if(!RUPD)return '<div class="rupd" id="rupd"><span class="ru">檔案更新時間載入中…</span></div>';
   var keys=['台北','台中','高雄'];
   Object.keys(RUPD).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});
+  keys=keys.filter(function(k){return HIDE_RG.indexOf(k)<0;});   // 管理員隱藏的地區不顯示
   var h='<div class="rupd" id="rupd">'
     +'<span class="ru" style="flex-basis:100%;color:var(--tx3)">檔案更新時間</span>';
   keys.forEach(function(k){
@@ -3906,6 +3922,35 @@ function typeLabel(g){
 }
 
 
+/* ── 組別依大組分層（2026-10-07y，使用者選 A）：EIA／SP／FE／QC／MT，依組別名稱開頭自動歸類，其餘歸「其他」 ──
+   選項值：'' 全部、'G:EIA' 整個大組、'EIA-T' 單一組、'_n' 未填組別 */
+var TEAM_BIG=['EIA','SP','FE','QC','MT'];
+function teamBig(t){var m=String(t||'').trim().toUpperCase().match(/^[A-Z]+/);return m&&TEAM_BIG.indexOf(m[0])>=0?m[0]:'其他';}
+function teamPass(tm,sel){
+  tm=String(tm||'').trim();
+  if(!sel)return true;
+  if(sel==='_n')return !tm;
+  if(sel.indexOf('G:')===0)return !!tm&&teamBig(tm)===sel.slice(2);
+  return tm===sel;
+}
+/** 組別下拉的選項：大組（全部 EIA）＋縮排的子組；只有一個子組且同名（QC、MT）就只列一行 */
+function teamOpts(order,count,cur,blank){
+  var groups={},h='<option value="">全部組別</option>';
+  order.forEach(function(t){if(!count[t])return;var g=teamBig(t);(groups[g]=groups[g]||[]).push(t);});
+  TEAM_BIG.concat(['其他']).forEach(function(g){
+    var l=groups[g];if(!l)return;
+    var n=l.reduce(function(a,t){return a+count[t];},0);
+    if(l.length===1&&l[0].toUpperCase()===g){
+      h+='<option value="'+he(l[0])+'"'+(cur===l[0]?' selected':'')+'>'+he(l[0])+'（'+n+'）</option>';return;
+    }
+    h+='<option value="G:'+g+'"'+(cur==='G:'+g?' selected':'')+'>'+(g==='其他'?'其他組別':'全部 '+g)+'（'+n+'）</option>';
+    l.forEach(function(t){h+='<option value="'+he(t)+'"'+(cur===t?' selected':'')+'>　　'+he(t)+'（'+count[t]+'）</option>';});
+  });
+  if(blank)h+='<option value="_n"'+(cur==='_n'?' selected':'')+'>未填組別（'+blank+'）</option>';
+  return h;
+}
+function isAdmin(){return normRole(ROLE)==='admin';}
+
 /* ── 通訊錄 ── */
 var bookQ='',bookRg='',bookTm='',bookSf='',STAFF_READY=false;
 function bookPage(){
@@ -3913,12 +3958,12 @@ function bookPage(){
   var list=STAFF.filter(function(s){
     var rg=(s.region||'').trim(),tm=(s.team||'').trim();
     if(bookRg==='_n'){if(rg)return false;}else if(bookRg&&rg!==bookRg)return false;
-    if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
+    if(!teamPass(tm,bookTm))return false;
     if(!q)return true;
     return [s.name,s.phone,s.note,rg,tm].join(' ').toLowerCase().indexOf(q)>=0;
   });
-  var used={},blank=false;
-  STAFF.forEach(function(s){var t=(s.team||'').trim();if(t)used[t]=(used[t]||0)+1;else blank=true;});
+  var used={},blank=0;
+  STAFF.forEach(function(s){var t=(s.team||'').trim();if(t)used[t]=(used[t]||0)+1;else blank++;});
   var teams=TEAMS.slice();
   STAFF.forEach(function(s){var t=(s.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
 
@@ -3942,14 +3987,11 @@ function bookPage(){
   h+='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
     +'<div style="display:flex;gap:6px;margin-bottom:12px">'
     +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1;min-width:0">'
-    +['','台北','台中','高雄','_n'].map(function(o){
+    +[''].concat(rgShow(bookRg),['_n']).map(function(o){
       return '<option value="'+o+'"'+(bookRg===o?' selected':'')+'>'+(o==='_n'?'未指定地區':(o||'全部地區'))+'</option>';}).join('')
     +'</select>'
     +'<select class="fld" onchange="bookTm=this.value;paintBook()" style="flex:1;min-width:0">'
-    +'<option value="">全部組別</option>'
-    +teams.filter(function(t){return used[t];}).map(function(t){
-      return '<option value="'+he(t)+'"'+(bookTm===t?' selected':'')+'>'+he(t)+'（'+used[t]+'）</option>';}).join('')
-    +(blank?'<option value="_n"'+(bookTm==='_n'?' selected':'')+'>未填組別</option>':'')
+    +teamOpts(teams,used,bookTm,blank)
     +'</select>'
     +'<select class="fld" onchange="bookSf=this.value;paintBook()" style="flex:1;min-width:0">'
     +'<option value="">--- 證照</option>'
@@ -3997,7 +4039,7 @@ function bookList(){
   var list=STAFF.filter(function(s){
     var rg=(s.region||'').trim(),tm=(s.team||'').trim();
     if(bookRg==='_n'){if(rg)return false;}else if(bookRg&&rg!==bookRg)return false;
-    if(bookTm==='_n'){if(tm)return false;}else if(bookTm&&tm!==bookTm)return false;
+    if(!teamPass(tm,bookTm))return false;
     if(!passSf(s.name,bookSf))return false;
     if(!q)return true;
     var bits=[s.name,s.phone,s.ext,s.note,rg,tm];
@@ -4022,6 +4064,7 @@ function bookList(){
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
       +he(s.name)
       +(pinned&&s.name===me?'<span class="beta" style="background:var(--card2);color:var(--tx2)">我</span>':'')
+      +(s.hidden?'<span class="beta" style="background:var(--card2);color:var(--tx3)">已隱藏</span>':'')
       +'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'
       +(ph?'<a href="tel:'+he(ph.replace(/-/g,''))+'">'+he(ph)+'</a>':'未登記電話')
@@ -4182,6 +4225,9 @@ function morePage(){
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>';
   if(normRole(ROLE)==='admin')h+='<div class="sec">管理</div>'
     +'<button class="link" onclick="viewPick()"><div><div>切換使用者視角</div><div class="hint" style="margin-top:2px">選一個人，看他打開 App 看到的畫面（唯讀）</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>'
+    +'<div class="link" style="cursor:default;display:block"><div>顯示的地區</div><div class="hint" style="margin-top:2px">點一下切換。灰色＝隱藏：不會出現在大家的地區選單和行事曆下方的檔案更新時間</div>'
+      +'<div class="segw" style="margin-top:10px;white-space:nowrap">'
+      +RG_ALL.map(function(k){return '<button class="segb'+(HIDE_RG.indexOf(k)<0?' on':'')+'" style="white-space:nowrap;padding:0 16px" onclick="rgHideToggle(\''+k+'\')">'+k+'</button>';}).join('')+'</div></div>'
     +'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<button class="link mobonly" onclick="go(\'more\',\'navcfg\')"><div><div>下方頁籤</div><div class="hint" style="margin-top:2px">自己選下面那排要放哪些，其他放在「更多」</div></div><span style="flex:1"></span>'+ic('menu',19)+'</button>'
@@ -4571,7 +4617,7 @@ function paintFilter(){
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
-    +['','台北','台中','高雄'].map(function(o){
+    +[''].concat(rgShow(FT.rg)).map(function(o){
       return '<option value="'+o+'"'+(FT.rg===o?' selected':'')+'>'+(o||'全部地區')+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">PM</p>'
@@ -5962,6 +6008,13 @@ function evToggle(p){
 /** 點月曆上的事件標籤：開當日面板並展開那個案子 */
 function openEv(d,proj){openDay(d,proj);}
 
+/** 這個案子當天每個測項的數量都是 0（沒有數量的不算） */
+function qtyAllZero(g){
+  return g.tlist.length>0&&g.tlist.every(function(t){
+    var q=(g.tmap[t].qtys||[]).filter(function(x){return String(x==null?'':x).trim()!=='';});
+    return q.length>0&&q.every(function(x){return /^[+-]?0+(\.0+)?$/.test(String(x).trim());});
+  });
+}
 /** 一個案子的完整明細：各測項一段，最後是共用資訊 */
 function evDetail(g){
   var c=pcolor(g.project),multi=g.tlist.length>1,h=castBox(g);
@@ -5982,9 +6035,11 @@ function evDetail(g){
       h+='<div class="dcard">'+dr('數量',he(q))+rows+'</div>';
     }
   });
+  // 2026-10-07z：數量全部是 0＝設備放在現場，當天不架設也不收站（自動監測中、或等收站／啟動）→ 不顯示公務車、現場
+  var idle=qtyAllZero(g);
   var shared=dr('PM',g.engs.map(telLink).join('<br>'))
-    +dr('公務車',he(g.cars.join('、')))
-    +dr('現場',g.staff.map(telLink).join('<br>'))
+    +(idle?'':dr('公務車',he(g.cars.join('、'))))
+    +(idle?'':dr('現場',g.staff.map(telLink).join('<br>')))
     +dr('備註',he(g.notes.join('；')));
   if(shared)
     h+='<div class="shbox"><p class="shh2">'+(multi?'以下為本案共用':'人員與車輛')+'</p>'
@@ -6332,13 +6387,15 @@ function editStaff(name){
     +'<input class="fld" id="s-p" type="tel" inputmode="numeric" autocomplete="tel" value="'+he(s.phone)+'" placeholder="0912345678" style="margin-bottom:13px">'
     +extField(s)
     +'<p class="lb">地區</p><select class="fld" id="s-r" style="margin-bottom:13px">'
-    +['','台北','台中','高雄'].map(function(o){
+    +[''].concat(rgShow(s.region||'')).map(function(o){
       return '<option value="'+o+'"'+((s.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')+'</select>'
     +'<p class="lb">組別</p><input class="fld" id="s-t" list="tl" value="'+he(s.team)+'" placeholder="EIA-T、SP-C…" style="margin-bottom:13px">'
     +'<datalist id="tl">'+teams.map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
+    +(isAdmin()&&name?'<div class="link" style="cursor:default;margin-bottom:13px"><div><div>隱藏此人員</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在通訊錄看得到（本人仍看得到自己）</div></div><span style="flex:1"></span>'
+      +'<button class="sw'+(s.hidden?' on':'')+'" id="s-h" onclick="this.classList.toggle(\'on\')"></button></div>':'')
     +'<div style="height:6px"></div>'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
     +(name&&can('staff')
@@ -6431,7 +6488,8 @@ function saveStaff(){
               .filter(function(o){return o.t||o.c||o.d;});
   gas('saveStaff',TOKEN,n,fmtPhone($('s-p').value),$('s-r').value,$('s-t').value.trim(),
       JSON.stringify(certs),
-      (EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'',extVal())
+      (EDIT_S&&EDIT_S.note)||'',(EDIT_S&&EDIT_S.alias)||'',extVal(),
+      $('s-h')?$('s-h').classList.contains('on'):null)
     .then(function(r){
       if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no');return;}
       toast('已儲存','ok');closeSheet();loadStaff(render,true);
@@ -7078,23 +7136,20 @@ function loadUsers(){
 var USERS=[],userQ='',userRg='',userTm='',userRo='';
 function usersHTML(){
   if(userRo==='admin')userRo='';
-  var teams=[];
-  USERS.forEach(function(u){var t=(u.team||'').trim();if(t&&teams.indexOf(t)<0)teams.push(t);});
+  var teams=[],ucnt={},ublank=0;
+  USERS.forEach(function(u){var t=(u.team||'').trim();if(t){if(teams.indexOf(t)<0)teams.push(t);ucnt[t]=(ucnt[t]||0)+1;}else ublank++;});
   teams.sort(function(a,b){return a.localeCompare(b,'zh-Hant');});
   var h='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="newUser()">新增帳號</button>'
     +'<input class="fld" placeholder="搜尋帳號、姓名或組別" value="'+he(userQ)+'"'
     +' oninput="userQ=this.value;paintUsers()" style="margin-bottom:9px">'
     +'<div style="display:flex;gap:6px;margin-bottom:12px">'
     +'<select class="fld" onchange="userRg=this.value;paintUsers()" style="flex:1;min-width:0">'
-    +['','台北','台中','高雄','_n'].map(function(o){
+    +[''].concat(rgShow(userRg),['_n']).map(function(o){
       return '<option value="'+o+'"'+(userRg===o?' selected':'')+'>'
         +(o==='_n'?'未指定地區':(o||'全部地區'))+'</option>';}).join('')
     +'</select>'
     +'<select class="fld" onchange="userTm=this.value;paintUsers()" style="flex:1;min-width:0">'
-    +'<option value="">全部組別</option>'
-    +teams.map(function(t){
-      return '<option value="'+he(t)+'"'+(userTm===t?' selected':'')+'>'+he(t)+'</option>';}).join('')
-    +'<option value="_n"'+(userTm==='_n'?' selected':'')+'>未填組別</option>'
+    +teamOpts(teams,ucnt,userTm,ublank)
     +'</select>'
     +'<select class="fld" onchange="userRo=this.value;paintUsers()" style="flex:1;min-width:0">'
     +'<option value="">全部角色</option>'
@@ -7109,7 +7164,7 @@ function userFiltered(){
   return USERS.filter(function(u){
     var rg=(u.region||'').trim(),tm=(u.team||'').trim();
     if(userRg==='_n'){if(rg)return false;}else if(userRg&&rg!==userRg)return false;
-    if(userTm==='_n'){if(tm)return false;}else if(userTm&&tm!==userTm)return false;
+    if(!teamPass(tm,userTm))return false;
     if(userRo&&normRole(u.role)!==userRo)return false;
     if(!q)return true;
     return [u.username,u.engineerName,tm,rg,roleLabel(u.role)].join(' ').toLowerCase().indexOf(q)>=0;
@@ -7149,7 +7204,8 @@ function userListHTML(){
       +'<div style="font-size:15px;font-weight:500">'+he(nm)+'</div>'
       +'<div style="font-size:13px;color:var(--tx3);margin-top:1px">'+he(u.username)
       +(u.team?'　·　'+he(u.team):'')+(u.region?'　·　'+he(u.region):'')
-      +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')+'</div>'
+      +(u.active?'':'　·　<span style="color:var(--err)">已停用</span>')
+      +(u.hidden?'　·　<span style="color:var(--tx2)">已隱藏</span>':'')+'</div>'
       +'</div>'
       +'<span class="tag'+(u.active?' g':'')+'">'+roleLabel(u.role)+'</span>'
       +'<span style="color:var(--tx3);font-size:17px;flex-shrink:0">'
@@ -7233,7 +7289,7 @@ function editUser(name){
       return '<option value="'+k+'"'+(k===u.role?' selected':'')+'>'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">地區</p><select class="fld" id="e-g" style="margin-bottom:13px">'
-    +['','台北','台中','高雄'].map(function(o){
+    +[''].concat(rgShow(u.region||'')).map(function(o){
       return '<option value="'+o+'"'+((u.region||'')===o?' selected':'')+'>'+(o||'未指定')+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">組別</p>'
@@ -7241,6 +7297,8 @@ function editUser(name){
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可收到證照到期通知</span></p>'
     +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
+    +(isAdmin()?'<div class="link" style="cursor:default;margin-bottom:16px"><div><div>隱藏此帳號</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在帳號管理看得到，帳號照常可以登入</div></div><span style="flex:1"></span>'
+      +'<button class="sw'+(u.hidden?' on':'')+'" id="e-h" onclick="this.classList.toggle(\'on\')"></button></div>':'')
     +((u.createdAt||u.createdBy)
       ? '<p class="hint" style="margin:-6px 6px 16px">建立於 '+he(shortStamp(u.createdAt)||'—')
         +(u.createdBy?'　由 '+he(u.createdByName||u.createdBy)+' 新增':'')+'</p>'
@@ -7295,6 +7353,7 @@ function saveUser(name){
   if(rg!==(u.region||'')){f.region=rg;any=true;}
   var tm=$('e-t').value.trim();
   if(tm!==(u.team||'')){f.team=tm;any=true;}
+  if($('e-h')){var hd=$('e-h').classList.contains('on');if(hd!==!!u.hidden){f.hidden=hd;any=true;}}
   var mg=MG.join(','),oldMg=mgrsOf(u).join(',');
   if(MG_FOR===name&&mg!==oldMg){f.manager=mg;any=true;}
   var nu=$('e-u')?$('e-u').value.trim():name;
@@ -7335,7 +7394,7 @@ function newUser(){
     +roleChoices().slice().reverse().map(function(k){return '<option value="'+k+'">'+ROLE_LABEL[k]+'</option>';}).join('')
     +'</select>'
     +'<p class="lb">地區</p><select class="fld" id="n-g" style="margin-bottom:13px">'
-    +['','台北','台中','高雄'].map(function(o){
+    +[''].concat(rgShow('')).map(function(o){
       return '<option value="'+o+'">'+(o||'未指定')+'</option>';}).join('')+'</select>'
     +'<p class="lb">組別（選填）</p>'
     +'<input class="fld" id="n-t" list="utl2" placeholder="EIA-T-PM、SP-C…" style="margin-bottom:13px">'
