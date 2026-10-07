@@ -4682,10 +4682,8 @@ function paintFilter(){
     +pickBtn('en',FT.en,'全部 PM')
     +'<p class="lb">現場　<span style="color:var(--tx2)">含申報人員</span></p>'
     +pickBtn('st',FT.st,'全部現場人員')
-    +'<p class="lb">儀器</p><select class="fld" id="f-eq" style="margin-bottom:16px">'
-    +'<option value="">全部儀器</option>'
-    +eqOptions().map(function(o){return '<option value="'+he(o)+'"'+(FT.eq===o?' selected':'')+'>'+he(o)+'</option>';}).join('')
-    +'</select>'
+    +'<p class="lb">儀器</p>'
+    +pickBtn('eq',FT.eq,'全部儀器')
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
     +'<div class="opts" style="margin-bottom:4px">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
@@ -4694,7 +4692,6 @@ function paintFilter(){
     +'<div style="height:8px"></div>';
   $('sheetin').innerHTML=h;
   $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
-  $('f-eq').onchange=function(){FT.eq=this.value;paintFilter();};
   var tq=$('f-tq');
   if(tq)tq.oninput=function(){TYQ=this.value;$('tyarea').innerHTML=tyAreaHTML(TY_LAST.tys,TY_LAST.raw);};
 
@@ -4861,6 +4858,7 @@ function pickTeams(names){
   return out;
 }
 function paintPicker(){
+  if(PK.who==='eq'){paintEqPicker();return;}
   var names=pickNames(),teams=pickTeams(names);
   var cur=(PK.who==='en'?FT.en:FT.st);
   var ttl=(PK.who==='en'?'選擇 PM':'選擇現場人員');
@@ -4901,9 +4899,54 @@ function paintPickGrid(){
 }
 function pickTeam(t){PK.team=t;paintPicker();}
 function pickSet(n){
-  if(PK.who==='en')FT.en=n;else FT.st=n;
+  if(PK.who==='eq')FT.eq=n;else if(PK.who==='en')FT.en=n;else FT.st=n;
   PK.who='';
   paintFilter();
+}
+
+/* ── 儀器選擇（2026-10-07z）：跟選人一樣分類 ── */
+var EQ_CATS=['空品車','噪音','振動','PM2.5','PM10','戴奧辛','TSP','水質','其他'];
+function eqCat(x){
+  x=String(x||'').trim();
+  if(/號車/.test(x))return '空品車';                 // 3號車
+  if(/^NL[-_]/i.test(x))return '噪音';               // NL-T06
+  if(/^V[-_]?\d/i.test(x))return '振動';             // V10
+  if(/^PM\s*2\.?5/i.test(x))return 'PM2.5';          // PM2.5-T08
+  if(/^PM\s*10/i.test(x))return 'PM10';              // PM10-T01
+  if(/^PS1/i.test(x))return '戴奧辛';                 // PS1-T22
+  if(/^TSP/i.test(x))return 'TSP';                   // TSP-T04
+  if(/^W/i.test(x))return '水質';                     // W14、W19
+  return '其他';
+}
+function paintEqPicker(){
+  var all=eqOptions(),has={};all.forEach(function(x){has[eqCat(x)]=1;});
+  var h='<div class="shh" style="align-items:center">'
+    +'<button class="ib" onclick="closePick()">‹</button>'
+    +'<h3 style="flex:1;font-size:17px">選擇儀器</h3>'
+    +'<button class="btn btn-sm" onclick="pickSet(\'\')">全部</button></div>'
+    +'<input class="fld" id="pk-q" value="'+he(PK.q)+'" placeholder="搜尋儀器編號" style="margin-bottom:10px">'
+    +'<div class="etab">'
+    +'<button class="et'+(PK.team?'':' on')+'" onclick="pickTeam(\'\')">全部</button>'
+    +EQ_CATS.filter(function(c){return has[c];}).map(function(c){
+      return '<button class="et'+(PK.team===c?' on':'')+'" onclick="pickTeam(\''+esc(c)+'\')">'+he(c)+'</button>';}).join('')
+    +'</div><div id="pkgrid">'+eqGridHTML()+'</div>';
+  $('sheetin').innerHTML=h;
+  var q=$('pk-q');
+  if(q)q.oninput=function(){PK.q=this.value;var el=$('pkgrid');if(el)el.innerHTML=eqGridHTML();};
+}
+function eqGridHTML(){
+  var q=PK.q.trim().toLowerCase();
+  var list=eqOptions().filter(function(x){
+    if(PK.team&&eqCat(x)!==PK.team)return false;
+    return !q||x.toLowerCase().indexOf(q)>=0;
+  });
+  if(!list.length)return '<div class="empty">查無符合的儀器</div>';
+  // 依分類順序，再依編號排
+  list.sort(function(a,b){return EQ_CATS.indexOf(eqCat(a))-EQ_CATS.indexOf(eqCat(b))||a.localeCompare(b,'zh-Hant',{numeric:true});});
+  return '<div class="pgrid">'+list.map(function(x){
+    return '<button class="pcell'+(x===FT.eq?' on':'')+'" onclick="pickSet(\''+esc(x)+'\')">'
+      +he(x)+'<small>'+he(eqCat(x))+'</small></button>';
+  }).join('')+'</div>';
 }
 
 /** 目前資料裡出現過的所有測項 */
