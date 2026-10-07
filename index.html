@@ -942,7 +942,13 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
 /* 個案廣播的案子名稱 */
-.mgpj{display:inline-block;font-size:11.5px;color:var(--accT);background:var(--tint);border-radius:6px;padding:1px 7px;margin:2px 0 4px}
+.mgfrom{font-size:12.5px;color:var(--tx2);margin:1px 0 3px}
+.mgrel{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--accT);background:var(--tint);border-radius:6px;padding:0 6px}
+.mgpj{display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--accT);background:none;
+  border:0;padding:6px 0 2px;cursor:pointer}
+.mgpjc{display:inline-flex}
+.mgpj.on .mgpjc svg{transform:rotate(90deg)}
+.mgev{border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin:0 0 8px;background:var(--card)}
 /* 訊息頁上方「下載訊息中…」 */
 .mgload{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 4px;color:var(--tx2);font-size:13px;font-weight:500}
 .mgload .spin{margin-top:-14px}
@@ -1244,15 +1250,28 @@ function notesEdit(fn){
     });
   }).catch(function(){});
 }
+/** 把推播紀錄轉成一則廣播（伺服器那份還沒回來時先用）
+ *  標題格式：群組「📣 王小明 的廣播」；個案「📣 王小明｜案名 10/14」→ 解析出案名和監測日期 */
+function noteCast(n){
+  var t=String(n.t||''),d=new Date(n.at||0),x;
+  var at=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+  x={id:n.c,from:'廣播',at:at,text:n.b||'',toMe:true,pend:true};
+  var g=t.match(/📣\s*(.+?)\s*的廣播/),c=t.match(/📣\s*(.+?)｜(.+?)\s+(\d{1,2})\/(\d{1,2})\s*$/);
+  if(c){
+    x.from=c[1];x.project=c[2];
+    var y=d.getFullYear(),mo=+c[3];
+    if(mo-(d.getMonth()+1)>6)y--;else if((d.getMonth()+1)-mo>6)y++;   // 跨年
+    x.date=y+'-'+p2(mo)+'-'+p2(+c[4]);
+  }else if(g)x.from=g[1];
+  return x;
+}
 /* 點廣播通知進來時，伺服器的收件匣還沒讀回來：先用通知內容把那則廣播放上去，讀回來後自動換成正式的 */
 function notesInbox(){
-  if(!TOKEN)return;
+  if(!TOKEN||VIEWAS)return;
   var have={},add=0;(INBOX.inbox||[]).forEach(function(x){have[String(x.id)]=1;});
   NOTES.forEach(function(n){
     if(!n.c||have[n.c]||Date.now()-n.at>7*864e5)return;   // 2026-10-07z：點過的通知（r=1）也要放；伺服器還沒有這則就先用推播內容   // 伺服器（或上次存的）資料比通知新就以伺服器為準；還沒任何資料就等伺服器
-    var m=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at);
-    var at=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
-    INBOX.inbox=[{id:n.c,from:m?m[1]:'廣播',at:at,text:n.b||'',toMe:true,pend:true}].concat(INBOX.inbox||[]);
+    INBOX.inbox=[noteCast(n)].concat(INBOX.inbox||[]);
     have[n.c]=1;add++;
   });
   if(add&&(tab==='today'||tab==='msg')&&!sub&&!$('ov').classList.contains('open'))render();
@@ -1780,11 +1799,11 @@ function msgItems(){
     if(x.pend)un=rs.indexOf(id)<0;                // 2026-10-07z：點通知會把通知標成已讀，但廣播還沒按「收到」→ 仍算未收到
     out.push({k:'c',key:'c'+id,at:msgAt(x.at),un:un,x:x,rd:msgReadDay()[id]||''});
   });
-  NOTES.forEach(function(n){
+  if(!VIEWAS)NOTES.forEach(function(n){          // 檢視別人時，這支手機的推播是管理員自己的，不能拿來顯示
     if(!n.c||have[n.c])return;                     // 只放廣播（行程／待辦提醒只跳手機通知）；以伺服器那份為準
     if(Date.now()-(n.at||0)>7*864e5)return;        // 2026-10-07z：伺服器那份還沒有這則（剛收到、或個案廣播），就先用推播內容顯示，不要藏起來；超過 7 天的不放
-    var mm=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at||0);
-    var x={id:n.c,from:mm?mm[1]:'通知',text:n.b||'',at:d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes()),toMe:true,pend:true};
+    var d=new Date(n.at||0);
+    var x=noteCast(n);
     out.push({k:'c',key:'n'+n.id,at:n.at||0,un:rs.indexOf(String(n.c))<0,n:n,x:x,rd:n.rd||msgReadDay()[n.c]||''});
   });
   var td=twStr();
@@ -1814,9 +1833,11 @@ function msgRow(m){
   var ic3={c:['c','mega'],s:['s','cal'],t:['t','check']}[m.k],h;
   h='<div class="mgi'+(m.un?'':' rd')+'" style="cursor:default"><div class="mgic '+ic3[0]+'">'+ic(ic3[1],18)+'</div><div class="mgbd">';
   if(m.x){
-    h+='<div class="mgt"><b>'+he(m.x.from||'廣播')+'</b><span>'+msgTime(m.at)+'</span>'+(m.un?'<i class="mgdot"></i>':'')+'</div>'
-      +(m.x.project?'<div class="mgpj">'+he(String(m.x.project).split('_')[0])+(m.x.date?'　'+he(String(m.x.date).slice(5).replace('-','/').replace(/^0/,'').replace('/0','/')):'')+'</div>':'')   // 個案廣播：哪個案子、哪一天
-      +castText(m.x)+(m.old?'':rcptLine(m.x,'msg'))
+    // 個案廣播：標題跟「我發的」一樣寫「案名（10/14 行程）」，下面一行是誰發的；可展開看那天的完整行程
+    h+='<div class="mgt"><b>'+he(m.x.project?msgPjTitle(m.x):(m.x.from||'廣播'))+'</b><span>'+msgTime(m.at)+'</span>'+(m.un?'<i class="mgdot"></i>':'')+'</div>'
+      +(m.x.project?'<div class="mgfrom">'+he(m.x.from||'')+' 發送'+msgPjRel(m.x)+'</div>':'')
+      +castText(m.x)
+      +(m.x.project?msgPjHTML(m.x):'')+(m.old?'':rcptLine(m.x,'msg'))
       +(m.un?'<div class="mgrb"><button onclick="msgTap(\''+m.key+'\')">'+ic('check',14)+'收到</button></div>':'');   // 每則自己按「收到」，發送者看得到
     return h+'</div></div>';
   }
@@ -1871,7 +1892,7 @@ function msgSentList(sent){
     if(g!==grp){h+=(grp?'</div>':'')+'<div class="mgsec">'+g+'</div><div class="mgl">';grp=g;}
     var tag=x.project?x.project+'（'+parseInt(String(x.date).slice(5,7))+'/'+parseInt(String(x.date).slice(8,10))+' 行程）':(x.groups||'群組廣播');
     h+='<div class="mgi" style="cursor:default"><div class="mgic c">'+ic('mega',18)+'</div><div class="mgbd"><div class="mgt"><b>'+he(tag)+'</b><span>'+msgTime(msgAt(x.at))+'</span></div>'
-      +castText(x)+rcptLine(x,'sent')+'</div></div>';
+      +castText(x)+(x.project?msgPjHTML(x):'')+rcptLine(x,'sent')+'</div></div>';   // 我發的個案廣播也能展開看行程
   });
   return h+'</div><p class="hint" style="text-align:center;margin:14px 0 4px">發出的通知保留 7 天</p>';
 }
@@ -1887,6 +1908,55 @@ function msgMark(list){
   }
   var td=twStr();
   notesEdit(function(l){l.forEach(function(n){if(ns.indexOf(n.id)>=0||(n.c&&cs.indexOf(n.c)>=0)){n.r=1;if(!n.rd)n.rd=td;}});return l;}).then(function(){if(tab==='msg'&&!sub&&!$('ov').classList.contains('open'))render();});
+}
+/* ── 個案廣播：案名＋監測日期，點了展開那天那個案子的完整行程 ── */
+var MSG_PJ={},MSG_PJROWS={};
+function pjKey(p){return String(p||'').split('_')[0].trim();}
+function msgPjTitle(x){
+  var d=String(x.date||'');
+  return pjKey(x.project)+(/^\d{4}-\d{2}-\d{2}$/.test(d)?'（'+(+d.slice(5,7))+'/'+(+d.slice(8,10))+' 行程）':'');
+}
+/** 不是當天發的就註明：提前／延後發送 */
+function msgPjRel(x){
+  var d=String(x.date||''),sent=String(x.at||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d===sent)return '';
+  return '<span class="mgrel">'+(d>sent?'提前發送':'延後發送')+'</span>';
+}
+function msgPjHTML(x){
+  var id=String(x.id),on=!!MSG_PJ[id];
+  var h='<button class="mgpj'+(on?' on':'')+'" onclick="event.stopPropagation();msgPjToggle(\''+esc(id)+'\')">'
+    +ic('cal',13)+'<span>'+(on?'收起行程':'看這天的完整行程')+'</span><span class="mgpjc">'+ic('right',12)+'</span></button>';
+  if(on)h+='<div class="mgev">'+msgPjBody(x)+'</div>';
+  return h;
+}
+function msgPjFind(x){
+  var d=String(x.date||''),k=pjKey(x.project),seen={},out=[];
+  var src=(MSG_PJROWS[d]||[]).concat(normRows(allKnownRows().filter(function(r){return r.date===d;})));
+  src.forEach(function(r){
+    if(r.date!==d||pjKey(r.project)!==k)return;
+    var rk=rowKey(r);if(seen[rk])return;seen[rk]=1;out.push(r);
+  });
+  return out;
+}
+function msgPjBody(x){
+  var rows=msgPjFind(x),d=String(x.date||'');
+  if(rows.length){var g=groupBy(rows)[0];return g?evDetail(g):'';}
+  if(MSG_PJROWS[d]&&MSG_PJROWS[d].done)return '<div class="hint" style="padding:8px 2px">找不到這個行程（可能已改期或刪除）</div>';
+  return loader('讀取行程…');
+}
+function msgPjToggle(id){
+  MSG_PJ[id]=!MSG_PJ[id];
+  var x=(INBOX.inbox||[]).concat(INBOX.sentCase||[],INBOX.sent||[]).filter(function(o){return String(o.id)===id;})[0];
+  if(!x)msgItems().forEach(function(m){if(m.x&&String(m.x.id)===id)x=m.x;});
+  render();
+  if(!MSG_PJ[id]||!x||!x.date||msgPjFind(x).length)return;
+  var d=String(x.date);
+  if(MSG_PJROWS[d]&&MSG_PJROWS[d].busy)return;
+  MSG_PJROWS[d]=[];MSG_PJROWS[d].busy=true;
+  gas('getData',TOKEN,{dateFrom:d,dateTo:d}).then(function(r){   // 手上沒有那天的資料 → 只抓那一天
+    var list=normRows((r&&r.ok&&r.rows)||[]);list.done=true;MSG_PJROWS[d]=list;
+    if(tab==='msg'&&!sub&&!$('ov').classList.contains('open'))render();
+  }).catch(function(){var l=[];l.done=true;MSG_PJROWS[d]=l;if(tab==='msg')render();});
 }
 function msgTap(key){
   var m=msgFind(key);if(!m)return;
