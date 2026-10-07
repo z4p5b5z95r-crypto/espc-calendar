@@ -941,6 +941,11 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
   box-shadow:var(--sh);animation:up .2s ease;line-height:1.6;text-align:center;}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
+/* 從上面跳下來的提示（不擋住下方的送出按鈕） */
+#toastTop{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);
+  z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 32px);max-width:420px;}
+#toastTop .ts{animation:tsdown .28s cubic-bezier(.3,1.3,.5,1)}
+@keyframes tsdown{from{transform:translateY(-24px);opacity:0}to{transform:none;opacity:1}}
 
 /* ── 新帳號憑證卡 ── */
 .nacard{background:var(--card);border:1px solid var(--line);border-radius:18px;
@@ -1262,6 +1267,18 @@ function inboxApply(r,at){
   if(!$('ov').classList.contains('open')&&(((tab==='today'||tab==='msg')&&!sub)||sub==='hist'))render();
   msgPaint();
 }
+/** 點通知時 sw.js 記下的「要打開哪裡」（./__open）：2 分鐘內的才算，用過就刪 */
+function swOpenClear(){if(window.caches)caches.open('espc-badge').then(function(c){c.delete('./__open');}).catch(function(){});}
+function swOpenTake(){
+  if(!window.caches)return;
+  caches.open('espc-badge').then(function(c){
+    return c.match('./__open').then(function(r){return r?r.json():null;}).then(function(j){
+      if(!j)return;
+      c.delete('./__open');
+      if(Date.now()-(j.at||0)<120000&&j.url){swInboxTake();deepGo(j.url);}
+    });
+  }).catch(function(){});
+}
 /** 讀 sw.js 預先抓好的收件匣：比手上的新就直接用，不用等伺服器 */
 function swInboxTake(){
   if(!window.caches||!TOKEN)return Promise.resolve(false);
@@ -1540,10 +1557,12 @@ function toggleTheme(){lsS('espc_theme',(ls('espc_theme')||'light')==='dark'?'li
 applyTheme();
 
 /* ── 提示 ── */
-function toast(msg,kind,ms){
+function toast(msg,kind,ms,top){
   var el=document.createElement('div');
   el.className='ts'+(kind?' '+kind:'');el.textContent=msg;
-  $('toast').appendChild(el);
+  var box=$('toast');
+  if(top){box=$('toastTop');if(!box){box=document.createElement('div');box.id='toastTop';document.body.appendChild(box);}}   // top＝從畫面上方跳出
+  box.appendChild(el);
   setTimeout(function(){el.remove();},ms||3000);
 }
 
@@ -2674,6 +2693,8 @@ function boot(u,r,eng){
 
   appInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
+  // 冷啟動：網址有帶要開哪裡 → sw.js 記的那筆用不到；沒帶（有些 iPhone 打開時會把參數丟掉）→ 畫面好了再去拿
+  if(/[?&](inbox|d|todo|due)=/.test(location.search))swOpenClear();else setTimeout(swOpenTake,1500);
   var isDeep=takeDeep();
   if(INBOX_DEEP){INBOX_DEEP=false;MSG_SEG='in';back={t:'msg',s:''};swInboxTake();inboxLoad(true);}   // 2026-10-07z：點廣播通知 → 直接打開訊息
   if(isDeep){   // 2026-10-07z：廣播 → 訊息；今天 → 今日；其他日期 → 行事曆那一天
@@ -5447,7 +5468,7 @@ function castSend(){
   gas('castPush',TOKEN,EV_D,CAST.p,names,t).then(function(r){
     CAST.busy=false;
     if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);castPaint();return;}
-    if(r.noPush&&r.noPush.length)toast(r.noPush.join('、')+' 沒開推播，建議打電話','',5000);   // 按鈕已顯示「✓ 已送出」，只在有人收不到時提醒
+    if(r.noPush&&r.noPush.length)toast(r.noPush.join('、')+' 沒開推播，建議打電話','',5000,true);   // 按鈕已顯示「✓ 已送出」，只在有人收不到時提醒
     CAST.done=true;castPaint();                 // 按鈕先變綠「✓ 已送出」，停一下再關
     setTimeout(function(){CAST.done=false;castLoad(EV_D,true);if(CAST.p)castClose();},3000);
   }).catch(function(){CAST.busy=false;toast('連線失敗','no');castPaint();});
@@ -6096,7 +6117,7 @@ function gcSend(){
   gas('groupCast',TOKEN,names,groups,t).then(function(r){
     GC.busy=false;
     if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);render();return;}
-    if(r.noPush&&r.noPush.length)toast(r.noPush.length+' 人沒開推播（App 裡看得到）','',4000);   // 按鈕已顯示「✓ 已送出」
+    if(r.noPush&&r.noPush.length)toast(r.noPush.length+' 人沒開推播（App 裡看得到）','',4000,true);   // 按鈕已顯示「✓ 已送出」
     GC.text='';GC.ppl={};GC.open={};GC.done=true;inboxLoad(true);render();
     var gc=GC;setTimeout(function(){gc.done=false;if(!$('ov').classList.contains('open'))render();},3000);
   }).catch(function(){GC.busy=false;toast('連線失敗','no');render();});
@@ -7985,7 +8006,7 @@ function appInit(){
   // 推播進來時 sw.js 會通知畫面：App 開著也馬上更新廣播、跳提示
   if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){
     var d=e.data||{};
-    if(d.type==='open'){swInboxTake();deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
+    if(d.type==='open'){swOpenClear();swInboxTake();deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
     if(d.type==='inbox'){swInboxTake();return;}   // sw.js 在背景把收件匣抓好了
     if(d.type==='ver'){SW_VER=d.v+(d.badge?'':'（不支援紅點）');var el=$('swver');if(el)el.textContent='推播服務：'+SW_VER;return;}
     if(d.type!=='push')return;
@@ -8001,8 +8022,12 @@ function appInit(){
         &&!(/iPad|iPhone|iPod/.test(navigator.userAgent)&&!isStandalone()))pushOn(true);
     }catch(e){}
   },2500);
+  // iPhone 從背景回來有時只觸發 pageshow／focus，不一定有 visibilitychange → 都去看一下要不要跳頁
+  window.addEventListener('pageshow',function(){swOpenTake();setTimeout(swOpenTake,800);});
+  window.addEventListener('focus',function(){swOpenTake();});
   document.addEventListener('visibilitychange',function(){
     if(document.hidden)return;
+    swOpenTake();setTimeout(swOpenTake,800);setTimeout(swOpenTake,2000);   // 點通知回來、但 sw.js 的訊息沒送到（iPhone 常見）→ 自己去拿要打開哪裡；iPhone 有時先切回 App 才跑 sw.js，所以再多看兩次
     swInboxTake();inboxLoad(false);if(EV_D)castLoad(EV_D);      // 從背景切回來：先用 sw.js 預抓的，再看伺服器有沒有更新
     pushRefresh();                                 // 順便檢查推播連線（每小時最多一次）
     annCheck();                                    // 有新公告就跳出來
