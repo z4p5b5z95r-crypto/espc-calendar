@@ -149,18 +149,37 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .upspin .upd{animation:upd 1.8s cubic-bezier(.45,0,.55,1) infinite;transform-box:fill-box;transform-origin:center}
 .upspin .upd2{animation-delay:.6s}.upspin .upd3{animation-delay:1.2s}
 @keyframes upd{0%{transform:translateY(0) scale(.5);opacity:0}12%{opacity:1;transform:translateY(-4px) scale(.9)}70%{transform:translateY(-38px) scale(1,1.15);opacity:1}88%,100%{transform:translateY(-46px) scale(.3);opacity:0}}
-/* 2026-10-07z：發送中（使用者選 C）：一顆玻璃水珠分成三顆扇形飛出；成功變綠「✓ 已送出」 */
-.btn.sending{background:var(--tint);color:var(--accT);border-color:rgba(243,111,33,.3);opacity:1!important;display:inline-flex;align-items:center;justify-content:center;gap:4px}
-.btn.btn-full.sending,.btn.btn-full.sent{display:flex}
-.btn.sent{background:#2E9E5B;border-color:#2E9E5B;color:#fff;opacity:1!important}
-.sendic{width:44px;height:30px;overflow:visible;flex-shrink:0;margin:-8px 0 -8px -6px;display:block}
+/* 2026-10-07z：發送中＝按鈕動作學 B（整顆縮成一顆圓），水珠用 C（一顆分成三顆扇形飛出）；成功再展開成綠色「✓ 已送出」 */
+.btn.sdb{width:100%}
+.btn.sdb.sending{display:flex;width:48px;min-width:48px;height:48px;min-height:48px;padding:0;margin:0 auto;position:relative;overflow:visible;
+  background:var(--tint);border-color:rgba(243,111,33,.3);opacity:1!important;animation:sdShrink .38s cubic-bezier(.5,0,.3,1.3)}
+.btn.sdb.sent{background:#2E9E5B;border-color:#2E9E5B;color:#fff;opacity:1!important;animation:sdGrow .38s cubic-bezier(.5,0,.3,1.3)}
+@keyframes sdShrink{from{width:100%}to{width:48px}}
+@keyframes sdGrow{from{width:48px}to{width:100%}}
+.sendic{position:absolute;left:-1px;top:-1px;width:48px;height:48px;overflow:visible;display:block;pointer-events:none}
 .sendic circle{transform-box:fill-box;transform-origin:center}
 .sendic .sdM{animation:sdM 1.3s ease-in-out infinite}
 @keyframes sdM{0%,100%{transform:scale(1)}35%{transform:scale(1.18,.86)}}
 .sendic .sdF{animation:sdF 1.3s cubic-bezier(.4,0,.5,1) infinite}
-@keyframes sdF{0%,25%{transform:translate(0,0) scale(.75);opacity:1}85%{opacity:1}100%{transform:translate(52px,var(--y)) scale(.6);opacity:0}}
+@keyframes sdF{0%,25%{transform:translate(0,0) scale(.75);opacity:1}85%{opacity:1}100%{transform:translate(44px,var(--y)) scale(.6);opacity:0}}
 .sdck{display:inline-block;animation:sdck .4s cubic-bezier(.3,1.6,.5,1)}
 @keyframes sdck{0%{transform:scale(0)}100%{transform:scale(1)}}
+/* 底部送出列：上面一行已選人數，下面整條送出按鈕 */
+.gdock.gcol{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px 12px}
+.gdock.gcol .gdt{white-space:nowrap}
+.gdock.gcol .gdt br{display:none}
+.gdock.gcol .gdt b{font-size:14px;margin-right:6px}
+.gdock.gcol .btn{padding:11px 22px}
+.gpad.gcol{height:136px}
+/* 2026-10-07z：有篩選條件時載入行程（使用者選 E）：三顆水珠聚成一顆膠囊（像篩選標籤），再冒出小水珠往上送出條件 */
+.flspin circle{transform-box:fill-box;transform-origin:center}
+.flspin .flL{animation:flL 1.8s cubic-bezier(.5,0,.3,1.3) infinite}.flspin .flR{animation:flR 1.8s cubic-bezier(.5,0,.3,1.3) infinite}
+@keyframes flL{0%,15%,100%{transform:translateX(0)}40%,70%{transform:translateX(14px) scale(1.05,.9)}}
+@keyframes flR{0%,15%,100%{transform:translateX(0)}40%,70%{transform:translateX(-14px) scale(1.05,.9)}}
+.flspin .flM{animation:flM 1.8s ease-in-out infinite}
+@keyframes flM{0%,15%,100%{transform:scale(1)}40%,70%{transform:scale(1.15,.9)}}
+.flspin .flS{animation:flS 1.8s ease-in-out infinite}
+@keyframes flS{0%,40%{transform:translate(0,0) scale(.3);opacity:0}55%{opacity:1;transform:translate(0,-6px) scale(.8)}80%{transform:translate(0,-20px) scale(.7);opacity:1}95%,100%{transform:translate(0,-26px) scale(.3);opacity:0}}
 /* 整頁載入時放在畫面正中間 */
 #page>.load,#page>[id]>.load:only-child{min-height:calc(100vh - 300px);min-height:calc(100dvh - 300px)}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -1619,14 +1638,15 @@ var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['super
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
   cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]}};
 var UPSPIN='<svg class="spin upspin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><g class="upc"><circle cx="84" cy="46" r="9"/><circle cx="97" cy="38" r="13"/><circle cx="113" cy="40" r="11"/><circle cx="124" cy="47" r="8"/><rect x="76" y="45" width="56" height="10" rx="5"/></g><circle class="upd" cx="90" cy="84" r="8"/><circle class="upd upd2" cx="102" cy="84" r="8"/><circle class="upd upd3" cx="114" cy="84" r="8"/></g></svg>';
-var SEND_IC='<svg class="sendic" viewBox="0 0 88 60" aria-hidden="true"><g filter="url(#sgoo)" fill="#F36F21"><circle class="sdM" cx="14" cy="30" r="12"/><circle class="sdF" cx="16" cy="30" r="9" style="--y:-20px"/><circle class="sdF" cx="16" cy="30" r="9" style="--y:0px"/><circle class="sdF" cx="16" cy="30" r="9" style="--y:20px"/></g></svg>';
+var SEND_IC='<svg class="sendic" viewBox="-48 -48 96 96" aria-hidden="true"><g filter="url(#sgoo)" fill="#F36F21"><circle class="sdM" cx="-10" cy="0" r="13"/><circle class="sdF" cx="-8" cy="0" r="9" style="--y:-24px"/><circle class="sdF" cx="-8" cy="0" r="9" style="--y:0px"/><circle class="sdF" cx="-8" cy="0" r="9" style="--y:24px"/></g></svg>';
 /** 送出按鈕的三種狀態：''＝一般、'busy'＝送出中（水珠動畫）、'done'＝成功（綠色打勾） */
-function sendCls(st){return st==='busy'?' sending':st==='done'?' sent':'';}
+function sendCls(st){return ' sdb'+(st==='busy'?' sending':st==='done'?' sent':'');}
 function sendIn(st,label,busyTxt,doneTxt){
-  if(st==='busy')return SEND_IC+he(busyTxt||'送出中…');
+  if(st==='busy')return SEND_IC+'<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">'+he(busyTxt||'送出中…')+'</span>';
   if(st==='done')return '<span class="sdck">✓</span> '+he(doneTxt||'已送出');
   return label;
 }
+var FLSPIN='<svg class="spin flspin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#sgoo)" fill="#F36F21"><circle class="flL" cx="72" cy="58" r="10"/><circle class="flM" cx="100" cy="58" r="10"/><circle class="flR" cx="128" cy="58" r="10"/><circle class="flS" cx="100" cy="50" r="6"/></g></svg>';
 var SPIN='<svg class="spin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><rect x="58" y="70" width="84" height="12" rx="6"/><circle class="ldj" cx="74" cy="64" r="9"/><circle class="ldj ldj2" cx="100" cy="64" r="9"/><circle class="ldj ldj3" cx="126" cy="64" r="9"/></g></svg>';
 var PERMS=null;
 (function(){try{var o=JSON.parse(ls('espc_perm')||'null');if(o&&o.u&&o.u===ls('espc_user'))PERMS=o.p;}catch(e){}})();
@@ -3879,7 +3899,7 @@ function calPage(){
   var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
   var busy=calLoading||!MONTH_DONE[ck];
   h='<div class="calwrap'+(busy?' busy':'')+'">'+h
-    +(busy?'<div class="calload">'+SPIN+' 載入行程…</div>':'')
+    +(busy?'<div class="calload">'+(nF()?FLSPIN+' 篩選行程…':SPIN+' 載入行程…')+'</div>':'')
     +'</div>';
   if(!busy&&!Object.keys(pmap).length)
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
@@ -4360,7 +4380,7 @@ function loadToday(force,retry){
   var c=force?null:cGet(ck);
   if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
   else{
-    if(onTab)$('page').innerHTML=loader('載入今日行程…');
+    if(onTab)$('page').innerHTML=nF()?'<div class="load">'+FLSPIN+' 篩選行程…</div>':loader('載入今日行程…');
     c=null;
   }
   var o=scopeOpts({dateFrom:t,dateTo:todayRange(t)});
@@ -5479,9 +5499,7 @@ function castSend(){
   gas('castPush',TOKEN,EV_D,CAST.p,names,t).then(function(r){
     CAST.busy=false;
     if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);castPaint();return;}
-    var msg=r.sent.length?'已通知 '+r.sent.join('、'):'已記錄';
-    if(r.noPush&&r.noPush.length)msg+='；'+r.noPush.join('、')+' 沒開推播，建議打電話';
-    toast(msg,r.noPush&&r.noPush.length?'':'ok',5000);
+    if(r.noPush&&r.noPush.length)toast(r.noPush.join('、')+' 沒開推播，建議打電話','',5000);   // 按鈕已顯示「✓ 已送出」，只在有人收不到時提醒
     CAST.done=true;castPaint();                 // 按鈕先變綠「✓ 已送出」，停一下再關
     setTimeout(function(){CAST.done=false;castLoad(EV_D,true);if(CAST.p)castClose();},900);
   }).catch(function(){CAST.busy=false;toast('連線失敗','no');castPaint();});
@@ -5774,7 +5792,7 @@ function gcastPage(){
     if(SENT_OPEN)h+='<div class="ibox">'+INBOX.sent.map(function(x){return castItem(x,true);}).join('')+'</div>';
   }
   // 底部固定：已選人數＋送出（留一段空白，最後一則紀錄不會被蓋住）
-  h+='<div class="gpad"></div><div class="gdock"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'
+  h+='<div class="gpad gcol"></div><div class="gdock gcol"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'
     +he(picked.map(function(g){var c=gcCount(g);return g.tm+(c<g.ppl.length?'（'+c+' 人）':'');}).join('、')||'尚未選擇')+'</div>'
     +'<button class="btn btn-p'+sendCls(GC.busy?'busy':GC.done?'done':'')+'"'+(GC.busy||GC.done||!sel.length?' disabled':'')+' onclick="gcSend()">'+sendIn(GC.busy?'busy':GC.done?'done':'','送出')+'</button></div>';
   setTimeout(gcSearch,0);
@@ -5921,7 +5939,7 @@ function annNewPage(){
   var allOn=all.length&&all.every(function(n){return GC.ppl[n];});
   h+='<div class="sec" style="display:flex">對象<span style="flex:1"></span><a href="#" style="color:var(--accT)" onclick="annAll('+(allOn?'false':'true')+');return false">'+(allOn?'取消全部人員':'全部人員')+'</a></div>';
   h+=gcPicker();
-  h+='<div class="gpad"></div><div class="gdock"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'+(f.file?'含 PDF 附件':'純文字公告')+'</div>'
+  h+='<div class="gpad gcol"></div><div class="gdock gcol"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'+(f.file?'含 PDF 附件':'純文字公告')+'</div>'
     +'<button class="btn btn-p'+sendCls(f.busy?'busy':f.done?'done':'')+'"'+(f.busy||f.done||!sel.length?' disabled':'')+' onclick="annSend()">'+sendIn(f.busy?'busy':f.done?'done':'','發布',f.file?'上傳中…':'發布中…','已發布')+'</button></div>';
   setTimeout(gcSearch,0);
   return h;
@@ -5945,7 +5963,6 @@ function annSend(){
     gas('annPost',TOKEN,title,text,names,groups,pdf).then(function(r){
       f.busy=false;
       if(!r||!r.ok){toast((r&&r.error)||'發布失敗','no',4000);render();return;}
-      toast('已發布給 '+r.n+' 人','ok',3000);
       f.done=true;render();                        // 按鈕先變綠「✓ 已發布」，停一下再回公告列表
       setTimeout(function(){
         ANNF={title:'',text:'',file:null,busy:false};GC_ANN.ppl={};GC_ANN.open={};GC_ANN.q='';
@@ -6164,7 +6181,7 @@ function gcSend(){
   gas('groupCast',TOKEN,names,groups,t).then(function(r){
     GC.busy=false;
     if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);render();return;}
-    toast('已通知 '+r.sent.length+' 人'+(r.noPush.length?'；'+r.noPush.length+' 人沒開推播（App 裡看得到）':''),r.noPush.length?'':'ok',5000);
+    if(r.noPush&&r.noPush.length)toast(r.noPush.length+' 人沒開推播（App 裡看得到）','',4000);   // 按鈕已顯示「✓ 已送出」
     GC.text='';GC.ppl={};GC.open={};GC.done=true;inboxLoad(true);render();
     var gc=GC;setTimeout(function(){gc.done=false;if(!$('ov').classList.contains('open'))render();},1500);
   }).catch(function(){GC.busy=false;toast('連線失敗','no');render();});
