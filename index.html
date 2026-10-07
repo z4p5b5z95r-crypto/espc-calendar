@@ -142,6 +142,25 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .spin .ldj{animation:ldj 1.5s cubic-bezier(.4,0,.3,1) infinite;transform-box:fill-box;transform-origin:center bottom}
 .spin .ldj2{animation-delay:.18s}.spin .ldj3{animation-delay:.36s}
 @keyframes ldj{0%,60%,100%{transform:translateY(0) scale(1,1)}20%{transform:translateY(-26px) scale(.9,1.1)}40%{transform:translateY(0) scale(1.15,.85)}}
+/* 2026-10-07z：上傳中改成「水珠飛進上面的水雲」（使用者選 B），跟下載的原地跳區分 */
+.spin.upspin{margin-top:0}
+.upspin .upc{animation:upc 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes upc{0%,100%{transform:scale(1)}50%{transform:scale(1.06,1.1)}}
+.upspin .upd{animation:upd 1.8s cubic-bezier(.45,0,.55,1) infinite;transform-box:fill-box;transform-origin:center}
+.upspin .upd2{animation-delay:.6s}.upspin .upd3{animation-delay:1.2s}
+@keyframes upd{0%{transform:translateY(0) scale(.5);opacity:0}12%{opacity:1;transform:translateY(-4px) scale(.9)}70%{transform:translateY(-38px) scale(1,1.15);opacity:1}88%,100%{transform:translateY(-46px) scale(.3);opacity:0}}
+/* 2026-10-07z：發送中（使用者選 C）：一顆玻璃水珠分成三顆扇形飛出；成功變綠「✓ 已送出」 */
+.btn.sending{background:var(--tint);color:var(--accT);border-color:rgba(243,111,33,.3);opacity:1!important;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.btn.btn-full.sending,.btn.btn-full.sent{display:flex}
+.btn.sent{background:#2E9E5B;border-color:#2E9E5B;color:#fff;opacity:1!important}
+.sendic{width:44px;height:30px;overflow:visible;flex-shrink:0;margin:-8px 0 -8px -6px;display:block}
+.sendic circle{transform-box:fill-box;transform-origin:center}
+.sendic .sdM{animation:sdM 1.3s ease-in-out infinite}
+@keyframes sdM{0%,100%{transform:scale(1)}35%{transform:scale(1.18,.86)}}
+.sendic .sdF{animation:sdF 1.3s cubic-bezier(.4,0,.5,1) infinite}
+@keyframes sdF{0%,25%{transform:translate(0,0) scale(.75);opacity:1}85%{opacity:1}100%{transform:translate(52px,var(--y)) scale(.6);opacity:0}}
+.sdck{display:inline-block;animation:sdck .4s cubic-bezier(.3,1.6,.5,1)}
+@keyframes sdck{0%{transform:scale(0)}100%{transform:scale(1)}}
 /* 整頁載入時放在畫面正中間 */
 #page>.load,#page>[id]>.load:only-child{min-height:calc(100vh - 300px);min-height:calc(100dvh - 300px)}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -1197,7 +1216,7 @@ html[data-fs="l"] body{zoom:1.25;}
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-<filter id="ldgoo" x="-40%" y="-60%" width="180%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter>
+<filter id="ldgoo" x="-40%" y="-60%" width="180%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter><filter id="sgoo" filterUnits="userSpaceOnUse" x="-200" y="-200" width="500" height="500" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter>
 <filter id="navgoo"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -12" result="g"/><feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
 <linearGradient id="gsl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ebf0"/></linearGradient>
 <linearGradient id="gso" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#d9560f"/></linearGradient>
@@ -1599,6 +1618,15 @@ function canManage(r){return canWrite(r);}
 var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['supervisor','scheduler','office']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
   cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]}};
+var UPSPIN='<svg class="spin upspin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><g class="upc"><circle cx="84" cy="46" r="9"/><circle cx="97" cy="38" r="13"/><circle cx="113" cy="40" r="11"/><circle cx="124" cy="47" r="8"/><rect x="76" y="45" width="56" height="10" rx="5"/></g><circle class="upd" cx="90" cy="84" r="8"/><circle class="upd upd2" cx="102" cy="84" r="8"/><circle class="upd upd3" cx="114" cy="84" r="8"/></g></svg>';
+var SEND_IC='<svg class="sendic" viewBox="0 0 88 60" aria-hidden="true"><g filter="url(#sgoo)" fill="#F36F21"><circle class="sdM" cx="14" cy="30" r="12"/><circle class="sdF" cx="16" cy="30" r="9" style="--y:-20px"/><circle class="sdF" cx="16" cy="30" r="9" style="--y:0px"/><circle class="sdF" cx="16" cy="30" r="9" style="--y:20px"/></g></svg>';
+/** 送出按鈕的三種狀態：''＝一般、'busy'＝送出中（水珠動畫）、'done'＝成功（綠色打勾） */
+function sendCls(st){return st==='busy'?' sending':st==='done'?' sent':'';}
+function sendIn(st,label,busyTxt,doneTxt){
+  if(st==='busy')return SEND_IC+he(busyTxt||'送出中…');
+  if(st==='done')return '<span class="sdck">✓</span> '+he(doneTxt||'已送出');
+  return label;
+}
 var SPIN='<svg class="spin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><rect x="58" y="70" width="84" height="12" rx="6"/><circle class="ldj" cx="74" cy="64" r="9"/><circle class="ldj ldj2" cx="100" cy="64" r="9"/><circle class="ldj ldj3" cx="126" cy="64" r="9"/></g></svg>';
 var PERMS=null;
 (function(){try{var o=JSON.parse(ls('espc_perm')||'null');if(o&&o.u&&o.u===ls('espc_user'))PERMS=o.p;}catch(e){}})();
@@ -5421,8 +5449,9 @@ function castPaint(){
     +' oninput="CAST.text=this.value;$(\'cast-n\').textContent=this.value.length">'+he(CAST.text)+'</textarea>'
     +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="castTplAdd();return false">＋ 存成常用語</a>'
     +'<span style="flex:1"></span><span class="hint"><span id="cast-n">'+CAST.text.length+'</span>/300</span></div>';
-  h+='<button class="btn btn-p btn-full" style="margin-top:14px"'+(CAST.busy?' disabled':'')+' onclick="castSend()">'
-    +(CAST.busy?'送出中…':'送出廣播')+'</button>';
+  var cst=CAST.busy?'busy':CAST.done?'done':'';
+  h+='<button class="btn btn-p btn-full'+sendCls(cst)+'" style="margin-top:14px"'+(cst?' disabled':'')+' onclick="castSend()">'
+    +sendIn(cst,'送出廣播')+'</button>';
   openSheet(h);
 }
 function castSel(n){CAST.sel[n]=!CAST.sel[n];castPaint();}
@@ -5453,7 +5482,8 @@ function castSend(){
     var msg=r.sent.length?'已通知 '+r.sent.join('、'):'已記錄';
     if(r.noPush&&r.noPush.length)msg+='；'+r.noPush.join('、')+' 沒開推播，建議打電話';
     toast(msg,r.noPush&&r.noPush.length?'':'ok',5000);
-    castLoad(EV_D,true);castClose();
+    CAST.done=true;castPaint();                 // 按鈕先變綠「✓ 已送出」，停一下再關
+    setTimeout(function(){CAST.done=false;castLoad(EV_D,true);if(CAST.p)castClose();},900);
   }).catch(function(){CAST.busy=false;toast('連線失敗','no');castPaint();});
 }
 /* ══ 📣 群組廣播（管理員、主管、排程的「廣播」頁籤）＋收件匣 ══
@@ -5746,7 +5776,7 @@ function gcastPage(){
   // 底部固定：已選人數＋送出（留一段空白，最後一則紀錄不會被蓋住）
   h+='<div class="gpad"></div><div class="gdock"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'
     +he(picked.map(function(g){var c=gcCount(g);return g.tm+(c<g.ppl.length?'（'+c+' 人）':'');}).join('、')||'尚未選擇')+'</div>'
-    +'<button class="btn btn-p"'+(GC.busy||!sel.length?' disabled':'')+' onclick="gcSend()">'+(GC.busy?'送出中…':'送出')+'</button></div>';
+    +'<button class="btn btn-p'+sendCls(GC.busy?'busy':GC.done?'done':'')+'"'+(GC.busy||GC.done||!sel.length?' disabled':'')+' onclick="gcSend()">'+sendIn(GC.busy?'busy':GC.done?'done':'','送出')+'</button></div>';
   setTimeout(gcSearch,0);
   return h;
 }
@@ -5892,7 +5922,7 @@ function annNewPage(){
   h+='<div class="sec" style="display:flex">對象<span style="flex:1"></span><a href="#" style="color:var(--accT)" onclick="annAll('+(allOn?'false':'true')+');return false">'+(allOn?'取消全部人員':'全部人員')+'</a></div>';
   h+=gcPicker();
   h+='<div class="gpad"></div><div class="gdock"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'+(f.file?'含 PDF 附件':'純文字公告')+'</div>'
-    +'<button class="btn btn-p"'+(f.busy||!sel.length?' disabled':'')+' onclick="annSend()">'+(f.busy?(f.file?'上傳中…':'發布中…'):'發布')+'</button></div>';
+    +'<button class="btn btn-p'+sendCls(f.busy?'busy':f.done?'done':'')+'"'+(f.busy||f.done||!sel.length?' disabled':'')+' onclick="annSend()">'+sendIn(f.busy?'busy':f.done?'done':'','發布',f.file?'上傳中…':'發布中…','已發布')+'</button></div>';
   setTimeout(gcSearch,0);
   return h;
 }
@@ -5916,8 +5946,11 @@ function annSend(){
       f.busy=false;
       if(!r||!r.ok){toast((r&&r.error)||'發布失敗','no',4000);render();return;}
       toast('已發布給 '+r.n+' 人','ok',3000);
-      ANNF={title:'',text:'',file:null,busy:false};GC_ANN.ppl={};GC_ANN.open={};GC_ANN.q='';
-      go('more','ann');
+      f.done=true;render();                        // 按鈕先變綠「✓ 已發布」，停一下再回公告列表
+      setTimeout(function(){
+        ANNF={title:'',text:'',file:null,busy:false};GC_ANN.ppl={};GC_ANN.open={};GC_ANN.q='';
+        go('more','ann');
+      },900);
     }).catch(function(){f.busy=false;toast('連線失敗','no');render();});
   };
   if(!f.file){go2(null);return;}
@@ -6132,7 +6165,8 @@ function gcSend(){
     GC.busy=false;
     if(!r||!r.ok){toast((r&&r.error)||'送出失敗','no',4000);render();return;}
     toast('已通知 '+r.sent.length+' 人'+(r.noPush.length?'；'+r.noPush.length+' 人沒開推播（App 裡看得到）':''),r.noPush.length?'':'ok',5000);
-    GC.text='';GC.ppl={};GC.open={};inboxLoad(true);render();
+    GC.text='';GC.ppl={};GC.open={};GC.done=true;inboxLoad(true);render();
+    var gc=GC;setTimeout(function(){gc.done=false;if(!$('ov').classList.contains('open'))render();},1500);
   }).catch(function(){GC.busy=false;toast('連線失敗','no');render();});
 }
 /** 專案名稱轉成可當 id 的短碼 */
@@ -6951,7 +6985,7 @@ function paintParse(uploading){
     +'<span class="tag'+(ok.length?' g':'')+'">'+ok.length+' / '+pRows.length+'</span></div>';
   if(!pRows.length)return void($('parse').innerHTML=h+'<p class="hint">找不到有效資料，請確認檔案格式。</p></div>');
   if(uploading){
-    h+='<div style="display:flex;align-items:center;gap:10px">'+SPIN+''
+    h+='<div style="display:flex;align-items:center;gap:10px">'+UPSPIN
       +'<div><div style="font-size:14px">地區「'+he(det)+'」，上傳中…</div>'
       +'<div class="hint" style="margin-top:2px">'+ok.length+' 筆資料寫入試算表，可能需要 1～2 分鐘，請不要關閉頁面'
       +(PSTRUCK?'<br>已略過 '+PSTRUCK+' 筆畫刪除線（已取消）的行程':'')+'</div></div></div>';
