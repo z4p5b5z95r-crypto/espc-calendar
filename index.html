@@ -2152,7 +2152,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
   '貯存系統污染監測人員','船員證','研究作業人員安全實務訓練(出海資格)','初級救護技術員(EMT-1)'];
-var F={rg:'',en:'',ty:[],q:'',st:'',eq:''};
+var F={rg:'',en:'',ty:[],q:'',st:'',eq:[]};
 var tab='today',sub='';
 
 /* ══ 證照效期 ══
@@ -3082,7 +3082,7 @@ function filterBtn(){
   return '<button class="ib'+(n?' act w':'')+'" onclick="openFilter()">'
     +ic('filter',17)+(n?'<span class="bdg">'+n+'</span>':'')+'</button>';
 }
-function nF(){return (F.eq?1:0)+(F.rg?1:0)+(F.en?1:0)+(F.st?1:0)+F.ty.length+((F.q||'').trim()?1:0);}
+function nF(){return F.eq.length+(F.rg?1:0)+(F.en?1:0)+(F.st?1:0)+F.ty.length+((F.q||'').trim()?1:0);}
 
 /* 桌機：把使用者搬到導覽列右邊、篩選條件搬到標題列（篩選按鈕旁）；手機放回原位 */
 function deskPlace(){
@@ -3102,13 +3102,15 @@ function renderChips(){
   if(F.rg)h+='<span class="fc">'+he(F.rg)+'<button onclick="clrF(\'rg\')">✕</button></span>';
   if(F.en)h+='<span class="fc">'+he(F.en)+'<button onclick="clrF(\'en\')">✕</button></span>';
   if(F.st)h+='<span class="fc">'+he(F.st)+'<button onclick="clrF(\'st\')">✕</button></span>';
-  if(F.eq)h+='<span class="fc">儀器 '+he(F.eq)+'<button onclick="clrF(\'eq\')">✕</button></span>';
+  F.eq.forEach(function(x){
+    h+='<span class="fc">儀器 '+he(x)+'<button onclick="clrF(\'eq\',\''+he(x).replace(/'/g,"\\'")+'\')">✕</button></span>';});
   F.ty.forEach(function(t){
     h+='<span class="fc">'+he(t)+'<button onclick="clrF(\'ty\',\''+he(t).replace(/'/g,"\\'")+'\')">✕</button></span>';});
   $('fchips').innerHTML=h;
 }
 function clrF(k,v){
   if(k==='ty')F.ty=F.ty.filter(function(t){return t!==v;});
+  else if(k==='eq')F.eq=F.eq.filter(function(t){return t!==v;});
   else F[k]='';
   refetch();
 }
@@ -4599,7 +4601,7 @@ function passF(r){
   if(F.rg&&(r.region||'')!==F.rg)return false;
   if(F.en&&r.engineer!==F.en)return false;
   if(F.st&&!hasPerson(r,F.st))return false;
-  if(F.eq&&eqList(r.equipment).indexOf(F.eq)<0)return false;   // 2026-10-07z：篩選儀器
+  if(F.eq.length){var el_=eqList(r.equipment);if(!F.eq.some(function(x){return el_.indexOf(x)>=0;}))return false;}   // 篩選儀器（多選，任一台符合即可）
   if(F.ty.length&&F.ty.indexOf(tyItem(r.type))<0)return false;
   if(F.q){
     var q=F.q.toLowerCase();
@@ -4613,12 +4615,14 @@ function passF(r){
 /** 儀器欄可能一格好幾台（W14、W19），拆成一台一台 */
 function eqList(v){return String(v||'').split(/[、,，;；\/\n]+|\s+/).map(function(x){return x.trim();}).filter(String);}
 /** 篩選面板的設備選項：手上所有行程（含快取）出現過的儀器 */
-function eqOptions(){
-  var m={};allKnownRows().forEach(function(r){eqList(r.equipment).forEach(function(x){m[x]=1;});});
-  if(FT.eq)m[FT.eq]=1;
+function eqOptions(raw){
+  var m={};allKnownRows().forEach(function(r){
+    if(FT.rg&&(r.region||'')!==FT.rg)return;          // 上面選了地區，就只列該地區的儀器
+    eqList(r.equipment).forEach(function(x){m[x]=1;});});
+  if(!raw)FT.eq.forEach(function(x){m[x]=1;});
   return Object.keys(m).sort(function(a,b){return a.localeCompare(b,'zh-Hant',{numeric:true});});
 }
-var FT={rg:'',en:'',ty:[],q:'',st:'',eq:''};   // 面板上的暫存條件，按「篩選」才套用
+var FT={rg:'',en:'',ty:[],q:'',st:'',eq:[]};   // 面板上的暫存條件，按「篩選」才套用
 
 /* 篩選面板的類別選項：以前只從「目前畫面上載入的行程」收集，
    開了「只看我的」或只載了這個月，就會漏掉其他類別。改成向後端要排程裡出現過的全部類別。 */
@@ -4636,7 +4640,7 @@ function loadTypes(){
 }
 function openFilter(){
   loadTypes();
-  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',st:F.st||'',eq:F.eq||''};
+  FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',st:F.st||'',eq:F.eq.slice()};
   paintFilter();
   $('ov').classList.add('open');
 }
@@ -4683,7 +4687,7 @@ function paintFilter(){
     +'<p class="lb">現場　<span style="color:var(--tx2)">含申報人員</span></p>'
     +pickBtn('st',FT.st,'全部現場人員')
     +'<p class="lb">儀器</p>'
-    +pickBtn('eq',FT.eq,'全部儀器')
+    +pickBtn('eq',eqBtnTxt(),'全部儀器')
     +'<p class="lb">類別　<span style="color:var(--tx2)">可複選</span></p>'
     +'<div class="opts" style="margin-bottom:4px">'
     +'<button class="ob'+(FT.ty.length?'':' on')+'" onclick="tyPick(\'\')">全部</button></div>'
@@ -4691,7 +4695,10 @@ function paintFilter(){
     +'<div id="tyarea">'+tyAreaHTML(tys,s2)+'</div>'   // 「開啟時先篩選自己」的開關只留在「更多」頁
     +'<div style="height:8px"></div>';
   $('sheetin').innerHTML=h;
-  $('f-rg').onchange=function(){FT.rg=this.value;paintFilter();};
+  $('f-rg').onchange=function(){
+    FT.rg=this.value;
+    if(FT.rg&&FT.eq.length){var ok=eqOptions(true);FT.eq=FT.eq.filter(function(x){return ok.indexOf(x)>=0;});}   // 換地區：不屬於該地區的已選儀器拿掉
+    paintFilter();};
   var tq=$('f-tq');
   if(tq)tq.oninput=function(){TYQ=this.value;$('tyarea').innerHTML=tyAreaHTML(TY_LAST.tys,TY_LAST.raw);};
 
@@ -4705,14 +4712,14 @@ function paintFilter(){
 /* 即時篩選：不用按「完成」，條件一改背後的今日／月曆就更新 */
 var LIVE_T=0;
 function sameF(a,b){
-  return a.rg===b.rg&&a.en===b.en&&a.st===b.st&&(a.eq||'')===(b.eq||'')&&(a.q||'')===(b.q||'')
+  return a.rg===b.rg&&a.en===b.en&&a.st===b.st&&a.eq.length===b.eq.length&&a.eq.every(function(t){return b.eq.indexOf(t)>=0;})&&(a.q||'')===(b.q||'')
     &&a.ty.length===b.ty.length&&a.ty.every(function(t){return b.ty.indexOf(t)>=0;});
 }
 function liveFilter(ms){
   clearTimeout(LIVE_T);
   LIVE_T=setTimeout(function(){
     var el=$('f-q');if(el)FT.q=el.value;
-    var nf={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||'',eq:FT.eq||''};
+    var nf={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||'',eq:FT.eq.slice()};
     if(sameF(nf,F))return;
     F=nf;refetch();
   },ms||0);
@@ -4918,12 +4925,37 @@ function eqCat(x){
   if(/^W/i.test(x))return '水質';                     // W14、W19
   return '其他';
 }
+function eqBtnTxt(){var a=FT.eq;return a.length<=3?a.join('、'):a.slice(0,2).join('、')+' 等 '+a.length+' 台';}
+function eqToggle(x){
+  var i=FT.eq.indexOf(x);if(i>=0)FT.eq.splice(i,1);else FT.eq.push(x);
+  eqPaintGrid();liveFilter(0);
+}
+/** 點分類標題旁的「全選」：這一類全部加入；已全選就全部取消 */
+function eqCatAll(){
+  var list=eqVisible(),allOn=list.length&&list.every(function(x){return FT.eq.indexOf(x)>=0;});
+  if(allOn)FT.eq=FT.eq.filter(function(x){return list.indexOf(x)<0;});
+  else list.forEach(function(x){if(FT.eq.indexOf(x)<0)FT.eq.push(x);});
+  eqPaintGrid();liveFilter(0);
+}
+function eqClear(){FT.eq=[];eqPaintGrid();liveFilter(0);}
+function eqPaintGrid(){
+  var el=$('pkgrid');if(el)el.innerHTML=eqGridHTML();
+  var n=$('eq-n');if(n)n.textContent=FT.eq.length?'已選 '+FT.eq.length+' 台':'未選（全部儀器）';
+}
+function eqVisible(){
+  var q=PK.q.trim().toLowerCase();
+  return eqOptions().filter(function(x){
+    if(PK.team&&eqCat(x)!==PK.team)return false;
+    return !q||x.toLowerCase().indexOf(q)>=0;
+  });
+}
 function paintEqPicker(){
   var all=eqOptions(),has={};all.forEach(function(x){has[eqCat(x)]=1;});
   var h='<div class="shh" style="align-items:center">'
     +'<button class="ib" onclick="closePick()">‹</button>'
-    +'<h3 style="flex:1;font-size:17px">選擇儀器</h3>'
-    +'<button class="btn btn-sm" onclick="pickSet(\'\')">全部</button></div>'
+    +'<h3 style="flex:1;font-size:17px">選擇儀器<span style="font-size:12px;font-weight:500;color:var(--tx3);margin-left:6px">'+(FT.rg?he(FT.rg)+'・':'')+'可多選</span></h3>'
+    +'<button class="btn btn-sm" onclick="eqClear()">清除</button>'
+    +'<button class="btn btn-sm btn-p" style="margin-left:6px" onclick="closePick()">完成</button></div>'
     +'<input class="fld" id="pk-q" value="'+he(PK.q)+'" placeholder="搜尋儀器編號" style="margin-bottom:10px">'
     +'<div class="etab">'
     +'<button class="et'+(PK.team?'':' on')+'" onclick="pickTeam(\'\')">全部</button>'
@@ -4932,19 +4964,19 @@ function paintEqPicker(){
     +'</div><div id="pkgrid">'+eqGridHTML()+'</div>';
   $('sheetin').innerHTML=h;
   var q=$('pk-q');
-  if(q)q.oninput=function(){PK.q=this.value;var el=$('pkgrid');if(el)el.innerHTML=eqGridHTML();};
+  if(q)q.oninput=function(){PK.q=this.value;eqPaintGrid();};
 }
 function eqGridHTML(){
-  var q=PK.q.trim().toLowerCase();
-  var list=eqOptions().filter(function(x){
-    if(PK.team&&eqCat(x)!==PK.team)return false;
-    return !q||x.toLowerCase().indexOf(q)>=0;
-  });
+  var list=eqVisible();
   if(!list.length)return '<div class="empty">查無符合的儀器</div>';
+  var allOn=list.every(function(x){return FT.eq.indexOf(x)>=0;});
+  var top='<div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px;font-size:13px">'
+    +'<span id="eq-n" style="color:var(--tx2)">'+(FT.eq.length?'已選 '+FT.eq.length+' 台':'未選（全部儀器）')+'</span>'
+    +'<button class="btn btn-sm" onclick="eqCatAll()">'+(allOn?'取消這些':(PK.team?'全選'+he(PK.team):'全選'))+'</button></div>';
   // 依分類順序，再依編號排
   list.sort(function(a,b){return EQ_CATS.indexOf(eqCat(a))-EQ_CATS.indexOf(eqCat(b))||a.localeCompare(b,'zh-Hant',{numeric:true});});
-  return '<div class="pgrid">'+list.map(function(x){
-    return '<button class="pcell'+(x===FT.eq?' on':'')+'" onclick="pickSet(\''+esc(x)+'\')">'
+  return top+'<div class="pgrid">'+list.map(function(x){
+    return '<button class="pcell'+(FT.eq.indexOf(x)>=0?' on':'')+'" onclick="eqToggle(\''+esc(x)+'\')">'
       +he(x)+'<small>'+he(eqCat(x))+'</small></button>';
   }).join('')+'</div>';
 }
@@ -5036,7 +5068,7 @@ function tyGroupsHTML(tys,raw){
   return h;
 }
 
-function nFT(){return (FT.eq?1:0)+(FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0);}
+function nFT(){return FT.eq.length+(FT.rg?1:0)+(FT.en?1:0)+(FT.st?1:0)+FT.ty.length+((FT.q||'').trim()?1:0);}
 function tyPick(t){
   if(!t)FT.ty=[];
   else{var i=FT.ty.indexOf(t);if(i>=0)FT.ty.splice(i,1);else FT.ty.push(t);}
@@ -5044,12 +5076,12 @@ function tyPick(t){
 }
 function applyFilter(){
   var el=$('f-q');if(el)FT.q=el.value;
-  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||'',eq:FT.eq||''};
+  F={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||'',eq:FT.eq.slice()};
   closeSheet();refetch();
   toast(nF()?'已套用 '+nF()+' 項篩選':'已顯示全部','ok',2000);
 }
 function clearFilter(){
-  FT={rg:'',en:'',ty:[],q:'',st:'',eq:''};F={rg:'',en:'',ty:[],q:'',st:'',eq:''};
+  FT={rg:'',en:'',ty:[],q:'',st:'',eq:[]};F={rg:'',en:'',ty:[],q:'',st:'',eq:[]};
   closeSheet();refetch();
   toast('已清除篩選','ok',2000);
 }
