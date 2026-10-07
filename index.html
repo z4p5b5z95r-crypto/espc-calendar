@@ -2663,7 +2663,11 @@ function boot(u,r,eng){
 
   appInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
-  if(takeDeep()){back={t:'cal',s:''};}   // 從行事曆提醒點進來 → 直接開那一天
+  if(takeDeep()){   // 2026-10-07z：廣播 → 訊息；今天 → 今日；其他日期 → 行事曆那一天
+    if(DEEP&&DEEP.p){DEEP=null;MSG_SEG='in';back={t:'msg',s:''};}
+    else if(DEEP&&DEEP.d===twStr()){DEEP=null;back={t:'today',s:''};}
+    else back={t:'cal',s:''};
+  }   // 從行事曆提醒點進來 → 直接開那一天
   // 等通訊錄載好才決定要篩哪一欄（需要組別資料），再開始抓行程
   // 一律先用快取畫面，版本比對在背景做，開啟就有東西看
   loadStaff(function(){
@@ -2862,6 +2866,9 @@ function deepGo(url){
     var q=new URL(url||'./',location.href).searchParams;
     if($('ov').classList.contains('open'))closeSheet();
     var d=q.get('d')||'';
+    // 2026-10-07z：個案廣播（網址帶 &p=）→ 開訊息；今天的行程通知 → 開今日；其他日期 → 行事曆打開那一天
+    if(q.get('p')){MSG_SEG='in';go('msg');return;}
+    if(d&&d===twStr()){go('today');return;}
     if(/^\d{4}-\d{2}-\d{2}$/.test(d)){
       DEEP={d:d,p:q.get('p')||''};
       curY=parseInt(d.slice(0,4),10);curM=parseInt(d.slice(5,7),10)-1;
@@ -2876,14 +2883,19 @@ function deepGo(url){
   }catch(e){}
 }
 /* 從待辦通知進來：待辦載好就打開那一筆 */
+var TODO_TRY=0;
 function todoDeep(){
+  // 2026-10-07z：點待辦通知 → 直接打開那一筆待辦的內容（App 剛開、待辦還沒載好就等一下再試，最多約 10 秒）
   if(!TODO_DEEP||!todoCan())return;
-  if(!TODOS){todoLoad();return;}
+  if(!TODOS){todoLoad();TODO_TRY=(TODO_TRY||0)+1;if(TODO_TRY<14)setTimeout(todoDeep,700);return;}
+  TODO_TRY=0;
   var id=TODO_DEEP;TODO_DEEP='';
-  var t=TODOS.filter(function(x){return x.id===id;})[0];if(!t)return;
+  var t=TODOS.filter(function(x){return String(x.id)===String(id);})[0];
+  if(!t){toast('這筆待辦已刪除','',2500);return;}
   var today=twStr(),ds=t.rep?(todoOn(t,today)?today:(todoOn(t,addDays(today,1))?addDays(today,1):t.date)):t.date;
   if(tab!=='today'&&tab!=='cal')go('today');
-  setTimeout(function(){tdView(id,ds);},120);
+  if($('ov').classList.contains('open'))closeSheet();
+  setTimeout(function(){tdView(t.id,ds);},300);
 }   // DUE_DEEP：從證照到期推播點進來
 function takeDeep(){
   try{
