@@ -164,6 +164,8 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 .sendic .sdO{animation:sdO 1.2s cubic-bezier(.3,0,.5,1) infinite}
 .sendic .sdO2{animation-delay:.4s}.sendic .sdO3{animation-delay:.8s}
 @keyframes sdO{0%,15%{transform:translate(0,0) scale(.6);opacity:0}25%{opacity:1;transform:translate(0,0) scale(.9)}100%{transform:translate(var(--x),var(--y)) scale(.6);opacity:0}}
+.btn.sdb.sending{margin-bottom:24px}   /* 留位置給下面那行字 */
+.sdtx{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;white-space:nowrap;font-size:13px;font-weight:500;color:var(--tx2);pointer-events:none}
 .sdck{display:inline-block;animation:sdck .4s cubic-bezier(.3,1.6,.5,1)}
 @keyframes sdck{0%{transform:scale(0)}100%{transform:scale(1)}}
 /* 底部送出列：上面一行已選人數，下面整條送出按鈕 */
@@ -184,6 +186,10 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
 @keyframes flS{0%,40%{transform:translate(0,0) scale(.3);opacity:0}55%{opacity:1;transform:translate(0,-6px) scale(.8)}80%{transform:translate(0,-20px) scale(.7);opacity:1}95%,100%{transform:translate(0,-26px) scale(.3);opacity:0}}
 /* 整頁載入時放在畫面正中間 */
 #page>.load,#page>[id]>.load:only-child{min-height:calc(100vh - 300px);min-height:calc(100dvh - 300px)}
+/* 2026-10-07z：整頁在下載資料時，整個畫面微微調暗，動畫放大放中間、文字在下面（跟月曆一致）；底下導覽列照樣能按 */
+#page>.load,#page>[id]>.load:only-child{position:fixed;inset:0;z-index:30;min-height:0;padding:0;flex-direction:column;gap:6px;
+  background:rgba(24,16,12,.07);color:var(--tx);font-size:15px;font-weight:600;pointer-events:none}
+#page>.load .spin,#page>[id]>.load:only-child .spin{width:84px;height:56px;margin-top:0}
 @keyframes sp{to{transform:rotate(360deg)}}
 .load{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--tx3);font-size:13px;}
 .empty{text-align:center;color:var(--tx3);font-size:14px;padding:36px 20px;}
@@ -517,8 +523,8 @@ body.locked .tdfab{display:none}
 .calwrap{position:relative;}
 .calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   gap:10px;color:var(--tx3);font-size:13px;pointer-events:none;}
-.calwrap.busy .cgrid{opacity:.35;}
-.calwrap.busy .calload{background:rgba(24,16,12,.12);border-radius:18px}   /* 微微調暗就好 */
+.calwrap.busy .cgrid{opacity:.5;}
+.calwrap.busy .calload{background:rgba(24,16,12,.07);border-radius:18px}   /* 微微調暗就好 */
 /* 載入／篩選中：月曆整片調暗，動畫放大放中間、文字在下面，才明顯 */
 .calpill{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--tx);font-size:15px;font-weight:600}
 .calpill .spin{width:84px;height:56px;margin-top:0}
@@ -1597,7 +1603,7 @@ var SEND_IC='<svg class="sendic" viewBox="-48 -48 96 96" aria-hidden="true"><g f
 /** 送出按鈕的三種狀態：''＝一般、'busy'＝送出中（水珠動畫）、'done'＝成功（綠色打勾） */
 function sendCls(st){return ' sdb'+(st==='busy'?' sending':st==='done'?' sent':'');}
 function sendIn(st,label,busyTxt,doneTxt){
-  if(st==='busy')return SEND_IC+'<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">'+he(busyTxt||'送出中…')+'</span>';
+  if(st==='busy')return SEND_IC+'<span class="sdtx">'+he(busyTxt||'送出中…')+'</span>';   // 圓下面顯示「送出中…」
   if(st==='done')return '<span class="sdck">✓</span> '+he(doneTxt||'已送出');
   return label;
 }
@@ -3839,7 +3845,7 @@ function calPage(){
   var ck=curY+'-'+p2(curM+1)+(scopeKey()?'_'+scopeKey():'');
   var busy=calLoading||!MONTH_DONE[ck];
   h='<div class="calwrap'+(busy?' busy':'')+'">'+h
-    +(busy?'<div class="calload"><span class="calpill">'+(nF()?FLSPIN+' 篩選行程…':SPIN+' 載入行程…')+'</span></div>':'')
+    +(busy?'<div class="calload"><span class="calpill">'+(FL_CAL&&nF()?FLSPIN+' 篩選行程…':SPIN+' 載入行程…')+'</span></div>':'')
     +'</div>';
   if(!busy&&!Object.keys(pmap).length)
     h+='<div class="empty" style="padding:20px">本月沒有符合條件的排程</div>';
@@ -4318,9 +4324,10 @@ function loadToday(force,retry){
   function mine(){return seq===TODAY_SEQ&&sk===scopeKey();}
   todayScope=sk;
   var c=force?null:cGet(ck);
+  var flT=FL_TODAY;FL_TODAY=false;      // 只用這一次
   if(c&&c.date===t&&c.rows){paintToday(t,c.rows);}
   else{
-    if(onTab)$('page').innerHTML=nF()?'<div class="load">'+FLSPIN+' 篩選行程…</div>':loader('載入今日行程…');
+    if(onTab)$('page').innerHTML=flT&&nF()?'<div class="load">'+FLSPIN+' 篩選行程…</div>':loader('載入今日行程…');
     c=null;
   }
   var o=scopeOpts({dateFrom:t,dateTo:todayRange(t)});
@@ -4362,6 +4369,7 @@ function paintToday(t,all){
    有工程師或「只看我的」條件時，先只抓這個人的資料（快很多），
    再在背景把整月抓回來放快取，之後清掉篩選就不用再等。       */
 var allScope='',todayScope='',calLoading=false,MONTH_DONE={};
+var FL_CAL=false,FL_TODAY=false;   // 2026-10-07z：只有改篩選條件造成的重新載入才用篩選動畫；換月、重新整理都用一般動畫
 function scopeKey(){return (F.en?'e:'+F.en:'')+(F.st?'s:'+F.st:'');}
 function scopeOpts(o){
   if(F.en)o.engineer=F.en;
@@ -4421,7 +4429,7 @@ function loadMonth(force,retry){
   function mine(){return seq===MONTH_SEQ&&y===curY&&m===curM&&sk===scopeKey();}
   allScope=sk;
   var c=force?null:cGet(key);
-  if(c&&c.rows){calLoading=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
+  if(c&&c.rows){calLoading=false;FL_CAL=false;paintMonth(c.rows,y,m,sk);prefetchNeighbors();}
   else{
     calLoading=true;
     if(onTab)render();          // 先把日期格子畫出來，行程位置放轉圈
@@ -4432,7 +4440,7 @@ function loadMonth(force,retry){
   gas('getData',TOKEN,o).then(function(r){
     if(!r||!r.ok){
       if(!mine())return;
-      calLoading=false;
+      calLoading=false;FL_CAL=false;
       if(!c){toast((r&&r.error)||'載入失敗','no');paintMonth([],y,m,sk);}
       else paintMonth(c.rows,y,m,sk);
       return;
@@ -4450,13 +4458,13 @@ function loadMonth(force,retry){
       cSet(key,{version:r.version||'',rows:list});
     }
     if(!mine())return;            // 已經換月或改篩選了，只留快取不動畫面
-    calLoading=false;
+    calLoading=false;FL_CAL=false;
     paintMonth(list,y,m,sk);
     if(sk)prefetch('g_'+ym,{dateFrom:first,dateTo:last});   // 背景補齊整月（不分人）
     prefetchNeighbors();                                    // 背景備好前後一個月
   }).catch(function(){
     if(!mine())return;
-    calLoading=false;
+    calLoading=false;FL_CAL=false;
     if(!c&&tab==='cal'&&!sub)$('page').innerHTML='<div class="empty">載入失敗，請重試</div>';
     else if(c)paintMonth(c.rows,y,m,sk);
   });
@@ -4479,13 +4487,13 @@ function paintMonth(list,y,m,sk){
 
 function moveM(d){
   curM+=d;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
-  allRows=[];rows=[];calLoading=true;saveTab();   // 先進載入狀態，不會閃「沒有排程」
+  allRows=[];rows=[];calLoading=true;FL_CAL=false;saveTab();   // 先進載入狀態，不會閃「沒有排程」
   slidePage(d,function(){render();loadMonth();});
 }
 function goToday(){
   var n=twDate(),d=(n.getFullYear()*12+n.getMonth())>=(curY*12+curM)?1:-1;
   curY=n.getFullYear();curM=n.getMonth();
-  allRows=[];rows=[];calLoading=true;saveTab();   // 先進載入狀態，不會閃「沒有排程」
+  allRows=[];rows=[];calLoading=true;FL_CAL=false;saveTab();   // 先進載入狀態，不會閃「沒有排程」
   slidePage(d,function(){render();loadMonth();});
 }
 
@@ -5079,6 +5087,7 @@ function refetch(){
   // 人員條件變了 → 手上的資料範圍不對，要重新載入
   if(sk!==allScope||sk!==todayScope){
     allRows=[];rows=[];todayFor='';
+    FL_CAL=true;FL_TODAY=true;            // 這次載入是「改篩選條件」造成的 → 用篩選動畫
     if(tab==='cal'&&!sub)calLoading=true;
     render();
     if(tab==='cal'&&!sub)loadMonth();
@@ -6218,7 +6227,7 @@ function renderPk(){
 function pickM(y,m){
   var d=(y*12+m)>=(curY*12+curM)?1:-1;
   curY=y;curM=m;$('pk').classList.remove('open');
-  allRows=[];rows=[];calLoading=true;saveTab();   // 先進載入狀態，不會閃「沒有排程」
+  allRows=[];rows=[];calLoading=true;FL_CAL=false;saveTab();   // 先進載入狀態，不會閃「沒有排程」
   slidePage(d,function(){render();loadMonth();});
 }
 
