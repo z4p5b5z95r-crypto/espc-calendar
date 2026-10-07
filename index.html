@@ -941,6 +941,8 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
   box-shadow:var(--sh);animation:up .2s ease;line-height:1.6;text-align:center;}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
+/* 個案廣播的案子名稱 */
+.mgpj{display:inline-block;font-size:11.5px;color:var(--accT);background:var(--tint);border-radius:6px;padding:1px 7px;margin:2px 0 4px}
 /* 訊息頁上方「下載訊息中…」 */
 .mgload{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 4px;color:var(--tx2);font-size:13px;font-weight:500}
 .mgload .spin{margin-top:-14px}
@@ -1813,6 +1815,7 @@ function msgRow(m){
   h='<div class="mgi'+(m.un?'':' rd')+'" style="cursor:default"><div class="mgic '+ic3[0]+'">'+ic(ic3[1],18)+'</div><div class="mgbd">';
   if(m.x){
     h+='<div class="mgt"><b>'+he(m.x.from||'廣播')+'</b><span>'+msgTime(m.at)+'</span>'+(m.un?'<i class="mgdot"></i>':'')+'</div>'
+      +(m.x.project?'<div class="mgpj">'+he(String(m.x.project).split('_')[0])+(m.x.date?'　'+he(String(m.x.date).slice(5).replace('-','/').replace(/^0/,'').replace('/0','/')):'')+'</div>':'')   // 個案廣播：哪個案子、哪一天
       +castText(m.x)+(m.old?'':rcptLine(m.x,'msg'))
       +(m.un?'<div class="mgrb"><button onclick="msgTap(\''+m.key+'\')">'+ic('check',14)+'收到</button></div>':'');   // 每則自己按「收到」，發送者看得到
     return h+'</div></div>';
