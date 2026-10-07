@@ -941,6 +941,9 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
   box-shadow:var(--sh);animation:up .2s ease;line-height:1.6;text-align:center;}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
+/* 訊息頁上方「下載訊息中…」 */
+.mgload{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 4px;color:var(--tx2);font-size:13px;font-weight:500}
+.mgload .spin{margin-top:-14px}
 /* 從上面跳下來的提示（不擋住下方的送出按鈕） */
 #toastTop{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);
   z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 32px);max-width:420px;}
@@ -1228,7 +1231,10 @@ function notesEdit(fn){
   if(!window.caches)return Promise.resolve();
   return caches.open('espc-badge').then(function(c){
     return c.match('./__notes').then(function(r){return r?r.json():[];}).catch(function(){return [];}).then(function(list){
-      list=list||[];if(fn)list=fn(list)||list;NOTES=list;
+      list=list||[];if(fn)list=fn(list)||list;
+      var sig0=(NOTES||[]).map(function(x){return x.id+(x.r?1:0);}).join(),sig1=list.map(function(x){return x.id+(x.r?1:0);}).join();
+      NOTES=list;
+      if(sig0!==sig1&&tab==='msg'&&!sub&&!$('ov').classList.contains('open'))setTimeout(render,0);   // 有新通知 → 訊息頁馬上顯示
       notesInbox();
       var n=list.filter(function(x){return !x.r;}).length;
       msgPaint();
@@ -1241,7 +1247,7 @@ function notesInbox(){
   if(!TOKEN)return;
   var have={},add=0;(INBOX.inbox||[]).forEach(function(x){have[String(x.id)]=1;});
   NOTES.forEach(function(n){
-    if(!n.c||have[n.c]||!INBOX.at||INBOX.at>n.at||Date.now()-n.at>7*864e5)return;   // 2026-10-07z：點過的通知（r=1）也要放，點進來那則才看得到   // 伺服器（或上次存的）資料比通知新就以伺服器為準；還沒任何資料就等伺服器
+    if(!n.c||have[n.c]||Date.now()-n.at>7*864e5)return;   // 2026-10-07z：點過的通知（r=1）也要放；伺服器還沒有這則就先用推播內容   // 伺服器（或上次存的）資料比通知新就以伺服器為準；還沒任何資料就等伺服器
     var m=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at);
     var at=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
     INBOX.inbox=[{id:n.c,from:m?m[1]:'廣播',at:at,text:n.b||'',toMe:true,pend:true}].concat(INBOX.inbox||[]);
@@ -1275,7 +1281,7 @@ function swOpenTake(){
     return c.match('./__open').then(function(r){return r?r.json():null;}).then(function(j){
       if(!j)return;
       c.delete('./__open');
-      if(Date.now()-(j.at||0)<120000&&j.url){swInboxTake();deepGo(j.url);}
+      if(Date.now()-(j.at||0)<120000&&j.url){notesEdit(null);swInboxTake();deepGo(j.url);}
     });
   }).catch(function(){});
 }
@@ -1769,15 +1775,15 @@ function msgItems(){
   (INBOX.inbox||[]).forEach(function(x){
     var id=String(x.id||'');have[id]=1;
     var un=!x.acked&&!x.recalled&&rs.indexOf(id)<0;      // 紅點＝還沒按「收到」（rs＝這支手機剛按過、伺服器還沒回來的）
-    if(x.pend)un=NOTES.some(function(n){return n.c===id&&!n.r;});
+    if(x.pend)un=rs.indexOf(id)<0;                // 2026-10-07z：點通知會把通知標成已讀，但廣播還沒按「收到」→ 仍算未收到
     out.push({k:'c',key:'c'+id,at:msgAt(x.at),un:un,x:x,rd:msgReadDay()[id]||''});
   });
   NOTES.forEach(function(n){
     if(!n.c||have[n.c])return;                     // 只放廣播（行程／待辦提醒只跳手機通知）；以伺服器那份為準
-    if(!INBOX.at||(n.at||0)<=INBOX.at)return;      // 伺服器資料比這則推播新（或還沒讀到）→ 不用推播那份，免得閃出舊的未讀
+    if(Date.now()-(n.at||0)>7*864e5)return;        // 2026-10-07z：伺服器那份還沒有這則（剛收到、或個案廣播），就先用推播內容顯示，不要藏起來；超過 7 天的不放
     var mm=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at||0);
     var x={id:n.c,from:mm?mm[1]:'通知',text:n.b||'',at:d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes()),toMe:true,pend:true};
-    out.push({k:'c',key:'n'+n.id,at:n.at||0,un:!n.r,n:n,x:x,rd:n.rd||msgReadDay()[n.c]||''});
+    out.push({k:'c',key:'n'+n.id,at:n.at||0,un:rs.indexOf(String(n.c))<0,n:n,x:x,rd:n.rd||msgReadDay()[n.c]||''});
   });
   var td=twStr();
   out.forEach(function(m){
@@ -1818,6 +1824,9 @@ function msgRow(m){
 }
 var MSG_HIST=false,GC_EMBED=false;
 /* 訊息頁（設計 A）：電腦版左右兩欄，左邊收到的／我發的，右邊直接「發通知」；手機版單欄＋右上「＋ 發通知」 */
+/** 訊息頁上方的「下載訊息中…」：跟一般載入同一個水珠動畫 */
+function mgLoadHTML(){return '<div class="mgload">'+SPIN+'<span>下載訊息中…</span></div>';}
+function mgLoadShow(on){var el=$('mgload');if(el)el.innerHTML=on?mgLoadHTML():'';}
 function msgPage(){
   // 不分欄：電腦、手機都一欄；「發通知」是右下角浮動按鈕
   return msgPageList()+(can('cast')?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發通知</button>':'');
@@ -1831,6 +1840,7 @@ function msgPageList(){
     +'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button></div>':'';
   if(seg==='sent')return h+msgSentList(sent);
   if(!INBOX.at){inboxLoad(true);return h+loader('讀取訊息…');}
+  h+='<div id="mgload">'+(INBOX.busy?mgLoadHTML():'')+'</div>';   // 2026-10-07z：跟伺服器要新訊息時，上方顯示「下載訊息中…」
   var un=all.filter(function(m){return m.un;}),td=all.filter(function(m){return !m.un&&m.keep;}),old=all.filter(function(m){return !m.keep;});
   var vx=un.concat(td).filter(function(m){return m.x;}).map(function(m){return m.x;});if(vx.length&&!document.hidden)seenMark(vx);   // 打開訊息頁看到＝已讀（回報發送者）
   if(un.length)h+='<div class="mgsec">未收到<b class="mgn">'+un.length+'</b><a href="#" class="mgall" onclick="msgAllRead();return false">'+ic('check',13)+'全部收到</a></div><div class="mgl">'+un.map(msgRow).join('')+'</div>';
@@ -5486,12 +5496,12 @@ var GC_CAST=GC, GC_ANN={ppl:{},open:{},text:'',q:'',busy:false};   // 公告頁�
 function inboxLoad(force){
   if(!TOKEN||INBOX.busy)return;
   if(!force&&Date.now()-INBOX.at<20000)return;
-  INBOX.busy=true;
+  INBOX.busy=true;mgLoadShow(true);
   gas('getInbox',TOKEN).then(function(r){
-    INBOX.busy=false;
+    INBOX.busy=false;mgLoadShow(false);
     if(!r||!r.ok)return;
     inboxApply(r);
-  }).catch(function(){INBOX.busy=false;});
+  }).catch(function(){INBOX.busy=false;mgLoadShow(false);});
 }
 /* 這支手機記成已收到、伺服器卻沒有「收到」紀錄（舊版只記在本機，或當時送出失敗）→ 背景補報，別的裝置才會同步 */
 var ACK_SYNC={};
@@ -8006,7 +8016,7 @@ function appInit(){
   // 推播進來時 sw.js 會通知畫面：App 開著也馬上更新廣播、跳提示
   if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){
     var d=e.data||{};
-    if(d.type==='open'){swOpenClear();swInboxTake();deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
+    if(d.type==='open'){swOpenClear();notesEdit(null);swInboxTake();deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
     if(d.type==='inbox'){swInboxTake();return;}   // sw.js 在背景把收件匣抓好了
     if(d.type==='ver'){SW_VER=d.v+(d.badge?'':'（不支援紅點）');var el=$('swver');if(el)el.textContent='推播服務：'+SW_VER;return;}
     if(d.type!=='push')return;
@@ -8027,6 +8037,7 @@ function appInit(){
   window.addEventListener('focus',function(){swOpenTake();});
   document.addEventListener('visibilitychange',function(){
     if(document.hidden)return;
+    notesEdit(null);                               // 先重讀 sw.js 剛記下的通知，新訊息馬上就能顯示
     swOpenTake();setTimeout(swOpenTake,800);setTimeout(swOpenTake,2000);   // 點通知回來、但 sw.js 的訊息沒送到（iPhone 常見）→ 自己去拿要打開哪裡；iPhone 有時先切回 App 才跑 sw.js，所以再多看兩次
     swInboxTake();inboxLoad(false);if(EV_D)castLoad(EV_D);      // 從背景切回來：先用 sw.js 預抓的，再看伺服器有沒有更新
     pushRefresh();                                 // 順便檢查推播連線（每小時最多一次）
