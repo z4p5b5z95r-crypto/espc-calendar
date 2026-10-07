@@ -3911,6 +3911,14 @@ function groupBy(list){
     if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
     var tqk=String(r.reportNum||'')+'｜'+String(r.qty==null?'':r.qty).trim();
     if(!(r.reportNum&&tg.qseen[tqk]))tg.qtys.push(String(r.qty==null?'':r.qty).trim());
+    // 2026-10-07z：同類別再依報告編號分開（例：放流水質三組報告各自一張小卡）；沒有報告編號就依點位
+    var sk=String(r.reportNum||'').trim()||('@'+String(r.location||'').trim());
+    tg.smap=tg.smap||{};tg.slist=tg.slist||[];
+    if(!tg.smap[sk]){tg.smap[sk]={locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};tg.slist.push(sk);}
+    var sg=tg.smap[sk];
+    add(sg.locs,r.location);add(sg.eqs,r.equipment);add(sg.nums,r.reportNum);add(sg.reps,normName(r.applicant));
+    if(!sg.samp&&r.sampTime)sg.samp=r.sampTime;
+    if(!(r.reportNum&&tg.qseen[tqk]))sg.qtys.push(String(r.qty==null?'':r.qty).trim());
     tg.qseen[tqk]=1;
   });
   return order.map(function(k){return m[k];});
@@ -6041,25 +6049,33 @@ function qtyAllZero(g){
 }
 /** 一個案子的完整明細：各測項一段，最後是共用資訊 */
 function evDetail(g){
-  var c=pcolor(g.project),multi=g.tlist.length>1,h=castBox(g);
+  var c=pcolor(g.project),h=castBox(g);
   // 2026-10-07z：數量全部是 0＝設備放在現場，當天不架設也不收站 → 不顯示公務車、現場，也不另開「人員與車輛」區塊
   var idle=qtyAllZero(g);
+  // 每個類別底下依報告編號再分：一組報告一張小卡（同類別多組時卡頭都寫類別名稱＋各自數量）
+  var ents=[];
+  g.tlist.forEach(function(t){
+    var tg=g.tmap[t],sl=tg.slist||[];
+    if(sl.length>1)sl.forEach(function(k){var x=tg.smap[k];ents.push({t:t,locs:x.locs,eqs:x.eqs,reps:x.reps,nums:x.nums,qtys:x.qtys,samp:x.samp});});
+    else ents.push({t:t,locs:tg.locs,eqs:tg.eqs,reps:tg.reps,nums:tg.nums,qtys:tg.qtys,samp:tg.samp});
+  });
+  var multi=ents.length>1;
   var shared=dr('PM',g.engs.map(telLink).join('<br>'))
     +(idle?'':dr('公務車',he(g.cars.join('、'))))
     +(idle?'':dr('現場',g.staff.map(telLink).join('<br>')))
     +dr('備註',he(g.notes.join('；')));
   var inline=idle&&!multi;   // 單一測項：PM、備註直接接在同一張卡片裡
-  g.tlist.forEach(function(t){
-    var tg=g.tmap[t],q=qtyText(tg.qtys);
-    var rows=dr('點位',locList(tg.locs))
-      +dr('採樣時間',he(tg.samp||g.samp))
-      +dr('儀器',pills(tg.eqs))
-      +dr('申報人員',tg.reps.map(telLink).join('<br>'))
-      +dr('報告編號',he(tg.nums.join('<br>')));
+  ents.forEach(function(e){
+    var q=qtyText(e.qtys);
+    var rows=dr('點位',locList(e.locs))
+      +dr('採樣時間',he(e.samp||g.samp))
+      +dr('儀器',pills(e.eqs))
+      +dr('申報人員',e.reps.map(telLink).join('<br>'))
+      +dr('報告編號',e.nums.map(he).join('<br>'));
     if(multi){
-      // 多測項 → 各自一張小卡，卡頭標出測項與數量
+      // 多測項（或同測項多組報告）→ 各自一張小卡，卡頭標出測項與數量
       h+='<div class="tcard">'
-        +'<div class="tch" style="color:'+c+'"><span>'+he(t)+'</span>'
+        +'<div class="tch" style="color:'+c+'"><span>'+he(e.t)+'</span>'
         +(q?'<span>'+he(q)+'</span>':'')+'</div>'
         +'<div class="tcb">'+rows+'</div></div>';
     }else{
