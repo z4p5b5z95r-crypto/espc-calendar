@@ -6048,11 +6048,11 @@ function rptHTML(nums){
   var out=[];
   (nums||[]).forEach(function(s){
     s=String(s||'').replace(/<br\s*\/?>/gi,' ').trim();if(!s)return;
-    var re=/([A-Z]{3}\d{2}[A-Z]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*(BK)?/gi,m,last=0,n=0;
+    var re=/([A-Z]{3}\d{2}[A-Z]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*([A-Z]?BK)?/gi,m,last=0,n=0;   // BK、EBK、TBK、FBK…都用標籤
     var clean=function(t){return t.replace(/^[\s,，、;；]+|[\s,，、;；]+$/g,'');};
     while((m=re.exec(s))){
       var pre=clean(s.slice(last,m.index));     // 編號前面的文字（例如「氨氣」）當成這一筆的標題
-      out.push((pre?he(pre)+' ':'')+he(m[1].toUpperCase())+(m[2]?' '+he(m[2].replace(/\s/g,'')):'')+(m[3]?'<span class="rbk">BK</span>':''));
+      out.push((pre?he(pre)+' ':'')+he(m[1].toUpperCase())+(m[2]?' '+he(m[2].replace(/\s/g,'')):'')+(m[3]?'<span class="rbk">'+he(m[3].toUpperCase())+'</span>':''));
       last=re.lastIndex;n++;
     }
     var tail=clean(s.slice(last));
