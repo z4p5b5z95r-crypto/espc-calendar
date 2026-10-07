@@ -2456,6 +2456,7 @@ function dueTargets(cb){
   }).catch(function(){cb({names:[String(ENGNAME||'').trim()].filter(Boolean),all:false});});
 }
 function checkDueNotice(){
+  if(VIEWAS){inboxLoad(false);return;}   // 檢視別人時不跳公告、證照到期等視窗
   annCheck();
   inboxLoad(false);
   var ym=twStr().slice(0,7);
@@ -2695,6 +2696,7 @@ function getMeOnce(){
 /* 授權規則：除了系統管理員帳號，所有人第一次登入都要確認資料並同意。
    依據是後端 Users.profile_ok；沒有記錄就不能進入下一步。 */
 function needProfile(){
+  if(VIEWAS)return false;               // 管理員檢視別人：不出授權頁，直接進功能
   if(PROFILE_OK)return false;
   if(ROLE==='admin')return false;        // 系統管理員帳號，不對應任何人員
   return true;
@@ -4264,6 +4266,7 @@ function icDownloadAll(){
 }
 
 function morePage(){
+  if(VIEWAS&&!ICS.cfg&&!ICS.loading){icsLoad();setTimeout(function(){if(tab==='more'&&!sub)render();},1500);}
   var h=navMoreLinks()+'<div class="sec" style="margin-top:4px">帳號</div>'
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>'
 
@@ -4278,9 +4281,9 @@ function morePage(){
     +'<button class="link mobonly" onclick="go(\'more\',\'navcfg\')"><div><div>下方頁籤</div><div class="hint" style="margin-top:2px">自己選下面那排要放哪些，其他放在「更多」</div></div><span style="flex:1"></span>'+ic('menu',19)+'</button>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
       +'<div>行程提醒推播通知</div>'
-      +'<div class="hint" style="margin-top:2px">'+(remindOn()&&pushIsOn()?'已開啟，點這裡設定提醒時間':'關閉時仍會收到廣播與證照到期通知'+(todoCan()?'、待辦事項通知':''))+(todoCan()?'<br>待辦事項的通知在每個待辦裡個別開關（預設關閉）':'')+'</div></div>'
+      +'<div class="hint" style="margin-top:2px">'+(remindSw()?'已開啟，點這裡設定提醒時間':'關閉時仍會收到廣播與證照到期通知'+(todoCan()?'、待辦事項通知':''))+(todoCan()?'<br>待辦事項的通知在每個待辦裡個別開關（預設關閉）':'')+'</div></div>'
       +'<span style="flex:1"></span>'
-      +'<button class="sw'+(remindOn()&&pushIsOn()?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="event.stopPropagation();pushSwitch()"></button></div>'
+      +'<button class="sw'+(remindSw()?' on':'')+'"'+(PUSH.busy?' disabled':'')+' onclick="event.stopPropagation();pushSwitch()"></button></div>'
 
     +(selfName()?'<div class="link" style="cursor:default"><div>'
       +'<div>開啟時先篩選自己的行程</div>'
@@ -5700,6 +5703,7 @@ function annLoad(force,cb){
 }
 /** 開 App／切回前景：抓公告，有沒讀過的就依序跳出（最多每 30 秒查一次） */
 function annCheck(){
+  if(VIEWAS)return;                     // 檢視別人時不彈公告
   if(!TOKEN||Date.now()-ANN_CHK<30000)return;
   ANN_CHK=Date.now();
   annLoad(false,function(){
@@ -6345,6 +6349,7 @@ function onbDone(){
 
 /* ── 首次登入必須改密碼 ── */
 function openPwForce(){
+  if(VIEWAS)return;                     // 檢視別人時不要求改密碼
   var h='<div class="onbw">'
     +'<div class="onbh">請設定你的密碼</div>'
     +'<p class="onbs">你目前用的是系統給的預設密碼，請改成只有你知道的密碼，'
@@ -7651,7 +7656,7 @@ function icsLoad(){
   gas('getRemind',TOKEN).then(function(r){
     ICS.loading=false;
     if(!r||!r.ok){ICS.err=(r&&r.error)||'讀取失敗';}
-    else{ICS.cfg=r.cfg||{alarms:[],weekend:false};ICS.dirty=false;lsS('espc_remind_on',ICS.cfg.on===false?'0':'1');}
+    else{ICS.cfg=r.cfg||{alarms:[],weekend:false};ICS.dirty=false;remMirror(ICS.cfg.on===false?'0':'1');}
     if(sub==='ics')render();
   }).catch(function(){ICS.loading=false;ICS.err='連線失敗，請稍後再試';if(sub==='ics')render();});
 }
@@ -7660,11 +7665,11 @@ function icsPage(){
   if(ICS.err&&!ICS.cfg)return '<div class="empty">'+he(ICS.err)+'<br><br><button class="btn btn-sm" onclick="ICS.err=\'\';render()">重試</button></div>';
   var c=ICS.cfg;
   var h='';
-  h+=pushHTML();
+  h+=VIEWAS?'<div class="note">你正在調整 '+he(ENGNAME||UNAME)+' 的提醒設定，存檔後他的所有手機都會套用。「在這支手機接收通知」要本人在自己的手機開啟。</div>':pushHTML();
   var ron=c.on!==false;
   h+='<div class="card"><div class="row"><div><div style="font-size:15px">行程提醒</div>'
     +'<div class="hint" style="margin-top:2px">有排到你的行程時提醒；關掉不影響廣播與證照到期通知'+(todoCan()?'，也不影響待辦事項通知（待辦通知在每個待辦裡個別開關，預設關閉）':'')+'</div></div>'
-    +'<button class="sw'+(ron?' on':'')+'" onclick="ICS.cfg.on=!(ICS.cfg.on!==false);lsS(\'espc_remind_on\',ICS.cfg.on?\'1\':\'0\');ICS.dirty=true;render()"></button></div></div>';
+    +'<button class="sw'+(ron?' on':'')+'" onclick="ICS.cfg.on=!(ICS.cfg.on!==false);remMirror(ICS.cfg.on?\'1\':\'0\');ICS.dirty=true;render()"></button></div></div>';
   if(!ron)return h+'<button class="btn btn-p btn-full" style="margin:6px 0 4px"'+(ICS.dirty?'':' disabled')+' onclick="icsSave()">'
     +(ICS.dirty?'儲存提醒設定':'提醒設定已儲存')+'</button>';
   h+='<div class="sec">提醒時間　<span style="color:var(--tx3)">最多 3 個，所有手機共用</span></div><div class="card">';
@@ -7756,13 +7761,25 @@ function pushIsOn(){
   return !!ls('espc_push')&&('Notification' in window)&&Notification.permission==='granted';
 }
 /* 更多→偏好的開關：開啟時直接進行程提醒頁（順便設定時間），關閉就留在原頁；不能開（iPhone 未加入主畫面、不支援、未設定）就帶到行程提醒頁看說明 */
-function remindOn(){return ls('espc_remind_on')!=='0';}
+function remindOn(){if(VIEWAS)return !(ICS.cfg&&ICS.cfg.on===false);return ls('espc_remind_on')!=='0';}
+/** 本機鏡像只記自己的；管理員檢視別人時不寫，免得蓋掉管理員自己的設定 */
+function remMirror(v){if(!VIEWAS)lsS('espc_remind_on',v);}
+/** 更多頁的「行程提醒」開關狀態：檢視別人時只看他的提醒設定（裝置推播跟著他的手機，不在這裡） */
+function remindSw(){return VIEWAS?remindOn():(remindOn()&&pushIsOn());}
 /** 更多→偏好的開關：只管「行程提醒」。關掉不會停掉這支手機的通知（廣播、證照照常收） */
 function pushSwitch(){
+  if(VIEWAS){                                   // 2026-10-07z：管理員檢視別人 → 直接改他的行程提醒開關
+    var c0=ICS.cfg||{alarms:[],weekend:false},on0=!(c0.on!==false);c0.on=on0;ICS.cfg=c0;render();
+    gas('setRemind',TOKEN,c0).then(function(r){
+      if(!r||!r.ok){c0.on=!on0;render();toast((r&&r.error)||'儲存失敗','no');return;}
+      toast((on0?'已開啟':'已關閉')+' '+(ENGNAME||UNAME)+' 的行程提醒','ok',2500);
+    }).catch(function(){c0.on=!on0;render();toast('連線失敗','no');});
+    return;
+  }
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(!FCM_VAPID||(isIOS&&!isStandalone())||!pushSupported()||Notification.permission==='denied'){go('more','ics');return;}
   var on=!(remindOn()&&pushIsOn());
-  lsS('espc_remind_on',on?'1':'0');
+  remMirror(on?'1':'0');
   gas('getRemind',TOKEN).then(function(r){
     var c=(r&&r.ok&&r.cfg)||{alarms:[],weekend:false};c.on=on;
     if(ICS.cfg)ICS.cfg.on=on;
@@ -7779,6 +7796,7 @@ function pushSwitch(){
 var PUSH_ASK_KEY='espc_pushask', PUSH_ASK_MS=3*86400000;   // 沒開通知的人每 3 天問一次
 function pushAskLater(){setTimeout(pushAsk,1200);}
 function pushAsk(){
+  if(VIEWAS)return;
   try{
     if(!TOKEN||!FCM_VAPID||!pushSupported()||pushIsOn())return;
     if(!isMobileDev())return;                     // 電腦版不要求開通知
@@ -7795,6 +7813,7 @@ function pushAsk(){
 var PUSH_ASKED=false;
 /* 第一次登入：同意資料使用、改好密碼後，接著請使用者開啟通知（iPhone 要先加入主畫面） */
 function openPushOnb(){
+  if(VIEWAS)return;
   try{if(!FCM_VAPID||pushIsOn()||!isMobileDev())return;lsS('espc_push_first','1');PUSH_ASKED=true;}catch(e){return;}
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   var body;
