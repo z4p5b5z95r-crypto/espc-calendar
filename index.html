@@ -1064,6 +1064,8 @@ html[data-fs="l"] body{zoom:1.25;}
 }
 @media(min-width:900px) and (max-width:1180px){.nb:not(.on) em{display:none}}
 /* 手機：使用者自選下方頁籤（順序用 --o；沒選的藏起來，從「更多」進去） */
+/* 報告編號後面的 BK 小標籤 */
+.rbk{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;line-height:1.5;border-radius:6px;padding:0 6px;background:var(--card2);color:var(--tx2);letter-spacing:.5px;vertical-align:1px}
 /* 證照詳情：每張卡片左上角外側掛對應圖示 */
 .cbox.cbx{position:relative;overflow:visible}
 .cbic{position:absolute;left:-9px;top:-13px;width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--glLine);
@@ -6040,6 +6042,25 @@ function evToggle(p){
 /** 點月曆上的事件標籤：開當日面板並展開那個案子 */
 function openEv(d,proj){openDay(d,proj);}
 
+/** 報告編號：一個編號一行，「報告號 樣品號」中間空一格，BK 用灰色小標籤放後面（2026-10-07z，使用者選 A）
+ *  例：NPW26A00226001BK → NPW26A00226 001 [BK]；看不懂的寫法照原文顯示 */
+function rptHTML(nums){
+  var out=[];
+  (nums||[]).forEach(function(s){
+    s=String(s||'').replace(/<br\s*\/?>/gi,' ').trim();if(!s)return;
+    var re=/([A-Z]{3}\d{2}[A-Z]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*(BK)?/gi,m,last=0,n=0;
+    var clean=function(t){return t.replace(/^[\s,，、;；]+|[\s,，、;；]+$/g,'');};
+    while((m=re.exec(s))){
+      var pre=clean(s.slice(last,m.index));     // 編號前面的文字（例如「氨氣」）當成這一筆的標題
+      out.push((pre?he(pre)+' ':'')+he(m[1].toUpperCase())+(m[2]?' '+he(m[2].replace(/\s/g,'')):'')+(m[3]?'<span class="rbk">BK</span>':''));
+      last=re.lastIndex;n++;
+    }
+    var tail=clean(s.slice(last));
+    if(!n)out.push(he(s));                          // 完全看不懂的寫法照原文
+    else if(tail)out[out.length-1]+=' '+he(tail);
+  });
+  return out.join('<br>');
+}
 /** 這個案子當天每個測項的數量都是 0（沒有數量的不算） */
 function qtyAllZero(g){
   return g.tlist.length>0&&g.tlist.every(function(t){
@@ -6071,7 +6092,7 @@ function evDetail(g){
       +dr('採樣時間',he(e.samp||g.samp))
       +dr('儀器',pills(e.eqs))
       +dr('申報人員',e.reps.map(telLink).join('<br>'))
-      +dr('報告編號',e.nums.map(he).join('<br>'));
+      +dr('報告編號',rptHTML(e.nums));
     if(multi){
       // 多測項（或同測項多組報告）→ 各自一張小卡，卡頭標出測項與數量
       h+='<div class="tcard">'
