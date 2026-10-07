@@ -319,8 +319,6 @@ html[data-theme="dark"] .glass::after{
 .dnt b{display:block;font-size:21px;font-weight:600;letter-spacing:-.01em;}
 .dnt span{font-size:12px;color:var(--tx3);}
 
-
-
 /* ── PM：行事曆／待辦 液態玻璃開關（A 款，篩選下方） ── */
 .lgbar{display:flex;justify-content:flex-end;margin:8px 2px 6px}
 .lgs{position:relative;display:inline-flex;align-items:center;width:96px;height:38px;border-radius:999px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;
@@ -391,10 +389,7 @@ html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(
 .bgsvg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
 .bgpc{fill:#f6e2d7}html[data-theme="dark"] .bgpc{fill:#523427}
 .bgnum{font:900 13px/1 -apple-system,BlinkMacSystemFont,sans-serif;fill:#fff}
-.nbdg-old{position:absolute;left:0;top:0;height:20px;min-width:20px;padding:0 5px;margin:-10px 0 0 -10px;border-radius:10px;z-index:3;pointer-events:none;
-  display:flex;align-items:center;justify-content:center;opacity:0;will-change:transform;transform-origin:50% 50%;
-  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.8) 0 13%,rgba(255,255,255,0) 36%),radial-gradient(circle at 50% 65%,#ff6255,#e1261a 72%);
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.65),inset 0 -1.5px 2.5px rgba(110,0,0,.35),0 2px 6px rgba(210,30,20,.35)}
+
 .nbdg b{color:#fff;font-size:11.5px;font-weight:800;line-height:1;text-shadow:0 1px 1px rgba(110,0,0,.35);opacity:0;transition:opacity .15s}
 .nbdg.n b{opacity:1}
 /* ── 訊息頁 ── */
@@ -462,7 +457,7 @@ body.vwon{padding-top:40px}
 .calv{display:flex;background:rgba(120,120,128,.14);border-radius:11px;padding:2px;margin:0 0 8px auto;width:max-content}
 .calv button{font-size:13px;padding:5px 14px;border-radius:9px;color:var(--tx2);background:none;border:0}
 .calv button.on{background:var(--card);color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.calwrap.tdv .evc{opacity:.25}
+
 .tdc{display:flex;align-items:center;gap:3px;font-size:9.5px;line-height:1.5;padding:0 3px;margin-top:2px;border:1px dashed rgba(120,120,128,.55);
   background:var(--glStrong);border-radius:4px;white-space:nowrap;overflow:hidden;color:var(--tx);touch-action:none;cursor:pointer}
 .tdc i{width:7px;height:7px;border:1.3px solid var(--tx3);border-radius:50%;flex:0 0 7px}
@@ -483,13 +478,10 @@ body.vwon{padding-top:40px}
 .tdchips button{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--tx2)}
 .tdchips button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
 body.locked .tdfab{display:none}
-.dayadd{display:flex;justify-content:center;padding:14px 0 4px}
-.tdplus{width:50px;height:50px;border-radius:50%;border:0;background:var(--brand);color:#fff;font-size:28px;line-height:48px;padding:0;
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.5),0 6px 16px rgba(243,111,33,.42)}
-.tdplus:active{transform:scale(.94)}
+
 .tdcard{padding:2px 12px}
-.tddone{display:flex;align-items:center;gap:6px;width:100%;padding:7px 0 6px;border:0;border-top:1px solid var(--line);background:none;font-size:12.5px;color:var(--tx3);font-weight:600}
-.tddone .foldc{display:inline-flex;transition:transform .2s}.tddone .foldc.on{transform:rotate(90deg)}.tdcard.warn{box-shadow:inset 3px 0 0 var(--err)}
+
+.tdcard.warn{box-shadow:inset 3px 0 0 var(--err)}
 .tdl{display:flex;align-items:center;gap:9px;padding:5px 0;border-top:1px solid var(--line)}.tdl:first-child{border-top:0}
 .tdb{width:18px;height:18px;border-radius:50%;border:1.8px solid var(--tx3);background:none;flex:0 0 18px;padding:0}
 .tdl.od .tdb{border-color:var(--err)}
@@ -511,9 +503,7 @@ body.locked .tdfab{display:none}
 .rpseg{display:flex;background:var(--card2);border-radius:10px;padding:2px;margin:6px 0 4px}
 .rpseg button{flex:1;border:0;background:none;padding:8px 0;border-radius:8px;font-size:14px;color:var(--tx2);font-family:inherit}
 .rpseg button.on{background:var(--card);color:var(--tx);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.tdck{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--glStrong);margin-bottom:6px;font-size:15px;width:100%;border:0;color:var(--tx);text-align:left}
-.tdck i{width:22px;height:22px;border-radius:50%;border:2px solid var(--tx3);flex:0 0 22px}
-.tdck.on i{background:var(--brand);border-color:var(--brand)}
+
 .cell.hol .dn{color:var(--err);font-weight:800;}
 .cell.hol.oc .dn{opacity:.6;}
 .cell.tdy{outline:1.5px solid var(--acc);outline-offset:-1px;}
@@ -527,13 +517,12 @@ body.locked .tdfab{display:none}
 .calwrap{position:relative;}
 .calload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   gap:10px;color:var(--tx3);font-size:13px;pointer-events:none;}
-.calwrap.busy .cgrid{opacity:.5;}
-.calwrap.busy .calload{background:rgba(24,16,12,.42);border-radius:18px}
+.calwrap.busy .cgrid{opacity:.35;}
+.calwrap.busy .calload{background:rgba(24,16,12,.12);border-radius:18px}   /* 微微調暗就好 */
 /* 載入／篩選中：月曆整片調暗，動畫放大放中間、文字在下面，才明顯 */
-.calpill{display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.35)}
+.calpill{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--tx);font-size:15px;font-weight:600}
 .calpill .spin{width:84px;height:56px;margin-top:0}
 .spin.flspin{margin-top:4px}.calpill .spin.flspin{margin-top:0}
-
 
 /* ── 年月選擇 ── */
 .pk{position:fixed;left:12px;right:12px;top:calc(96px + env(safe-area-inset-top));z-index:60;
@@ -618,8 +607,6 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 .kk{color:var(--tx3);flex-shrink:0;min-width:62px;}
 .kvv{flex:1;min-width:0;color:var(--tx);line-height:1.7;word-break:break-word;}
 
-
-
 /* ── 行程詳情（窄標籤明細表）── */
 .dcard{background:var(--glStrong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
   border:1px solid var(--glLine);border-radius:var(--r);padding:4px 13px;margin-bottom:8px;}
@@ -631,7 +618,6 @@ body.kb #app{padding-bottom:var(--kb,0px);}
 
 .pil{display:inline-block;font-size:11px;padding:2px 8px;border-radius:7px;
   background:var(--card2);color:var(--tx2);margin:0 4px 4px 0;}
-
 
 /* 當天行程頁籤 */
 /* 換月／換日的滑動動畫 */
@@ -667,8 +653,7 @@ html[data-theme="dark"] .pcast::after{background:linear-gradient(rgba(255,255,25
 .cchip.on{background:var(--acc);border-color:var(--acc);color:#fff;}
 .cchip .x{margin-left:6px;opacity:.6;}
 .cchip small{opacity:.7;margin-left:4px;font-size:11.5px;}
-.gsec{font-size:12.5px;color:var(--tx3);margin:12px 2px 2px;display:flex;align-items:center;gap:8px;}
-.gsec a{color:var(--accT);font-size:12.5px;margin-left:auto;}
+
 .gmem{margin:4px 0 8px;padding:8px 10px;border-radius:12px;background:var(--gl);border:1px solid var(--glLine);}
 .gmem .gh{font-size:12.5px;font-weight:600;display:flex;align-items:center;margin-bottom:2px;}
 .gmem .gh a{margin-left:auto;font-weight:400;color:var(--accT);}
@@ -786,12 +771,7 @@ html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
 .rcb{display:flex;gap:8px;align-items:center;justify-content:flex-end;}
 .rca.ok{padding:0 16px;font-size:14px;font-weight:600;color:var(--accT);background:rgba(243,111,33,.12);border-color:rgba(243,111,33,.28);box-shadow:none;}
 .rca.alt.on{color:var(--accT);border-color:rgba(243,111,33,.35);}
-.snzl{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:12px;color:var(--accT);}
-.snz{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.snz button.on{background:var(--acc);color:#fff;border-color:var(--acc);}
-.snzc{display:flex;gap:8px;align-items:center;margin-top:8px;}
-.snzc .fld{flex:1;min-width:0;margin:0;border-radius:12px;}
-.snz button{font-size:13px;padding:6px 12px;border-radius:999px;background:var(--glStrong);border:1px solid var(--glLine);color:var(--tx);}
+
 .rca.done{display:flex;height:auto;color:var(--ok,#1f8a4c);font-weight:500;border-color:transparent;background:none;box-shadow:none;padding:6px 0 0;margin-top:0;font-size:13px;}
 .rcx{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--tx3);text-decoration:underline;}
 .rrow{display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--line);font-size:14.5px;}
@@ -865,10 +845,6 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
 .ob{font-size:13px;padding:9px 15px;border-radius:999px;background:var(--card);
   border:1px solid var(--line);display:inline-flex;align-items:center;gap:5px;color:var(--tx2);}
 .ob.on{background:var(--acc);color:var(--accTx);border-color:var(--acc);font-weight:500;}
-
-
-
-
 
 /* ── 清單 ── */
 .lrow{display:flex;align-items:center;gap:11px;padding:11px 15px;
@@ -960,49 +936,6 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ── 新帳號憑證卡 ── */
 .nacard{background:var(--card);border:1px solid var(--line);border-radius:18px;
   padding:18px 18px 16px;text-align:center;}
@@ -1028,10 +961,6 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
   color:var(--tx3);font-size:13px;background:var(--card2);}
 .nabox{background:var(--card2);border-radius:14px;padding:4px 12px;margin:12px 0 14px;}
 .nafoot{font-size:11.5px;color:var(--tx3);margin-top:10px;line-height:1.7;}
-
-
-
-
 
 /* ── 字體大小（小／中／大）──
    用 zoom 整體放大，版面比例不會跑掉 */
@@ -1153,7 +1082,6 @@ html[data-fs="l"] body{zoom:1.25;}
   .dn{font-size:13px;text-align:left;padding-left:3px;}
   .evc{font-size:12px;line-height:1.75;padding:0 7px;margin-top:3px;}
 
-
   /* 年月選擇器對齊標題 */
   .pk{top:132px;left:var(--gut);right:auto;margin:0;width:400px;}
 
@@ -1166,7 +1094,6 @@ html[data-fs="l"] body{zoom:1.25;}
   .drop{padding:58px 24px;border-radius:22px;}
   .drop:hover{border-color:var(--acc);background:var(--tint);}
   .scroll{max-height:none;}
-
 
   /* 底部面板改成置中對話框 */
   .ov{align-items:center;}
@@ -1303,20 +1230,43 @@ function notesInbox(){
   if(!TOKEN)return;
   var have={},add=0;(INBOX.inbox||[]).forEach(function(x){have[String(x.id)]=1;});
   NOTES.forEach(function(n){
-    if(!n.c||have[n.c]||n.r||!INBOX.at||INBOX.at>n.at||Date.now()-n.at>7*864e5)return;   // 伺服器（或上次存的）資料比通知新就以伺服器為準；還沒任何資料就等伺服器
+    if(!n.c||have[n.c]||!INBOX.at||INBOX.at>n.at||Date.now()-n.at>7*864e5)return;   // 2026-10-07z：點過的通知（r=1）也要放，點進來那則才看得到   // 伺服器（或上次存的）資料比通知新就以伺服器為準；還沒任何資料就等伺服器
     var m=String(n.t||'').match(/📣\s*(.+?)\s*的廣播/),d=new Date(n.at);
     var at=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
     INBOX.inbox=[{id:n.c,from:m?m[1]:'廣播',at:at,text:n.b||'',toMe:true,pend:true}].concat(INBOX.inbox||[]);
     have[n.c]=1;add++;
   });
-  if(add&&tab==='today'&&!sub&&!$('ov').classList.contains('open'))render();
+  if(add&&(tab==='today'||tab==='msg')&&!sub&&!$('ov').classList.contains('open'))render();
+}
+/* ── 2026-10-07z：收到廣播推播時，sw.js 在背景先把收件匣抓好存起來（./__inbox），點通知打開就直接有內容 ── */
+/** 把登入資訊交給 sw.js（存在同網域的 Cache Storage），它才能在背景抓收件匣；檢視別人時不給 */
+function swAuthSave(){
+  if(!window.caches)return;
+  caches.open('espc-badge').then(function(c){
+    if(TOKEN&&!VIEWAS)return c.put('./__auth',new Response(JSON.stringify({t:TOKEN,g:GAS_URL,u:UNAME||ls('espc_user')||''})));
+    return c.delete('./__auth');
+  }).catch(function(){});
+}
+/** 套用伺服器回來的收件匣（App 自己抓的、或 sw.js 在背景預先抓好的都走這裡） */
+function inboxApply(r,at){
+  INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.sentCase=r.sentCase||[];INBOX.at=at||Date.now();INBOX.fresh=true;
+  inboxAckSync();
+  if(r.tpl)CAST_TPL=r.tpl;inboxSave();
+  if(NOTES&&NOTES.length)notesInbox();
+  if(!$('ov').classList.contains('open')&&(((tab==='today'||tab==='msg')&&!sub)||sub==='hist'))render();
+  msgPaint();
+}
+/** 讀 sw.js 預先抓好的收件匣：比手上的新就直接用，不用等伺服器 */
+function swInboxTake(){
+  if(!window.caches||!TOKEN)return Promise.resolve(false);
+  return caches.open('espc-badge').then(function(c){return c.match('./__inbox');})
+    .then(function(r){return r?r.json():null;})
+    .then(function(j){
+      if(!j||!j.r||!j.r.ok||j.u!==(UNAME||ls('espc_user'))||!(j.at>INBOX.at))return false;
+      inboxApply(j.r,j.at);return true;
+    }).catch(function(){return false;});
 }
 function notesUnread(){return msgUnread();}
-function bellPaint(){
-  var b=$('bell');if(!b)return;var n=notesUnread();
-  b.innerHTML=ic('bell',17)+(n?'<span class="bdg">'+(n>99?'99+':n)+'</span>':'');
-  b.classList.toggle('act',!!n);b.classList.toggle('w',!!n);
-}
 function notesAgo(ms){var m=Math.round((Date.now()-ms)/60000);if(m<1)return '剛剛';if(m<60)return m+' 分鐘前';var h=Math.round(m/60);if(h<24)return h+' 小時前';
   var d=new Date(ms);return (d.getMonth()+1)+'/'+d.getDate()+' '+p2(d.getHours())+':'+p2(d.getMinutes());}
 function notesOpen(){
@@ -1638,8 +1588,6 @@ function canEditStaff(name){
 }
 function roleLabel(r){return ROLE_LABEL[normRole(r)]||r;}
 function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
-/** 可進帳號管理：管理員、主管、排程 */
-function canManage(r){return canWrite(r);}
 /* ── 功能權限：後台（Perm.gs）依角色／組別／個人算好，登入與 getMe 時帶下來；沒拿到前用預設 ── */
 var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['supervisor','scheduler','office']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
@@ -2696,7 +2644,8 @@ function doLogout(){
   var pt=ls('espc_push');                   // 登出就不再讓這支手機收這個人的推播
   if(pt){try{gas('savePush',TOKEN,pt,false).catch(function(){});}catch(e){}lsD('espc_push');}
   gas('logout',TOKEN).catch(function(){});
-  clearSession();location.reload();
+  if(window.caches)caches.open('espc-badge').then(function(c){c.delete('./__auth');c.delete('./__inbox');}).catch(function(){});
+  clearSession();setTimeout(function(){location.reload();},150);
 }
 
 function boot(u,r,eng){
@@ -2719,7 +2668,9 @@ function boot(u,r,eng){
 
   appInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
-  if(takeDeep()){   // 2026-10-07z：廣播 → 訊息；今天 → 今日；其他日期 → 行事曆那一天
+  var isDeep=takeDeep();
+  if(INBOX_DEEP){INBOX_DEEP=false;MSG_SEG='in';back={t:'msg',s:''};swInboxTake();inboxLoad(true);}   // 2026-10-07z：點廣播通知 → 直接打開訊息
+  if(isDeep){   // 2026-10-07z：廣播 → 訊息；今天 → 今日；其他日期 → 行事曆那一天
     if(DEEP&&DEEP.p){DEEP=null;MSG_SEG='in';back={t:'msg',s:''};}
     else if(DEEP&&DEEP.d===twStr()){DEEP=null;back={t:'today',s:''};}
     else back={t:'cal',s:''};
@@ -3008,8 +2959,6 @@ function touchTab(){
   });
   window.addEventListener('pagehide',away);
 })();
-/** 採樣津貼：EIA-T、EIA-C 的現場人員在底部多一個頁籤（點了開津貼頁） */
-function isAllowTeam(){return /^EIA-[TC]$/i.test((ls('espc_team')||'').trim());}
 /* 津貼功能尚未正式開放：連點三下才打開，一、兩下只提示 */
 var ALLOW_TAP=0,ALLOW_TT=null;
 function allowTap(){
@@ -3313,10 +3262,6 @@ function todoLoad(force){
     .catch(function(){TODO_BUSY=false;TODOS=TODOS||[];});
 }
 function calvSet(v){CALV=v;lsS('espc_calv',v);render();}
-function calvSeg(){
-  return '<div class="calv">'+[['ev','行程'],['td','待辦'],['all','全部']].map(function(o){
-    return '<button class="'+(CALV===o[0]?'on':'')+'" onclick="calvSet(\''+o[0]+'\')">'+o[1]+'</button>';}).join('')+'</div>';
-}
 /* 重複規則：{f:'d'|'w'|'m'|'y', n:間隔, wd:[0-6 星期], md:'d'|'fw'（每月第幾天／第一個上班日）, dd:幾號,
    end:{t:'never'|'date'|'count', d:'yyyy-mm-dd', c:次數}}；
    舊資料的 'd'、'wd'、'w'、'm' 也看得懂 */
@@ -3729,18 +3674,6 @@ function repUI(){
   return h;
 }
 function repLbl(){var e=$('rp-sum');if(e&&TDE.rep)e.textContent=repText(TDE.rep);}
-function repPick(v){
-  var d=TDE.date,dw=new Date(d+'T00:00:00Z').getUTCDay();TDE.cust=(v==='c');
-  if(v==='')TDE.rep=null;
-  else if(v==='d')TDE.rep={f:'d',n:1,end:{t:'never'}};
-  else if(v==='w1')TDE.rep={f:'w',n:1,wd:[dw],end:{t:'never'}};
-  else if(v==='m1')TDE.rep={f:'m',n:1,md:'d',dd:+d.slice(8),end:{t:'never'}};
-  else if(v==='mfw')TDE.rep={f:'m',n:1,md:'fw',end:{t:'never'}};
-  else if(v==='y1')TDE.rep={f:'y',n:1,end:{t:'never'}};
-  else if(v==='wd')TDE.rep={f:'w',n:1,wd:[1,2,3,4,5],end:{t:'never'}};
-  else if(!TDE.rep)TDE.rep={f:'w',n:1,wd:[dw],end:{t:'never'}};
-  tdKeep();tdPaint();
-}
 function repMd(m){var r=TDE.rep;r.md=m;if(m==='d'&&!r.dd)r.dd=+TDE.date.slice(8);tdKeep();tdPaint();}
 function repN(k){var r=TDE.rep;r.n=Math.max(1,Math.min(99,(r.n||1)+k));tdKeep();tdPaint();}
 function repSet(k,v){var r=TDE.rep;r[k]=v;if(v==='w'&&!(r.wd&&r.wd.length))r.wd=[new Date(TDE.date+'T00:00:00Z').getUTCDay()];if(v==='m'&&!r.md){r.md='d';r.dd=+TDE.date.slice(8);}tdKeep();tdPaint();}
@@ -5488,7 +5421,6 @@ function castTplUse(i){
   castPaint();
 }
 function castTplSave(){gas('saveCastTpl',TOKEN,CAST_TPL).catch(function(){});}
-function castTplDel(i){(CAST_TPL||[]).splice(i,1);castTplSave();castPaint();}
 function castTplAdd(){
   var t=String(CAST.text||'').trim();
   if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
@@ -5528,12 +5460,7 @@ function inboxLoad(force){
   gas('getInbox',TOKEN).then(function(r){
     INBOX.busy=false;
     if(!r||!r.ok)return;
-    INBOX.inbox=r.inbox||[];INBOX.sent=r.sent||[];INBOX.sentCase=r.sentCase||[];INBOX.at=Date.now();INBOX.fresh=true;
-    inboxAckSync();
-    if(r.tpl)CAST_TPL=r.tpl;inboxSave();
-    if(!$('ov').classList.contains('open')&&(((tab==='today'||tab==='msg')&&!sub)||sub==='hist'))render();
-    msgPaint();
-    if(INBOX_DEEP){INBOX_DEEP=false;setTimeout(inboxAll,400);}
+    inboxApply(r);
   }).catch(function(){INBOX.busy=false;});
 }
 /* 這支手機記成已收到、伺服器卻沒有「收到」紀錄（舊版只記在本機，或當時送出失敗）→ 背景補報，別的裝置才會同步 */
@@ -5620,16 +5547,6 @@ function seenMark(list){
   },800);
 }
 var SNZ_OPEN='',SNZ_CUS='';
-/** 自訂時間的預設值：現在 + 分鐘數（datetime-local 格式） */
-function snzDefault(m){
-  var d=new Date(Date.now()+(m==null?60:m)*60000),z=function(n){return String(n).padStart(2,'0');};
-  return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'T'+z(d.getHours())+':'+z(d.getMinutes());
-}
-function castSnoozeCustom(id,from){
-  var v=$('snz-t')&&$('snz-t').value;
-  if(!v){toast('請選時間','no');return;}
-  castSnoozeDo(id,v.replace('T',' ').slice(0,16),from);
-}
 function snzRerender(from){if(from==='msg'){render();return;}if(from==='case')openDay(EV_D);else if($('ov').classList.contains('open'))inboxAll();else render();}
 function snzLabel(at){
   var d=String(at).slice(0,10),t=String(at).slice(11,16),today=twStr();
@@ -5669,28 +5586,10 @@ function rcptSheet(id,from){
 var HIST_OPEN=false;
 function inboxActive(x){return !x.acked&&!x.recalled;}
 function inbox7(){var d7=addDays(twStr(),-6);return INBOX.inbox.filter(function(x){return String(x.at).slice(0,10)>=d7;});}
-function inboxBox(){
-  var rec=inbox7().filter(inboxActive);
-  if(!rec.length)return '';
-  seenMark(rec);
-  return '<div class="sec" style="margin-top:2px;display:flex">廣播<span style="flex:1"></span>'
-    +'<span class="hint">按「收到」後移到下方歷史</span></div>'
-    +'<div class="ibox">'+rec.map(function(x){return castItem(x);}).join('')+'</div>';
-}
 /** 今日頁最下方：7 天內已收到／已收回的廣播，預設收起來 */
 function histItem(x){
   return '<div class="ci"><div class="cm">'+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
     +(x.recalled?'　已收回':'　✓ 已收到')+'</div>'+(x.recalled?'':'<div class="ct">'+linkify(x.text)+'</div>')+'</div>';
-}
-/** 今日頁最下方「今日廣播」：今天收到、已按收到（或已收回）的，預設收起來；更早的在「更多 → 歷史廣播」 */
-function inboxHist(){
-  var t=twStr(),old=INBOX.inbox.filter(function(x){return !inboxActive(x)&&String(x.at).slice(0,10)===t;});
-  if(!old.length)return '';
-  var h='<button class="fold" onclick="HIST_OPEN=!HIST_OPEN;render()"><span>今日廣播</span>'
-    +'<span class="foldn">'+old.length+' 則</span><span class="foldc'+(HIST_OPEN?' on':'')+'">'+ic('right',15)+'</span></button>';
-  if(!HIST_OPEN)return h;
-  return h+'<div class="ibox hist">'+old.map(histItem).join('')
-    +'<a href="#" style="display:block;text-align:center;color:var(--accT);font-size:13px;margin:4px 0 10px" onclick="go(\'more\',\'hist\');return false">更早的在「更多 → 歷史廣播」›</a></div>';
 }
 /** 更多 → 歷史廣播：今天以前、7 天內已收到／已收回的廣播（超過 7 天自動刪除） */
 var HIST_TAB='in';
@@ -6759,11 +6658,6 @@ function dlLoad(force){
     if(tab==='dl')render();
   });
 }
-function dlSetDate(which,v){
-  DL[which]=v;
-  if(DL.from&&DL.to&&DL.from>DL.to){if(which==='from')DL.to=DL.from;else DL.from=DL.to;}
-  dlLoad();
-}
 /* 下載行程：一律整個月 */
 function dlSetMonth(ym){
   if(!/^\d{4}-\d{2}$/.test(ym))return;
@@ -6959,10 +6853,6 @@ function dlOut(){
     +'<p class="dlfoot">本表為預定行程，實際監測日期可能因天候或現場狀況調整，異動將另行通知。</p>'
     +'</div>';
   return h;
-}
-function dlDate(d){
-  var a=String(d||'').split('-');
-  return a.length===3?(a[0]+'/'+a[1]+'/'+a[2]):String(d||'');
 }
 function dlPrint(){
   try{window.print();}catch(e){toast('無法開啟列印視窗','no');}
@@ -8066,30 +7956,6 @@ function pushOff(){
   fbMessaging().then(function(m){return m.deleteToken();}).catch(function(){});
   toast('已關閉這支手機的推播','ok');
 }
-/* 暫時測試功能（可刪除）：排定測試通知 */
-function pushDemo(){
-  var el=$('pt-t'),t=el&&el.value;
-  if(!t){toast('請選擇時間','no');return;}
-  PUSH.demo=t;
-  gas('scheduleTestPush',TOKEN,t).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'排定失敗','no',4000);return;}
-    PUSH.demoAt=t;render();
-    toast('已排定 '+t+' 的測試通知，現在可以關掉 App 等它跳出','ok',4000);
-  }).catch(function(){toast('連線失敗','no');});
-}
-function pushTest(kind){
-  toast('發送中…','',1500);
-  var mine=ls('espc_push')||'';
-  gas('testPush',TOKEN,kind||'',mine).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'發送失敗','no',4000);return;}
-    if(mine&&r.thisDevice===false){                        // 這支手機沒登記在帳號上 → 自動重新綁定
-      lsD('espc_push');toast('這支手機的通知設定已失效，正在重新開啟…','',3000);
-      setTimeout(function(){pushOn();},600);return;
-    }
-    if(!r.sent){toast('送出失敗（'+(r.failed||0)+' 支手機失效），請把「在這支手機接收通知」關掉再打開','no',5000);return;}
-    toast('已送出到 '+r.sent+' 支手機。App 開著時 iPhone 可能不跳橫幅，請鎖上手機或回主畫面再試','ok',5500);
-  }).catch(function(){toast('連線失敗','no');});
-}
 
 /* ══ 啟動時的共用設定 ══
    舊的「每日行程提醒 BETA」（App 自己跳通知）已移除，改用後端推播（行程提醒）。
@@ -8105,14 +7971,16 @@ function showVer(){
 function appInit(){
   initSwipe();
   regSW();
+  swAuthSave();                             // 讓 sw.js 收到廣播時能在背景先抓收件匣
   lsD('espc_notify');                       // 清掉舊提醒功能留下的設定
   // 推播進來時 sw.js 會通知畫面：App 開著也馬上更新廣播、跳提示
   if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){
     var d=e.data||{};
-    if(d.type==='open'){deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
+    if(d.type==='open'){swInboxTake();deepGo(d.url);return;}   // 點通知：App 開著就直接跳，不重新載入
+    if(d.type==='inbox'){swInboxTake();return;}   // sw.js 在背景把收件匣抓好了
     if(d.type==='ver'){SW_VER=d.v+(d.badge?'':'（不支援紅點）');var el=$('swver');if(el)el.textContent='推播服務：'+SW_VER;return;}
     if(d.type!=='push')return;
-    if(d.cid){inboxLoad(true);if(EV_D)castLoad(EV_D,true);}
+    if(d.cid){swInboxTake().then(function(got){if(!got)inboxLoad(true);});if(EV_D)castLoad(EV_D,true);}   // sw.js 已在背景抓好就直接用
     setTimeout(function(){notesEdit(null);},400);   // 通知列表＋紅點更新
     if(!d.recall)toast('🔔 '+(d.title||'收到新通知'),'ok',4000);   // App 開著時 iPhone 常不跳橫幅，畫面上也提示一次
   });
@@ -8126,7 +7994,7 @@ function appInit(){
   },2500);
   document.addEventListener('visibilitychange',function(){
     if(document.hidden)return;
-    inboxLoad(false);if(EV_D)castLoad(EV_D);      // 從背景切回來就看有沒有新廣播
+    swInboxTake();inboxLoad(false);if(EV_D)castLoad(EV_D);      // 從背景切回來：先用 sw.js 預抓的，再看伺服器有沒有更新
     pushRefresh();                                 // 順便檢查推播連線（每小時最多一次）
     annCheck();                                    // 有新公告就跳出來
     var t=twStr();
