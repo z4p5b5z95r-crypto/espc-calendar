@@ -5444,8 +5444,7 @@ function openDay(d,focus){
       +'<span class="pnm">'+he(g.project+carTag(g))
       +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')
       // 📣 放在案號後面（在標題列裡，但按它只開廣播、不會展開／收合）
-      +(cc?'<span class="pcast" role="button" title="廣播給現場人員" onclick="event.stopPropagation();castOpen(\''+esc(g.project)+'\')">'+CAST_ICON.replace('width="21" height="21"','width="15" height="15"')+'</span>':'')
-      +(on&&can('share')?'<span class="pcast" role="button" title="分享" onclick="event.stopPropagation();shareOpen(\''+esc(g.project)+'\')">'+SHARE_ICON+'</span>':'')   // 2026-10-08：分享
+      +(cc?'<span class="pcast" role="button" title="廣播給現場人員" onclick="event.stopPropagation();castTap(\''+esc(g.project)+'\')">'+CAST_ICON.replace('width="21" height="21"','width="15" height="15"')+'</span>':'')   // 2026-10-08：分享先隱藏，連點廣播按鈕三下才開
       +'</span>'
       +'<span class="pty" style="color:'+c+'">'+he(typeLabel(g))+'</span></span>'
       +'<span class="pchev'+(on?' on':'')+'">'+ic('right',15)+'</span></button>'
@@ -5652,6 +5651,13 @@ function shareDraw(m){
   var fh=Math.min(H,Math.ceil(y+14));       // 高度先抓寬一點，畫完再裁掉多餘的白邊
   if(fh<H){var c2=document.createElement('canvas');c2.width=W;c2.height=fh;c2.getContext('2d').drawImage(cv,0,0);return c2;}
   return cv;
+}
+/** 廣播按鈕：點一下＝廣播；快速連點三下＝分享（分享功能暫時隱藏在這裡） */
+var CAST_TAPS=0,CAST_TT=0;
+function castTap(p){
+  CAST_TAPS++;clearTimeout(CAST_TT);
+  if(CAST_TAPS>=3){CAST_TAPS=0;if(can('share'))shareOpen(p);else castOpen(p);return;}
+  CAST_TT=setTimeout(function(){var n=CAST_TAPS;CAST_TAPS=0;if(n)castOpen(p);},320);   // 等一下看是不是要連點
 }
 function shareOpen(p){
   var d=EV_D,g=shareGroup(p,d);if(!g){toast('找不到這個行程','no');return;}
