@@ -941,6 +941,17 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
   box-shadow:var(--sh);animation:up .2s ease;line-height:1.6;text-align:center;}
 .ts.ok{background:var(--acc);color:var(--accTx);}
 .ts.no{background:var(--err);color:#fff;}
+/* 分享 */
+.shch{display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--line);border-radius:16px;padding:12px 13px;margin-bottom:10px;cursor:pointer;background:var(--card)}
+.shch:active{border-color:var(--accT);background:var(--tint)}
+.shch b{display:block;font-size:15px}.shch small{display:block;color:var(--tx2);font-size:12px;margin-top:2px;line-height:1.5}
+.shci{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.shci.in{background:#e3ecfb}.shci.cu{background:#e3f3e9}
+html[data-theme="dark"] .shci.in{background:#22314a}html[data-theme="dark"] .shci.cu{background:#1d3326}
+.shtgs{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.shtg{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--card2);color:var(--tx2)}
+.shtg.x{text-decoration:line-through;color:var(--tx3)}
+.shimg{display:block;width:100%;max-width:420px;margin:4px auto 0;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
 /* 個案廣播的案子名稱 */
 .mgfrom{font-size:12.5px;color:var(--tx2);margin:1px 0 3px}
 .mgrel{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--accT);background:var(--tint);border-radius:6px;padding:0 6px}
@@ -1643,7 +1654,9 @@ function canWrite(r){return ROLE_WRITE.indexOf(normRole(r))>=0;}
 /* ── 功能權限：後台（Perm.gs）依角色／組別／個人算好，登入與 getMe 時帶下來；沒拿到前用預設 ── */
 var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['supervisor','scheduler','office']},allow:{role:['supervisor','scheduler'],team:['EIA-T','EIA-C']},
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
-  cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]}};
+  cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]},
+  ann:{role:[]},castCase:{role:['supervisor','scheduler','pm']},hide:{role:[]},viewAs:{role:[]},
+  share:{role:['supervisor','scheduler','pm','office']}};   // 2026-10-08：公布欄、行程廣播、隱藏、切換視角也能設定
 var UPSPIN='<svg class="spin upspin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><g class="upc"><circle cx="84" cy="46" r="9"/><circle cx="97" cy="38" r="13"/><circle cx="113" cy="40" r="11"/><circle cx="124" cy="47" r="8"/><rect x="76" y="45" width="56" height="10" rx="5"/></g><circle class="upd" cx="90" cy="84" r="8"/><circle class="upd upd2" cx="102" cy="84" r="8"/><circle class="upd upd3" cx="114" cy="84" r="8"/></g></svg>';
 var SEND_IC='<svg class="sendic" viewBox="-48 -48 96 96" aria-hidden="true"><g filter="url(#sgoo)" fill="#F36F21"><circle class="sdC" cx="0" cy="0" r="15"/><circle class="sdO" cx="0" cy="0" r="10" style="--x:32px;--y:-30px"/><circle class="sdO sdO2" cx="0" cy="0" r="10" style="--x:40px;--y:12px"/><circle class="sdO sdO3" cx="0" cy="0" r="10" style="--x:-14px;--y:-42px"/></g></svg>';
 /** 送出按鈕的三種狀態：''＝一般、'busy'＝送出中（水珠動畫）、'done'＝成功（綠色打勾） */
@@ -1670,7 +1683,7 @@ function can(k){
 var RG_ALL=['台北','台中','高雄'],HIDE_RG=[];
 try{HIDE_RG=JSON.parse(ls('espc_hiderg')||'[]')||[];}catch(e){HIDE_RG=[];}
 function hideRgSet(a){HIDE_RG=Array.isArray(a)?a:[];lsS('espc_hiderg',JSON.stringify(HIDE_RG));}
-function rgShow(cur){return RG_ALL.filter(function(k){return normRole(ROLE)==='admin'||HIDE_RG.indexOf(k)<0||k===cur;});}
+function rgShow(cur){return RG_ALL.filter(function(k){return can('hide')||HIDE_RG.indexOf(k)<0||k===cur;});}
 function rgHideToggle(k){
   var a=HIDE_RG.slice(),i=a.indexOf(k);if(i>=0)a.splice(i,1);else a.push(k);
   if(a.length>=RG_ALL.length){toast('至少要留一個地區','',2200);return;}
@@ -4372,12 +4385,12 @@ function morePage(){
     +'<button class="link" onclick="go(\'more\',\'pw\')">修改密碼'+ic('lock',19)+'</button>'
 
     +'<button class="link" onclick="go(\'more\',\'ann\')">公告'+(annUnread()?'<span class="adot">'+annUnread()+'</span>':'')+'<span style="flex:1"></span>'+ic('file',19)+'</button>';
-  if(normRole(ROLE)==='admin')h+='<div class="sec">管理</div>'
-    +'<button class="link" onclick="viewPick()"><div><div>切換使用者視角</div><div class="hint" style="margin-top:2px">選一個人，看他打開 App 看到的畫面（唯讀）</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>'
-    +'<div class="link" style="cursor:default;display:block"><div>顯示的地區</div><div class="hint" style="margin-top:2px">點一下切換。灰色＝隱藏：不會出現在大家的地區選單和行事曆下方的檔案更新時間</div>'
+  if(VIEWAS){}else if(can('viewAs')||can('hide')||isAdmin())h+='<div class="sec">管理</div>'
+    +(can('viewAs')?'<button class="link" onclick="viewPick()"><div><div>切換使用者視角</div><div class="hint" style="margin-top:2px">選一個人，看他打開 App 看到的畫面（唯讀）</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>':'')
+    +(can('hide')?'<div class="link" style="cursor:default;display:block"><div>顯示的地區</div><div class="hint" style="margin-top:2px">點一下切換。灰色＝隱藏：不會出現在大家的地區選單和行事曆下方的檔案更新時間</div>'
       +'<div class="segw" style="margin-top:10px;white-space:nowrap">'
-      +RG_ALL.map(function(k){return '<button class="segb'+(HIDE_RG.indexOf(k)<0?' on':'')+'" style="white-space:nowrap;padding:0 16px" onclick="rgHideToggle(\''+k+'\')">'+k+'</button>';}).join('')+'</div></div>'
-    +'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>';
+      +RG_ALL.map(function(k){return '<button class="segb'+(HIDE_RG.indexOf(k)<0?' on':'')+'" style="white-space:nowrap;padding:0 16px" onclick="rgHideToggle(\''+k+'\')">'+k+'</button>';}).join('')+'</div></div>':'')
+    +(!isAdmin()?'':'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>');   // 功能權限設定本身只給管理員
   h+='<div class="sec">偏好</div>'
     +'<button class="link mobonly" onclick="go(\'more\',\'navcfg\')"><div><div>下方頁籤</div><div class="hint" style="margin-top:2px">自己選下面那排要放哪些，其他放在「更多」</div></div><span style="flex:1"></span>'+ic('menu',19)+'</button>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
@@ -5432,6 +5445,7 @@ function openDay(d,focus){
       +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')
       // 📣 放在案號後面（在標題列裡，但按它只開廣播、不會展開／收合）
       +(cc?'<span class="pcast" role="button" title="廣播給現場人員" onclick="event.stopPropagation();castOpen(\''+esc(g.project)+'\')">'+CAST_ICON.replace('width="21" height="21"','width="15" height="15"')+'</span>':'')
+      +(on&&can('share')?'<span class="pcast" role="button" title="分享" onclick="event.stopPropagation();shareOpen(\''+esc(g.project)+'\')">'+SHARE_ICON+'</span>':'')   // 2026-10-08：分享
       +'</span>'
       +'<span class="pty" style="color:'+c+'">'+he(typeLabel(g))+'</span></span>'
       +'<span class="pchev'+(on?' on':'')+'">'+ic('right',15)+'</span></button>'
@@ -5459,9 +5473,9 @@ var CASTS={},CAST_TPL=null,CAST={p:'',sel:{},text:'',edit:false,busy:false};
 function canCast(g){
   if(!g.staff||!g.staff.length)return false;
   if(qtyAllZero(g))return false;               // 數量全是 0：當天沒人去現場，不能廣播
-  if(ROLE==='supervisor'||ROLE==='scheduler')return true;
-  if(ROLE!=='pm')return false;
-  var me=String(ENGNAME||'').trim();
+  if(!can('castCase'))return false;             // 2026-10-08：依功能權限「行程廣播」
+  if(ROLE==='supervisor'||ROLE==='scheduler'||isAdmin())return true;   // 主管、排程、管理員：所有案子
+  var me=String(ENGNAME||'').trim();             // 其他人：只能發自己是 PM 的案子
   return !!me&&g.engs.some(function(e){return String(e).trim()===me;});
 }
 function castLoad(d,force){
@@ -5527,6 +5541,160 @@ function castPaint(){
     +sendIn(cst,'送出廣播')+'</button>';
   openSheet(h);
 }
+/* ══ 2026-10-08：專案「分享」── 公司內部（全部）／客戶（不含 PM、儀器、報告編號、公務車、現場、備註）
+   產生一張行程卡圖片，用手機的分享傳到 LINE（電腦：下載圖片／複製文字）。之後可換成 LINE Flex 卡片 ══ */
+var SHARE_ICON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+var SHR={p:'',d:'',who:'',file:null,url:'',text:''};
+function shareGroup(p,d){return groupBy(dayRows(d)).filter(function(g){return g.project===p;})[0]||null;}
+function shareDateLab(d){return (+d.slice(5,7))+'/'+(+d.slice(8,10))+'（'+WDN.charAt(new Date(d+'T12:00:00+08:00').getUTCDay())+'）';}
+function shareRpt(nums){   // 報告編號 → 純文字行；結尾 BK 另外標記
+  var out=[];
+  (nums||[]).forEach(function(s){
+    s=String(s||'').replace(/<br\s*\/?>/gi,' ').trim();if(!s)return;
+    var re=/([A-Z]{3}\d{2}[A-Z]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*([A-Z]?BK)?/gi,m,n=0,last=0;
+    while((m=re.exec(s))){var pre=s.slice(last,m.index).replace(/^[\s,，、;；]+|[\s,，、;；]+$/g,'');
+      out.push({t:(pre?pre+' ':'')+m[1].toUpperCase()+(m[2]?' '+m[2].replace(/\s/g,''):''),bk:m[3]?m[3].toUpperCase():''});last=re.lastIndex;n++;}
+    if(!n)out.push({t:s,bk:''});
+  });
+  return out;
+}
+function sharePh(n){n=String(n||'').trim();var ph=PHONE[n];return n+(ph?'  '+ph:'');}
+/** 整理要分享的內容（who：in 公司內部／cu 客戶） */
+function shareModel(g,d,who){
+  var cu=who==='cu',idle=qtyAllZero(g),secs=[];
+  g.tlist.forEach(function(t){
+    var tg=g.tmap[t],sl=tg.slist||[];
+    var list=sl.length>1?sl.map(function(k){return tg.smap[k];}):[tg];
+    list.forEach(function(e){
+      var rows=[];
+      var locs=(e.locs||[]).filter(String);if(locs.length)rows.push(['點位',locs.map(function(x,i){return (locs.length>1?(i+1)+'. ':'')+x;})]);
+      var samp=e.samp||g.samp;if(samp)rows.push(['採樣時間',[String(samp)]]);
+      if(!cu){var eq=[];(e.eqs||[]).forEach(function(v){String(v).split(/[\s、,，]+/).forEach(function(x){x=x.trim();if(x&&eq.indexOf(x)<0)eq.push(x);});});
+        if(eq.length)rows.push(['儀器',[eq.join('、')]]);}
+      var reps=(e.reps||[]).filter(String);if(reps.length)rows.push(['申報人員',reps.map(sharePh)]);
+      if(!cu){var rp=shareRpt(e.nums);if(rp.length)rows.push(['報告編號',rp]);}
+      secs.push({t:t,q:qtyText(e.qtys||[]),rows:rows});
+    });
+  });
+  var extra=[];
+  if(!cu){
+    if(g.engs.length)extra.push(['PM',g.engs.map(sharePh)]);
+    if(!idle&&g.cars.length)extra.push(['公務車',[g.cars.join('、')]]);
+    if(!idle&&g.staff.length)extra.push(['現場',g.staff.map(sharePh)]);
+    var nt=g.notes.filter(String).join('；');if(nt)extra.push(['備註',[nt]]);
+  }
+  return {title:pjKey(g.project)||g.project,sub:shareDateLab(d)+(cu?' 監測行程':(okNo(g.no)?'・'+okNo(g.no):'')),secs:secs,extra:extra,
+    note:cu?'時間為預估，依當天狀況調整。':''};
+}
+function shareText(m){
+  var L=['【'+m.title+'】'+m.sub];
+  m.secs.forEach(function(s){
+    L.push('');L.push('■ '+s.t+(s.q?' '+s.q:''));
+    s.rows.forEach(function(r){r[1].forEach(function(v,i){L.push((i?'　　　':r[0]+'：')+(typeof v==='string'?v:v.t+(v.bk?' '+v.bk:'')));});});
+  });
+  if(m.extra.length){L.push('');m.extra.forEach(function(r){r[1].forEach(function(v,i){L.push((i?'　　　':r[0]+'：')+v);});});}
+  if(m.note){L.push('');L.push('備註：'+m.note);}
+  return L.join('\n');
+}
+/** 畫成圖片（寬 720，手機上看約 360） */
+function shareDraw(m){
+  var W=720,P=28,F='-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+  var cv=document.createElement('canvas'),x=cv.getContext('2d');
+  function wrap(t,font,max){x.font=font;var out=[],line='';String(t).split('').forEach(function(ch){if(x.measureText(line+ch).width>max&&line){out.push(line);line=ch;}else line+=ch;});if(line)out.push(line);return out.length?out:[''];}
+  var KW=130,VX=P+20+KW,VW=W-VX-P-24,LH=40,FV='500 27px '+F,FK='400 25px '+F;
+  // 先量高度
+  function rowsH(rows){var h=0;rows.forEach(function(r){r[1].forEach(function(v){var t=typeof v==='string'?v:v.t+(v.bk?'   ':'');h+=wrap(t,FV,VW-(v.bk?60:0)).length*LH;});h+=18;});return h;}
+  var H=150;
+  m.secs.forEach(function(s){H+=62+rowsH(s.rows)+18+18;});
+  if(m.extra.length)H+=rowsH(m.extra)+30;
+  var noteL=m.note?wrap('備註　'+m.note,'400 24px '+F,W-2*P-40):[];
+  if(m.note)H+=noteL.length*36+40;
+  H+=30;
+  cv.width=W;cv.height=H;
+  x.fillStyle='#ffffff';x.fillRect(0,0,W,H);
+  var gr=x.createLinearGradient(0,0,W,130);gr.addColorStop(0,'#ff9c55');gr.addColorStop(1,'#e0560f');
+  x.fillStyle=gr;x.fillRect(0,0,W,130);
+  x.fillStyle='#fff';x.textBaseline='top';
+  var tl=wrap(m.title,'700 36px '+F,W-2*P);x.font='700 36px '+F;x.fillText(tl[0],P,30);
+  x.font='500 25px '+F;x.globalAlpha=.92;x.fillText(m.sub,P,82);x.globalAlpha=1;
+  var y=150;
+  function rr(X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
+  function drawRows(rows,X0){
+    rows.forEach(function(r,ri){
+      if(ri){x.fillStyle='#f1ebe6';x.fillRect(X0,y-9,W-X0-P-4,2);}
+      x.font=FK;x.fillStyle='#9a918a';x.fillText(r[0],X0,y+2);
+      r[1].forEach(function(v){
+        var isO=typeof v!=='string',t=isO?v.t:v,ls=wrap(t,FV,VW-(isO&&v.bk?60:0));
+        ls.forEach(function(l,li){x.font=FV;x.fillStyle='#1f1a17';x.fillText(l,VX,y);
+          if(isO&&v.bk&&li===ls.length-1){var w=x.measureText(l).width;x.font='700 19px '+F;var bw=x.measureText(v.bk).width+14;
+            x.fillStyle='#ece8e4';rr(VX+w+10,y+2,bw,28,6);x.fill();x.fillStyle='#5b524c';x.fillText(v.bk,VX+w+17,y+6);}
+          y+=LH;});
+      });
+      y+=18;
+    });
+  }
+  m.secs.forEach(function(s){
+    var h=62+rowsH(s.rows)+18;
+    x.fillStyle='#ffffff';x.strokeStyle='#f0e2d8';x.lineWidth=2;rr(P,y,W-2*P,h,20);x.fill();x.stroke();
+    x.save();rr(P,y,W-2*P,h,20);x.clip();x.fillStyle='#fdeee4';x.fillRect(P,y,W-2*P,58);x.restore();
+    x.font='700 26px '+F;x.fillStyle='#c4510f';x.fillText(s.t,P+20,y+15);
+    if(s.q){var qw=x.measureText(s.q).width;x.fillText(s.q,W-P-20-qw,y+15);}
+    y+=76;drawRows(s.rows,P+20);y=y-18+18+18;
+  });
+  if(m.extra.length){y+=6;drawRows(m.extra,P+20);y+=10;}
+  if(m.note){
+    var nh=noteL.length*36+24;x.fillStyle='#f7f4f1';rr(P,y,W-2*P,nh,16);x.fill();
+    noteL.forEach(function(l,i){x.font=(i===0?'400 24px ':'400 24px ')+F;x.fillStyle='#6f6660';
+      if(i===0){x.font='700 24px '+F;x.fillStyle='#3a322d';x.fillText('備註',P+20,y+12);var bw=x.measureText('備註　').width;x.font='400 24px '+F;x.fillStyle='#6f6660';x.fillText(l.replace(/^備註　/,''),P+20+bw,y+12);}
+      else x.fillText(l,P+20,y+12+i*36);});
+    y+=nh+16;
+  }
+  var fh=Math.min(H,Math.ceil(y+14));       // 高度先抓寬一點，畫完再裁掉多餘的白邊
+  if(fh<H){var c2=document.createElement('canvas');c2.width=W;c2.height=fh;c2.getContext('2d').drawImage(cv,0,0);return c2;}
+  return cv;
+}
+function shareOpen(p){
+  var d=EV_D,g=shareGroup(p,d);if(!g){toast('找不到這個行程','no');return;}
+  SHR={p:p,d:d,who:'',file:null,url:'',text:''};
+  var tg=function(cu){return [['項目',0],['點位',0],['採樣時間',0],['儀器',1],['申報人員＋電話',0],['報告編號',1],['PM',1],['公務車',1],['現場',1],['備註',1]]
+    .map(function(f){return '<span class="shtg'+(cu&&f[1]?' x':'')+'">'+f[0]+'</span>';}).join('');};
+  openSheet('<div class="shh"><div><h3>分享這個行程</h3><p class="hint" style="margin-top:3px">'+he(pjKey(p))+'　'+shareDateLab(d)+'</p></div><button class="ib" onclick="shareBack()">✕</button></div>'
+    +'<div class="shch" onclick="shareMake(\'in\')"><div class="shci in">🏢</div><div><b>公司內部</b><small>全部內容</small><div class="shtgs">'+tg(false)+'</div></div></div>'
+    +'<div class="shch" onclick="shareMake(\'cu\')"><div class="shci cu">🤝</div><div><b>客戶</b><small>不含 PM、儀器、報告編號、公務車、現場、備註；附「時間為預估」備註</small><div class="shtgs">'+tg(true)+'</div></div></div>');
+}
+function shareBack(){if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}SHR.url='';openDay(SHR.d||EV_D,SHR.p);}
+function shareMake(who){
+  var g=shareGroup(SHR.p,SHR.d);if(!g)return;
+  var m=shareModel(g,SHR.d,who);SHR.who=who;SHR.text=shareText(m);
+  $('sheetin').innerHTML='<div class="load">'+SPIN+' 產生行程卡…</div>';
+  setTimeout(function(){
+    var cv=shareDraw(m);
+    cv.toBlob(function(b){
+      if(!b){toast('產生圖片失敗','no');return;}
+      var fn=(m.title+'_'+SHR.d+(who==='cu'?'':'_內部')).replace(/[\\\/:*?"<>|\s]+/g,'_')+'.png';
+      try{SHR.file=new File([b],fn,{type:'image/png'});}catch(e){SHR.file=b;SHR.file.name=fn;}
+      if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}
+      SHR.url=URL.createObjectURL(b);
+      var canFile=!!(navigator.canShare&&SHR.file instanceof File&&navigator.canShare({files:[SHR.file]}));
+      $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3></div><button class="ib" onclick="shareBack()">✕</button></div>'
+        +'<img class="shimg" src="'+SHR.url+'" alt="行程卡">'
+        +(canFile?'<button class="btn btn-p btn-full" style="margin-top:12px" onclick="shareSend()">'+SHARE_ICON+' 分享圖片（LINE…）</button>'
+                 :'<a class="btn btn-p btn-full" style="margin-top:12px" href="'+SHR.url+'" download="'+he(fn)+'">下載圖片</a>')
+        +'<button class="btn btn-full" style="margin-top:8px" onclick="shareCopy()">複製文字</button>';
+    },'image/png');
+  },30);
+}
+function shareSend(){
+  if(!SHR.file)return;
+  navigator.share({files:[SHR.file]}).catch(function(e){if(e&&e.name!=='AbortError')toast('無法分享，可以改用「複製文字」','no',3000);});
+}
+function shareCopy(){
+  var t=SHR.text;
+  var done=function(){toast('已複製，可以貼到 LINE','ok',2000);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fb);else fb();
+  function fb(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done();}catch(e){toast('複製失敗','no');}a.remove();}
+}
+
 function castSel(n){CAST.sel[n]=!CAST.sel[n];castPaint();}
 function castTplUse(i){
   var t=(CAST_TPL||[])[i];if(!t)return;
@@ -5905,7 +6073,7 @@ function annOpenItem(id){var x=ANN.inbox.filter(function(a){return a.id===id;})[
 function annPage(){
   if(!ANN.loaded)return loader('讀取公告…');
   var h='';
-  if(ROLE==='admin'){
+  if(can('ann')){
     h+='<button class="btn btn-p btn-full" style="margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="go(\'more\',\'annNew\')">'+ic('plus',17)+'發布公告</button>';
     h+='<div class="sec">已發布</div>';
     h+=ANN.sent.length?'<div class="gcard">'+ANN.sent.map(function(x){
@@ -5921,7 +6089,7 @@ function annPage(){
     return '<div class="anr" onclick="annOpenItem(\''+x.id+'\')"><div class="anrt">'+(x.read?'':'<span class="udot"></span>')+'<b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+'</div>'
       +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+'</div>'
       +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'')+'</div>';
-  }).join('')+'</div>':(ROLE==='admin'?'':'<div class="card"><div class="empty" style="padding:22px">目前沒有公告</div></div>');
+  }).join('')+'</div>':(can('ann')?'':'<div class="card"><div class="empty" style="padding:22px">目前沒有公告</div></div>');
   return h;
 }
 function annStat(id){
@@ -5943,9 +6111,9 @@ function annDel(id){
   }).catch(function(){toast('連線失敗','no');});
 }
 
-/* 更多 → 公告 → 發布公告（只有管理員） */
+/* 更多 → 公告 → 發布公告（有「公布欄」權限的人） */
 function annNewPage(){
-  if(ROLE!=='admin')return '';
+  if(!can('ann'))return '';
   if(!STAFF_READY)return loader('載入通訊錄…');
   var f=ANNF,sel=gcNames(),h='';
   h+='<div class="sec" style="margin-top:4px">標題</div><input class="fld" id="an-t" maxlength="60" placeholder="例如：10 月起採樣紀錄表改版" value="'+he(f.title)+'" oninput="ANNF.title=this.value" style="margin:0">';
@@ -6634,7 +6802,7 @@ function editStaff(name){
     +'<datalist id="sfl">'+allCertTypes().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">證照</p>'
     +'<div id="certs" style="margin-bottom:13px">'+certsHTML()+'</div>'
-    +(isAdmin()&&name?'<div class="link" style="cursor:default;margin-bottom:13px"><div><div>隱藏此人員</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在通訊錄看得到（本人仍看得到自己）</div></div><span style="flex:1"></span>'
+    +(can('hide')&&name?'<div class="link" style="cursor:default;margin-bottom:13px"><div><div>隱藏此人員</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在通訊錄看得到（本人仍看得到自己）</div></div><span style="flex:1"></span>'
       +'<button class="sw'+(s.hidden?' on':'')+'" id="s-h" onclick="this.classList.toggle(\'on\')"></button></div>':'')
     +'<div style="height:6px"></div>'
     +'<button class="btn btn-p btn-full" onclick="saveStaff()">儲存</button>'
@@ -7528,7 +7696,7 @@ function editUser(name){
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可收到證照到期通知</span></p>'
     +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
-    +(isAdmin()?'<div class="link" style="cursor:default;margin-bottom:16px"><div><div>隱藏此帳號</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在帳號管理看得到，帳號照常可以登入</div></div><span style="flex:1"></span>'
+    +(can('hide')?'<div class="link" style="cursor:default;margin-bottom:16px"><div><div>隱藏此帳號</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在帳號管理看得到，帳號照常可以登入</div></div><span style="flex:1"></span>'
       +'<button class="sw'+(u.hidden?' on':'')+'" id="e-h" onclick="this.classList.toggle(\'on\')"></button></div>':'')
     +((u.createdAt||u.createdBy)
       ? '<p class="hint" style="margin:-6px 6px 16px">建立於 '+he(shortStamp(u.createdAt)||'—')
