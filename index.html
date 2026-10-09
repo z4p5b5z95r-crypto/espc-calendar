@@ -1933,7 +1933,7 @@ function mgLoadHTML(){return '<div class="mgload">'+SPIN+'<span>下載訊息中�
 function mgLoadShow(on){var el=$('mgload');if(el)el.innerHTML=on?mgLoadHTML():'';}
 function msgPage(){
   // 不分欄：電腦、手機都一欄；「發通知」是右下角浮動按鈕
-  if(MSG_SEG==='ann')return msgPageList()+(can('ann')?'<button class="mgfab" onclick="go(\'msg\',\'annNew\')">'+ic('plus',18)+'發布公告</button>':'');   // 跟「發送訊息」同一個浮動按鈕
+  if(MSG_SEG==='ann')return msgPageList()+(can('ann')?'<button class="mgfab" onclick="if(ANNF.edit)ANNF={title:\'\',text:\'\',file:null,busy:false,push:false};go(\'msg\',\'annNew\')">'+ic('plus',18)+'發布公告</button>':'');   // 跟「發送訊息」同一個浮動按鈕
   return msgPageList()+(can('cast')?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發送訊息</button>':'');
 }
 function msgPageList(){
@@ -3283,7 +3283,7 @@ function titleText(){
   if(sub==='ann')return '公告';
   if(sub==='perm')return '功能權限';
   if(sub==='navcfg')return '下方頁籤';
-  if(sub==='annNew')return '發布公告';
+  if(sub==='annNew')return ANNF.edit?'修改公告':'發布公告';
   if(sub==='cast')return '發送訊息';
   if(tab==='msg')return '訊息';
   if(tab==='today')return '今日';
@@ -3302,7 +3302,7 @@ function refreshCal(){
 }
 
 function rightButtons(){
-  if(sub==='annNew')return '<button class="ib" onclick="MSG_SEG=\'ann\';go(\'msg\')" title="返回">✕</button>';
+  if(sub==='annNew')return '<button class="ib" onclick="if(ANNF.edit)ANNF={title:\'\',text:\'\',file:null,busy:false,push:false};MSG_SEG=\'ann\';go(\'msg\')" title="返回">✕</button>';
   if(sub==='ann')return '<button class="ib" onclick="annLoad(true)" title="重新整理">↻</button><button class="ib" onclick="go(\'more\')" title="返回">✕</button>';
   if(sub==='perm')return '<button class="ib" onclick="permLoad()" title="重新整理">↻</button><button class="ib" onclick="go(\'more\')" title="返回">✕</button>';
   if(sub)return '<button class="ib" onclick="go(\''+tab+'\')" title="返回">✕</button>';
@@ -6306,7 +6306,7 @@ function annOk(id,fromQueue){
 function annOpenItem(id){var x=ANN.inbox.filter(function(a){return a.id===id;})[0]||ANN.sent.filter(function(a){return a.id===id;})[0];if(x)annShow(x,0);}
 
 /* 更多 → 公告 */
-var ANN_SEG='in',ANN_HIST=false,ANN_SENT_OPEN=false;
+var ANN_SEG='in';
 /** 公告發送後 365 天刪除：顯示「剩 N 天刪除」，最後 30 天變橘色 */
 function annLeft(at){
   var d=daysBetween(String(at||'').slice(0,10),twStr());
@@ -6314,37 +6314,46 @@ function annLeft(at){
   var n=Math.max(0,365-d);
   return '<span style="'+(n<=30?'color:var(--warn);font-weight:600':'')+'">・'+(n?n+' 天後刪除':'今天刪除')+'</span>';
 }
-/* 訊息 → 公告：跟訊息一樣分「收到的」「我發的」
-   收到的：未讀在上面、已讀在下面；我發的：全部列出（新的在上） */
+/* 訊息 → 公告：不分頁籤
+   一般人：收到的公告（未讀在上）
+   有公布欄權限：看得到全部公告（含別人發的）、已讀名單，也可以修改、刪除；修改／刪除都會記在 AnnLog */
 function annPage(){
   if(!ANN.loaded)return loader('讀取公告…');
-  var td=twStr(),day=function(x){return String(x.at).slice(0,10);};
-  var mine=can('ann')||ANN.sent.length,seg=mine&&ANN_SEG==='sent'?'sent':'in';
-  var unN=ANN.inbox.filter(function(x){return !x.read;}).length;
-  var h=mine?'<div class="mgmini" style="margin-top:0"><button class="'+(seg==='in'?'on':'')+'" onclick="ANN_SEG=\'in\';render()">收到的</button>'
-    +'<button class="'+(seg==='sent'?'on':'')+'" onclick="ANN_SEG=\'sent\';render()">我發的</button></div>':'';
-  h+='<div class="mg7">'+ic('clock',14)+'<span>公告發送後保存 <b>1 年</b>，到期自動刪除</span></div>';   // 跟訊息的 7 天說明同樣式
-  if(seg==='in'){
-    var row=function(x){
-      return '<div class="anr" onclick="annOpenItem(\''+x.id+'\')"><div class="anrt">'+(x.read?'':'<span class="udot"></span>')+'<b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+'</div>'
-        +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+annLeft(x.at)+'</div>'
-        +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'')+'</div>';
-    };
-    var un=ANN.inbox.filter(function(x){return !x.read;}),rd=ANN.inbox.filter(function(x){return x.read;});
-    if(un.length)h+='<div class="mgsec">未讀<b class="mgn">'+un.length+'</b></div><div class="gcard anl">'+un.map(row).join('')+'</div>';
-    if(rd.length)h+='<div class="mgsec">已讀</div><div class="gcard anl">'+rd.map(row).join('')+'</div>';
-    if(!ANN.inbox.length)h+='<div class="card" style="margin-top:12px"><div class="empty" style="padding:24px">目前沒有公告</div></div>';
-    return h;
-  }
-  var srow=function(x){
-    var n=x.rc.length,r=x.rc.filter(function(p){return p.r;}).length,pc=n?Math.round(r*100/n):0;
-    return '<div class="anr" onclick="annStat(\''+x.id+'\')"><div class="anrt"><b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+(x.push?'<span class="anpt" style="background:var(--annBg);color:var(--annT)">已推播</span>':'')+'</div>'
-      +'<div class="hint">'+annAt(x.at)+(x.groups?'・'+he(x.groups):'')+annLeft(x.at)+'</div>'
-      +'<div class="pbr" style="margin-top:6px"><span class="pbl">已讀</span><span class="pbt"><i style="width:'+pc+'%"></i></span><span class="pbv" style="width:auto">'+r+'/'+n+'</span></div></div>';
+  var h='<div class="mg7">'+ic('clock',14)+'<span>公告發送後保存 <b>1 年</b>，到期自動刪除</span></div>';
+  var inb={};ANN.inbox.forEach(function(x){inb[x.id]=x;});
+  var adm=can('ann');
+  var list=adm?ANN.sent.slice():ANN.inbox.slice();
+  if(adm)ANN.inbox.forEach(function(x){if(!list.some(function(y){return y.id===x.id;}))list.push(x);});
+  list.sort(function(a,b){return a.at<b.at?1:-1;});
+  var unread=function(x){var m=inb[x.id];return !!(m&&!m.read);};
+  var row=function(x){
+    var h2='<div class="anr" onclick="annOpenItem(\''+x.id+'\')"><div class="anrt">'+(unread(x)?'<span class="udot"></span>':'')+'<b>'+he(x.title)+'</b>'
+      +(x.pdf?'<span class="anpt">PDF</span>':'')
+      +(x.push?'<span class="anpt" style="background:var(--annBg);color:var(--annT)">已推播</span>':'')
+      +(x.edited?'<span class="anpt" style="background:var(--card2);color:var(--tx2)">已修改</span>':'')+'</div>'
+      +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+(adm&&x.groups?'・'+he(x.groups):'')+annLeft(x.at)+'</div>'
+      +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'');
+    if(adm&&x.rc){
+      var n=x.rc.length,r=x.rc.filter(function(p){return p.r;}).length,pc=n?Math.round(r*100/n):0;
+      h2+='<div class="pbr" style="margin-top:6px"><span class="pbl">已讀</span><span class="pbt"><i style="width:'+pc+'%"></i></span><span class="pbv" style="width:auto">'+r+'/'+n+'</span></div>'
+        +'<div style="display:flex;gap:16px;margin-top:8px;font-size:13px">'
+        +'<a href="#" style="color:var(--accT)" onclick="event.stopPropagation();annStat(\''+x.id+'\');return false">已讀名單</a>'
+        +'<a href="#" style="color:var(--accT)" onclick="event.stopPropagation();annEditOpen(\''+x.id+'\');return false">修改</a>'
+        +'<a href="#" style="color:#d33b2f" onclick="event.stopPropagation();annDel(\''+x.id+'\');return false">刪除</a></div>';
+    }
+    return h2+'</div>';
   };
-  h+=ANN.sent.length?'<div class="gcard anl" style="margin-top:10px">'+ANN.sent.map(srow).join('')+'</div>'
-    :'<div class="card" style="margin-top:12px"><div class="empty" style="padding:24px">還沒有發布過公告</div></div>';
+  var un=list.filter(unread),rest=list.filter(function(x){return !unread(x);});
+  if(un.length)h+='<div class="mgsec">未讀<b class="mgn">'+un.length+'</b></div><div class="gcard anl">'+un.map(row).join('')+'</div>';
+  if(rest.length)h+='<div class="mgsec">'+(un.length?(adm?'其他公告':'已讀'):(adm?'全部公告':'已讀'))+'</div><div class="gcard anl">'+rest.map(row).join('')+'</div>';
+  if(!list.length)h+='<div class="card" style="margin-top:12px"><div class="empty" style="padding:24px">目前沒有公告</div></div>';
   return h;
+}
+/** 修改公告：打開發布頁，帶入原本內容 */
+function annEditOpen(id){
+  var x=ANN.sent.filter(function(a){return a.id===id;})[0];if(!x)return;
+  ANNF={title:x.title,text:x.text||'',file:null,busy:false,push:false,edit:id,oldPdf:x.pdf||null,rmPdf:false};
+  go('msg','annNew');
 }
 function annStat(id){
   var x=ANN.sent.filter(function(a){return a.id===id;})[0];if(!x)return;
@@ -6370,6 +6379,7 @@ function annNewPage(){
   if(!can('ann'))return '';
   if(!STAFF_READY)return loader('載入通訊錄…');
   var f=ANNF,sel=gcNames(),h='';
+  if(f.edit)return annEditPage();
   h+='<div class="sec" style="margin-top:4px">標題</div><input class="fld" id="an-t" maxlength="60" placeholder="例如：10 月起採樣紀錄表改版" value="'+he(f.title)+'" oninput="ANNF.title=this.value" style="margin:0">';
   h+='<div class="sec">內容</div><textarea class="fld" id="an-x" rows="6" maxlength="3000" placeholder="公告內容…" style="margin:0;resize:vertical;border-radius:16px;line-height:1.55" oninput="ANNF.text=this.value">'+he(f.text)+'</textarea>';
   h+='<div class="sec">附件（選填）</div>'
@@ -6390,6 +6400,42 @@ function annNewPage(){
     +'<button class="btn btn-p'+sendCls(f.busy?'busy':f.done?'done':'')+'"'+(f.busy||f.done||!sel.length?' disabled':'')+' onclick="annSend()">'+sendIn(f.busy?'busy':f.done?'done':'','發布',f.file?'上傳中…':'發布中…','已發布')+'</button></div>';
   setTimeout(gcSearch,0);
   return '<div class="annz">'+h+'</div>';
+}
+/* 修改公告：只改標題、內容、附件（對象和推播不能改）；修改會記在 AnnLog */
+function annEditPage(){
+  var f=ANNF,h='';
+  h+='<div class="mg7">'+ic('edit',14)+'<span>修改後大家看到的是新內容；誰在什麼時候改了什麼都會留下紀錄</span></div>';
+  h+='<div class="sec">標題</div><input class="fld" id="an-t" maxlength="60" value="'+he(f.title)+'" oninput="ANNF.title=this.value" style="margin:0">';
+  h+='<div class="sec">內容</div><textarea class="fld" id="an-x" rows="6" maxlength="3000" style="margin:0;resize:vertical;border-radius:16px;line-height:1.55" oninput="ANNF.text=this.value">'+he(f.text)+'</textarea>';
+  h+='<div class="sec">附件（選填）</div>';
+  if(f.file)h+='<div class="anp" style="cursor:default"><span class="anpi">PDF</span><span class="anpn"><b>'+he(f.file.name)+'</b><small>新附件・'+annFmtSize(f.file.size)+'</small></span><span class="tpb del" onclick="ANNF.file=null;render()">✕</span></div>';
+  else if(f.oldPdf&&!f.rmPdf)h+='<div class="anp" style="cursor:default"><span class="anpi">PDF</span><span class="anpn"><b>'+he(f.oldPdf.name)+'</b><small>目前的附件</small></span><span class="tpb del" onclick="ANNF.rmPdf=true;render()">✕</span></div>';
+  else h+='<label class="anup"><input type="file" accept="application/pdf,.pdf" onchange="annPick(this)" style="display:none">'+ic('upload',18)+'<span>'+(f.oldPdf?'換新的 PDF':'附上 PDF')+'<small>10 MB 以內'+(f.oldPdf?'；不附就會拿掉原本的附件':'')+'</small></span></label>';
+  h+='<div class="gpad gcol"></div><div class="gdock gcol"><div class="gdt"><b>修改公告</b><br>對象、推播不會變</div>'
+    +'<button class="btn btn-p'+sendCls(f.busy?'busy':f.done?'done':'')+'"'+(f.busy||f.done?' disabled':'')+' onclick="annEditSave()">'+sendIn(f.busy?'busy':f.done?'done':'','儲存',f.file?'上傳中…':'儲存中…','已儲存')+'</button></div>';
+  return '<div class="annz">'+h+'</div>';
+}
+function annEditSave(){
+  var f=ANNF,title=String(f.title||'').trim(),text=String(f.text||'').trim();
+  if(!title){toast('請輸入標題','no');return;}
+  var hasPdf=f.file||(f.oldPdf&&!f.rmPdf);
+  if(!text&&!hasPdf){toast('請輸入內容或附上 PDF','no');return;}
+  f.busy=true;render();
+  var go2=function(pdf){
+    gas('annEdit',TOKEN,f.edit,title,text,pdf).then(function(r){
+      f.busy=false;
+      if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no',4000);render();return;}
+      if(pdf)delete PDF_CACHE[f.edit];                // 附件換了：清掉舊的快取
+      f.done=true;render();
+      setTimeout(function(){ANNF={title:'',text:'',file:null,busy:false,push:false};MSG_SEG='ann';go('msg');annLoad(true);},1500);
+    }).catch(function(){f.busy=false;toast('連線失敗','no');render();});
+  };
+  if(f.file){
+    var rd=new FileReader();
+    rd.onload=function(){go2({name:f.file.name,b64:String(rd.result).split(',')[1]||''});};
+    rd.onerror=function(){f.busy=false;toast('讀不到檔案','no');render();};
+    rd.readAsDataURL(f.file);
+  }else go2(f.oldPdf&&f.rmPdf?{remove:true}:null);
 }
 function annAll(on){STAFF.forEach(function(x){var n=String(x.name||'').trim();if(n&&n!==String(ENGNAME||'').trim())GC.ppl[n]=on;});render();}
 function annPick(inp){
@@ -6414,7 +6460,7 @@ function annSend(){
       if(r.noPush&&r.noPush.length)toast(r.noPush.length+' 人沒開推播通知，他們下次開 App 會看到公告','',4000,true);
       setTimeout(function(){
         ANNF={title:'',text:'',file:null,busy:false,push:false};GC_ANN.ppl={};GC_ANN.open={};GC_ANN.q='';
-        MSG_SEG='ann';ANN_SEG='sent';go('msg');annLoad(true);
+        MSG_SEG='ann';go('msg');annLoad(true);
       },3000);
     }).catch(function(){f.busy=false;toast('連線失敗','no');render();});
   };
