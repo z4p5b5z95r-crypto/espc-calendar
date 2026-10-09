@@ -6277,7 +6277,7 @@ function annPage(){
         +'<div class="hint">'+annAt(x.at)+(x.groups?'・'+he(x.groups):'')+'</div>'
         +'<div class="pbr" style="margin-top:6px"><span class="pbl">已讀</span><span class="pbt"><i style="width:'+pc+'%"></i></span><span class="pbv" style="width:auto">'+r+'/'+n+'</span></div></div>';
     }).join('')+'</div>':'<div class="card"><div class="empty" style="padding:18px">還沒有發布過公告</div></div>';
-    if(!ANN.inbox.length)return h+'<p class="hint" style="text-align:center;margin:14px 0 4px">公告打開後保留一年</p>';
+    if(!ANN.inbox.length)return h+'<p class="hint" style="text-align:center;margin:14px 0 4px">'+(can('ann')?'公告打開後保留一年；所有對象都打開滿一年，會從資料庫刪除（含附件）':'公告打開後保留一年')+'</p>';
     h+='<div class="sec">收到的公告</div>';
   }
   h+=ANN.inbox.length?'<div class="gcard">'+ANN.inbox.map(function(x){
@@ -6285,7 +6285,7 @@ function annPage(){
       +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+'</div>'
       +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'')+'</div>';
   }).join('')+'</div>':(can('ann')?'':'<div class="card"><div class="empty" style="padding:22px">目前沒有公告</div></div>');
-  return h+'<p class="hint" style="text-align:center;margin:14px 0 4px">公告打開後保留一年</p>';
+  return h+'<p class="hint" style="text-align:center;margin:14px 0 4px">'+(can('ann')?'公告打開後保留一年；所有對象都打開滿一年，會從資料庫刪除（含附件）':'公告打開後保留一年')+'</p>';
 }
 function annStat(id){
   var x=ANN.sent.filter(function(a){return a.id===id;})[0];if(!x)return;
