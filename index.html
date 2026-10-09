@@ -951,6 +951,11 @@ html[data-theme="dark"] .shci.in{background:#22314a}html[data-theme="dark"] .shc
 .shtgs{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
 .shtg{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--card2);color:var(--tx2)}
 .shtg.x{text-decoration:line-through;color:var(--tx3)}
+.shopt{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.btn.shline{background:#06C755;border-color:#06C755;color:#fff;font-weight:600}
+.shck{border:1.5px solid var(--line);background:var(--card);color:var(--tx2);border-radius:999px;padding:6px 11px;font-size:12.5px;font-family:inherit}
+.shck.on{border-color:var(--accT);background:var(--tint);color:var(--accT);font-weight:600}
+.shck.dis{opacity:.4}
 .shimg{display:block;width:100%;max-width:420px;margin:4px auto 0;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
 /* 個案廣播的案子名稱 */
 .mgfrom{font-size:12.5px;color:var(--tx2);margin:1px 0 3px}
@@ -5543,7 +5548,14 @@ function castPaint(){
 /* ══ 2026-10-08：專案「分享」── 公司內部（全部）／客戶（不含 PM、儀器、報告編號、公務車、現場、備註）
    產生一張行程卡圖片，用手機的分享傳到 LINE（電腦：下載圖片／複製文字）。之後可換成 LINE Flex 卡片 ══ */
 var SHARE_ICON='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
-var SHR={p:'',d:'',who:'',file:null,url:'',text:''};
+var SHR={p:'',d:'',who:'',file:null,url:'',text:'',opt:null};
+/* 卡片要放哪些資訊：使用者自己勾，記在這支手機（公司內部、客戶各記一份） */
+var SHARE_FIELDS=[['loc','點位'],['samp','採樣時間'],['eq','儀器'],['rep','申報人員'],['repPh','申報人員電話'],['rpt','報告編號'],
+  ['pm','PM'],['pmPh','PM 電話'],['car','公務車'],['st','現場人員'],['stPh','現場人員電話'],['nt','行程備註'],['est','「時間為預估」備註']];
+var SHARE_DEF={in:{loc:1,samp:1,eq:1,rep:1,repPh:1,rpt:1,pm:1,pmPh:1,car:1,st:1,stPh:1,nt:1,est:0},
+  cu:{loc:1,samp:1,eq:0,rep:1,repPh:1,rpt:0,pm:0,pmPh:0,car:0,st:0,stPh:0,nt:0,est:1}};
+function shareOpt(who){var o={},d=SHARE_DEF[who];try{o=JSON.parse(ls('espc_share_'+who)||'{}')||{};}catch(e){o={};}
+  SHARE_FIELDS.forEach(function(f){if(o[f[0]]!==0&&o[f[0]]!==1)o[f[0]]=d[f[0]];});return o;}
 function shareGroup(p,d){return groupBy(dayRows(d)).filter(function(g){return g.project===p;})[0]||null;}
 function shareDateLab(d){return (+d.slice(5,7))+'/'+(+d.slice(8,10))+'（'+WDN.charAt(new Date(d+'T12:00:00+08:00').getUTCDay())+'）';}
 function shareRpt(nums){   // 報告編號 → 純文字行；結尾 BK 另外標記
@@ -5557,33 +5569,32 @@ function shareRpt(nums){   // 報告編號 → 純文字行；結尾 BK 另外�
   });
   return out;
 }
-function sharePh(n){n=String(n||'').trim();var ph=PHONE[n];return n+(ph?'  '+ph:'');}
+function sharePh(n,withPh){n=String(n||'').trim();var ph=PHONE[n];return n+(withPh&&ph?'  '+ph:'');}
 /** 整理要分享的內容（who：in 公司內部／cu 客戶） */
-function shareModel(g,d,who){
+function shareModel(g,d,who,o){
+  o=o||shareOpt(who);
   var cu=who==='cu',idle=qtyAllZero(g),secs=[];
   g.tlist.forEach(function(t){
     var tg=g.tmap[t],sl=tg.slist||[];
     var list=sl.length>1?sl.map(function(k){return tg.smap[k];}):[tg];
     list.forEach(function(e){
       var rows=[];
-      var locs=(e.locs||[]).filter(String);if(locs.length)rows.push(['點位',locs.map(function(x,i){return (locs.length>1?(i+1)+'. ':'')+x;})]);
-      var samp=e.samp||g.samp;if(samp)rows.push(['採樣時間',[String(samp)]]);
-      if(!cu){var eq=[];(e.eqs||[]).forEach(function(v){String(v).split(/[\s、,，]+/).forEach(function(x){x=x.trim();if(x&&eq.indexOf(x)<0)eq.push(x);});});
+      var locs=o.loc?(e.locs||[]).filter(String):[];if(locs.length)rows.push(['點位',locs.map(function(x,i){return (locs.length>1?(i+1)+'. ':'')+x;})]);
+      var samp=o.samp?(e.samp||g.samp):'';if(samp)rows.push(['採樣時間',[String(samp)]]);
+      if(o.eq){var eq=[];(e.eqs||[]).forEach(function(v){String(v).split(/[\s、,，]+/).forEach(function(x){x=x.trim();if(x&&eq.indexOf(x)<0)eq.push(x);});});
         if(eq.length)rows.push(['儀器',[eq.join('、')]]);}
-      var reps=(e.reps||[]).filter(String);if(reps.length)rows.push(['申報人員',reps.map(sharePh)]);
-      if(!cu){var rp=shareRpt(e.nums);if(rp.length)rows.push(['報告編號',rp]);}
+      var reps=o.rep?(e.reps||[]).filter(String):[];if(reps.length)rows.push(['申報人員',reps.map(function(n){return sharePh(n,o.repPh);})]);
+      if(o.rpt){var rp=shareRpt(e.nums);if(rp.length)rows.push(['報告編號',rp]);}
       secs.push({t:t,q:qtyText(e.qtys||[]),rows:rows});
     });
   });
   var extra=[];
-  if(!cu){
-    if(g.engs.length)extra.push(['PM',g.engs.map(sharePh)]);
-    if(!idle&&g.cars.length)extra.push(['公務車',[g.cars.join('、')]]);
-    if(!idle&&g.staff.length)extra.push(['現場',g.staff.map(sharePh)]);
-    var nt=g.notes.filter(String).join('；');if(nt)extra.push(['備註',[nt]]);
-  }
+  if(o.pm&&g.engs.length)extra.push(['PM',g.engs.map(function(n){return sharePh(n,o.pmPh);})]);
+  if(o.car&&!idle&&g.cars.length)extra.push(['公務車',[g.cars.join('、')]]);
+  if(o.st&&!idle&&g.staff.length)extra.push(['現場人員',g.staff.map(function(n){return sharePh(n,o.stPh);})]);
+  var nt=o.nt?g.notes.filter(String).join('；'):'';if(nt)extra.push(['備註',[nt]]);
   return {title:pjKey(g.project)||g.project,sub:shareDateLab(d)+(cu?' 監測行程':(okNo(g.no)?'・'+okNo(g.no):'')),secs:secs,extra:extra,
-    note:cu?'時間為預估，依當天狀況調整。':''};
+    note:o.est?'時間為預估，依當天狀況調整。':''};
 }
 function shareText(m){
   var L=['【'+m.title+'】'+m.sub];
@@ -5662,33 +5673,72 @@ function castTap(p){
 function shareOpen(p){
   var d=EV_D,g=shareGroup(p,d);if(!g){toast('找不到這個行程','no');return;}
   SHR={p:p,d:d,who:'',file:null,url:'',text:''};
-  var tg=function(cu){return [['項目',0],['點位',0],['採樣時間',0],['儀器',1],['申報人員＋電話',0],['報告編號',1],['PM',1],['公務車',1],['現場',1],['備註',1]]
-    .map(function(f){return '<span class="shtg'+(cu&&f[1]?' x':'')+'">'+f[0]+'</span>';}).join('');};
+  var tg=function(cu){var o=shareOpt(cu?'cu':'in');return SHARE_FIELDS.map(function(f){return '<span class="shtg'+(o[f[0]]?'':' x')+'">'+f[1]+'</span>';}).join('');};   // 照這支手機上次勾的顯示
   openSheet('<div class="shh"><div><h3>分享這個行程</h3><p class="hint" style="margin-top:3px">'+he(pjKey(p))+'　'+shareDateLab(d)+'</p></div><button class="ib" onclick="shareBack()">✕</button></div>'
-    +'<div class="shch" onclick="shareMake(\'in\')"><div class="shci in">🏢</div><div><b>公司內部</b><small>全部內容</small><div class="shtgs">'+tg(false)+'</div></div></div>'
-    +'<div class="shch" onclick="shareMake(\'cu\')"><div class="shci cu">🤝</div><div><b>客戶</b><small>不含 PM、儀器、報告編號、公務車、現場、備註；附「時間為預估」備註</small><div class="shtgs">'+tg(true)+'</div></div></div>');
+    +'<div class="shch" onclick="shareMake(\'in\')"><div class="shci in">🏢</div><div><b>公司內部</b><small>預設全部內容；下一步可以自己勾選</small><div class="shtgs">'+tg(false)+'</div></div></div>'
+    +'<div class="shch" onclick="shareMake(\'cu\')"><div class="shci cu">🤝</div><div><b>客戶</b><small>預設只放點位、採樣時間、申報人員＋電話，附「時間為預估」備註；下一步可以自己勾選</small><div class="shtgs">'+tg(true)+'</div></div></div>');
 }
 function shareBack(){if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}SHR.url='';openDay(SHR.d||EV_D,SHR.p);}
 function shareMake(who){
+  SHR.who=who;SHR.opt=shareOpt(who);
+  $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3></div><button class="ib" onclick="shareBack()">✕</button></div>'
+    +'<p class="sec" style="margin:2px 0 6px">卡片要放哪些資訊<a href="#" style="float:right;font-weight:400;color:var(--accT)" onclick="shareReset();return false">還原預設</a></p>'
+    +'<div class="shopt" id="sh-opt">'+shareOptHTML()+'</div>'
+    +'<div id="sh-prev"><div class="load" style="padding:20px">'+SPIN+'</div></div>'
+    +'<div id="sh-btns"></div>';
+  setTimeout(shareRender,20);
+}
+function shareOptHTML(){
+  var o=SHR.opt;
+  return SHARE_FIELDS.map(function(f){
+    var dep=(f[0]==='repPh'&&!o.rep)||(f[0]==='pmPh'&&!o.pm)||(f[0]==='stPh'&&!o.st);   // 沒放人就不能放電話
+    return '<button class="shck'+(o[f[0]]&&!dep?' on':'')+(dep?' dis':'')+'"'+(dep?' disabled':'')+' onclick="shareTog(\''+f[0]+'\')">'+(o[f[0]]&&!dep?'✓ ':'')+f[1]+'</button>';
+  }).join('');
+}
+function shareTog(k){
+  SHR.opt[k]=SHR.opt[k]?0:1;
+  lsS('espc_share_'+SHR.who,JSON.stringify(SHR.opt));    // 記住這次的選擇
+  var el=$('sh-opt');if(el)el.innerHTML=shareOptHTML();
+  clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,120);
+}
+function shareReset(){lsD('espc_share_'+SHR.who);SHR.opt=shareOpt(SHR.who);var el=$('sh-opt');if(el)el.innerHTML=shareOptHTML();shareRender();}
+function shareRender(){
   var g=shareGroup(SHR.p,SHR.d);if(!g)return;
-  var m=shareModel(g,SHR.d,who);SHR.who=who;SHR.text=shareText(m);
-  $('sheetin').innerHTML='<div class="load">'+SPIN+' 產生行程卡…</div>';
-  setTimeout(function(){
-    var cv=shareDraw(m);
-    cv.toBlob(function(b){
-      if(!b){toast('產生圖片失敗','no');return;}
-      var fn=(m.title+'_'+SHR.d+(who==='cu'?'':'_內部')).replace(/[\\\/:*?"<>|\s]+/g,'_')+'.png';
-      try{SHR.file=new File([b],fn,{type:'image/png'});}catch(e){SHR.file=b;SHR.file.name=fn;}
-      if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}
-      SHR.url=URL.createObjectURL(b);
-      var canFile=!!(navigator.canShare&&SHR.file instanceof File&&navigator.canShare({files:[SHR.file]}));
-      $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3></div><button class="ib" onclick="shareBack()">✕</button></div>'
-        +'<img class="shimg" src="'+SHR.url+'" alt="行程卡">'
-        +(canFile?'<button class="btn btn-p btn-full" style="margin-top:12px" onclick="shareSend()">'+SHARE_ICON+' 分享圖片（LINE…）</button>'
-                 :'<a class="btn btn-p btn-full" style="margin-top:12px" href="'+SHR.url+'" download="'+he(fn)+'">下載圖片</a>')
-        +'<button class="btn btn-full" style="margin-top:8px" onclick="shareCopy()">複製文字</button>';
-    },'image/png');
-  },30);
+  var o={};Object.keys(SHR.opt).forEach(function(k){o[k]=SHR.opt[k];});
+  if(!o.rep)o.repPh=0;if(!o.pm)o.pmPh=0;if(!o.st)o.stPh=0;
+  var m=shareModel(g,SHR.d,SHR.who,o),who=SHR.who;SHR.text=shareText(m);SHR.m=m;
+  var cv=shareDraw(m);
+  cv.toBlob(function(b){
+    if(!b){toast('產生圖片失敗','no');return;}
+    var fn=(m.title+'_'+SHR.d+(who==='cu'?'':'_內部')).replace(/[\\\/:*?"<>|\s]+/g,'_')+'.png';
+    try{SHR.file=new File([b],fn,{type:'image/png'});}catch(e){SHR.file=b;}
+    if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}
+    SHR.url=URL.createObjectURL(b);
+    var canFile=!!(navigator.canShare&&SHR.file instanceof File&&navigator.canShare({files:[SHR.file]}));
+    var pv=$('sh-prev'),bt=$('sh-btns');if(!pv||!bt)return;
+    pv.innerHTML='<img class="shimg" src="'+SHR.url+'" alt="行程卡">';
+    bt.innerHTML='<button class="btn btn-full shline" style="margin-top:12px" onclick="shareLine()">傳到 LINE（卡片）</button>'   // 2026-10-09：LINE Flex 卡片
+      +'<div style="display:flex;gap:8px;margin-top:8px">'
+      +(canFile?'<button class="btn" style="flex:1" onclick="shareSend()">'+SHARE_ICON+' 分享圖片</button>'
+               :'<a class="btn" style="flex:1" href="'+SHR.url+'" download="'+he(fn)+'">下載圖片</a>')
+      +'<button class="btn" style="flex:1" onclick="shareCopy()">複製文字</button></div>';
+  },'image/png');
+}
+/* LINE Flex 卡片：把卡片內容（已依勾選整理好）放進網址，交給 share.html（LIFF）排版並叫出 LINE 的選擇傳送對象 */
+var LIFF_SHARE='https://liff.line.me/2011941705-qxSCWyAG';
+function b64url(o){
+  var bytes=new TextEncoder().encode(JSON.stringify(o)),bin='';
+  for(var i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function shareLine(){
+  if(!SHR.m)return;
+  var m=JSON.parse(JSON.stringify(SHR.m));
+  if(SHR.who!=='cu')m.app=location.origin+location.pathname+'?d='+SHR.d;   // 公司內部：卡片下面「在 App 打開」跳到那一天
+  var url=LIFF_SHARE+'?d='+b64url(m);
+  if(url.length>7000){toast('內容太多，LINE 卡片放不下，請少勾幾項或改用圖片','no',3500);return;}
+  var w=null;try{w=window.open(url,'_blank');}catch(e){}
+  if(!w)location.href=url;
 }
 function shareSend(){
   if(!SHR.file)return;

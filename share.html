@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>分享行程</title>
+<link rel="icon" type="image/png" href="icon-192-v4.png">
+<style>
+:root{--bg:#f4f1ee;--card:#fff;--tx:#2b2522;--tx2:#7a706a;--acc:#C44E06;--line:rgba(0,0,0,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;padding:20px 16px 40px}
+.wrap{max-width:420px;margin:0 auto}
+h1{font-size:18px;margin:0 0 4px}.st{color:var(--tx2);font-size:13.5px;margin:0 0 14px;line-height:1.6;min-height:22px}
+.btn{display:block;width:100%;border:0;border-radius:999px;padding:13px;font-size:15px;font-weight:600;background:#06C755;color:#fff;margin-top:12px;font-family:inherit}
+.btn.g{background:#e8e2dd;color:var(--tx)}
+.fx{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.1);font-size:13px;color:#111}
+.fh{background:linear-gradient(90deg,#ff9c55,#e0560f);color:#fff;padding:12px 14px}.fh b{display:block;font-size:16px}.fh small{font-size:12px;opacity:.92}
+.fs{margin:10px 10px 0;border:1px solid #f0e2d8;border-radius:12px;overflow:hidden}
+.fst{background:#fdeee4;color:#c4510f;font-weight:700;padding:7px 10px;display:flex;justify-content:space-between}
+.fr{display:flex;gap:8px;padding:6px 10px;border-top:1px solid #f3eee9}.fr:first-of-type{border-top:0}
+.fr>span:first-child{width:62px;color:#9a918a;flex-shrink:0}
+.bk{background:#ece8e4;border-radius:4px;padding:0 5px;font-size:10.5px;font-weight:700;margin-left:4px;color:#5b524c}
+.ph{color:#1a5fb4}
+.fe{padding:6px 2px 0}
+.fn{margin:10px;padding:8px 10px;background:#f7f4f1;border-radius:10px;font-size:12px;color:#6f6660}.fn b{color:#3a322d;margin-right:6px}
+.pad{height:10px}
+</style>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head><body><div class="wrap">
+<h1>分享行程到 LINE</h1>
+<p class="st" id="st">準備中…</p>
+<div id="pv"></div>
+<button class="btn" id="go" style="display:none" onclick="send()">選擇要傳給誰</button>
+<button class="btn g" id="cl" style="display:none" onclick="closeMe()">關閉</button>
+</div>
+<script>
+/* 2026-10-09：ESPC 監測行程「分享」→ LINE Flex 卡片
+   App 把整理好的卡片內容（已依使用者勾選、客戶版已拿掉不該給的欄位）放在網址 d= 參數，這頁負責排成 Flex 卡片並叫出 LINE 的選擇傳送對象 */
+var LIFF_ID='2011941705-qxSCWyAG';
+var M=null;
+function $(i){return document.getElementById(i);}
+function st(t){$('st').textContent=t;}
+function dec(s){   // base64url → UTF-8 JSON
+  s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';
+  var bin=atob(s),bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function getPayload(){
+  var q=new URLSearchParams(location.search),d=q.get('d');
+  if(!d){var ls=q.get('liff.state');if(ls){var q2=new URLSearchParams(ls.replace(/^[^?]*\?/,''));d=q2.get('d');}}
+  if(!d&&location.hash){var q3=new URLSearchParams(location.hash.slice(1));d=q3.get('d');}
+  return d?dec(d):null;
+}
+function splitPh(v){var m=String(v).match(/^(.*?)\s+(0[\d-]{7,})$/);return m?{n:m[1],p:m[2]}:null;}
+/* ── Flex 卡片 ── */
+function T(t,o){var x={type:'text',text:String(t||' '),wrap:true,size:'sm',color:'#1F1A17'};for(var k in o)x[k]=o[k];return x;}
+function val(v){
+  if(v&&typeof v==='object'){
+    var c=[T(v.t,{flex:0})];
+    if(v.bk)c.push({type:'box',layout:'vertical',flex:0,backgroundColor:'#ECE8E4',cornerRadius:'4px',paddingStart:'5px',paddingEnd:'5px',margin:'sm',justifyContent:'center',
+      contents:[T(v.bk,{size:'xxs',weight:'bold',color:'#5B524C',wrap:false})]});
+    return {type:'box',layout:'horizontal',contents:c};
+  }
+  var ph=splitPh(v);
+  if(ph)return {type:'text',wrap:true,size:'sm',color:'#1F1A17',contents:[{type:'span',text:ph.n+'  '},{type:'span',text:ph.p,color:'#1A5FB4'}],
+    action:{type:'uri',label:'撥打',uri:'tel:'+ph.p.replace(/-/g,'')}};
+  return T(v);
+}
+function row(r){
+  return {type:'box',layout:'horizontal',spacing:'md',contents:[T(r[0],{flex:3,color:'#9A918A'}),{type:'box',layout:'vertical',flex:8,spacing:'xs',contents:r[1].map(val)}]};
+}
+function flex(m){
+  var body=[];
+  m.secs.forEach(function(s){
+    var rows=s.rows.map(row);
+    body.push({type:'box',layout:'vertical',margin:'md',cornerRadius:'12px',borderWidth:'1px',borderColor:'#F0E2D8',contents:[
+      {type:'box',layout:'horizontal',backgroundColor:'#FDEEE4',paddingAll:'8px',paddingStart:'10px',paddingEnd:'10px',contents:[
+        T(s.t,{weight:'bold',color:'#C4510F'}),T(s.q||' ',{weight:'bold',color:'#C4510F',align:'end',flex:0})]},
+      {type:'box',layout:'vertical',paddingAll:'10px',spacing:'sm',contents:rows.length?rows:[T('—',{color:'#9A918A'})]}]});
+  });
+  if(m.extra&&m.extra.length)body.push({type:'box',layout:'vertical',margin:'md',paddingStart:'10px',paddingEnd:'10px',spacing:'sm',contents:m.extra.map(row)});
+  if(m.note)body.push({type:'box',layout:'vertical',margin:'md',backgroundColor:'#F7F4F1',cornerRadius:'10px',paddingAll:'10px',contents:[
+    {type:'text',wrap:true,size:'xs',color:'#6F6660',contents:[{type:'span',text:'備註　',weight:'bold',color:'#3A322D'},{type:'span',text:m.note}]}]});
+  var b={type:'bubble',size:'mega',
+    header:{type:'box',layout:'vertical',paddingAll:'14px',background:{type:'linearGradient',angle:'90deg',startColor:'#FF9C55',endColor:'#E0560F'},contents:[
+      T(m.title,{size:'lg',weight:'bold',color:'#FFFFFF'}),T(m.sub,{size:'xs',color:'#FFFFFF'})]},
+    body:{type:'box',layout:'vertical',paddingAll:'10px',paddingTop:'4px',contents:body}};
+  if(m.app)b.footer={type:'box',layout:'vertical',paddingAll:'10px',paddingTop:'0px',contents:[
+    {type:'button',style:'primary',color:'#C44E06',height:'sm',action:{type:'uri',label:'在 App 打開',uri:m.app}}]};
+  return {type:'flex',altText:('【'+m.title+'】'+m.sub).slice(0,390),contents:b};
+}
+/* ── 畫面上的預覽（用 textContent，不吃網址裡的 HTML） ── */
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function pvVal(v,box){
+  if(v&&typeof v==='object'){var d=el('div',null,v.t);if(v.bk)d.appendChild(el('span','bk',v.bk));box.appendChild(d);return;}
+  var ph=splitPh(v),d2=el('div');
+  if(ph){d2.appendChild(document.createTextNode(ph.n+'  '));d2.appendChild(el('span','ph',ph.p));}else d2.textContent=v;
+  box.appendChild(d2);
+}
+function pvRow(r,parent){var d=el('div','fr');d.appendChild(el('span',null,r[0]));var v=el('span');r[1].forEach(function(x){pvVal(x,v);});d.appendChild(v);parent.appendChild(d);}
+function preview(m){
+  var c=el('div','fx'),h=el('div','fh');h.appendChild(el('b',null,m.title));h.appendChild(el('small',null,m.sub));c.appendChild(h);
+  m.secs.forEach(function(s){var b=el('div','fs'),hd=el('div','fst');hd.appendChild(el('span',null,s.t));hd.appendChild(el('span',null,s.q||''));b.appendChild(hd);
+    s.rows.forEach(function(r){pvRow(r,b);});c.appendChild(b);});
+  if(m.extra&&m.extra.length){var e=el('div','fe');m.extra.forEach(function(r){pvRow(r,e);});c.appendChild(e);}
+  if(m.note){var n=el('div','fn');n.appendChild(el('b',null,'備註'));n.appendChild(document.createTextNode(m.note));c.appendChild(n);}
+  else c.appendChild(el('div','pad'));
+  $('pv').innerHTML='';$('pv').appendChild(c);
+}
+function closeMe(){try{if(liff.isInClient())liff.closeWindow();else history.back();}catch(e){history.back();}}
+function send(){
+  if(!M)return;
+  if(!liff.isApiAvailable('shareTargetPicker')){st('這個環境不能選擇傳送對象，請用手機的 LINE 打開');return;}
+  st('請在 LINE 選擇要傳給誰…');
+  liff.shareTargetPicker([flex(M)],{isMultiple:true}).then(function(r){
+    if(r){st('✓ 已傳送');$('go').textContent='再傳給其他人';$('cl').style.display='block';setTimeout(function(){try{if(liff.isInClient())liff.closeWindow();}catch(e){}},1200);}
+    else st('沒有傳送（已取消）');
+  }).catch(function(e){st('傳送失敗：'+(e&&e.message||e));});
+}
+try{M=getPayload();}catch(e){M=null;}
+liff.init({liffId:LIFF_ID}).then(function(){
+  if(!M){try{M=getPayload();}catch(e){}}
+  if(!M){st('沒有收到行程內容，請回 App 重新按分享');return;}
+  if(!liff.isLoggedIn()){st('登入 LINE…');liff.login({redirectUri:location.href});return;}
+  preview(M);
+  $('go').style.display='block';
+  st('確認卡片內容，按下面按鈕選擇要傳給誰');
+  send();     // 直接叫出選擇對象；被擋或取消可以再按按鈕
+}).catch(function(e){st('LINE 初始化失敗：'+(e&&e.message||e));if(M)preview(M);});
+</script></body></html>
