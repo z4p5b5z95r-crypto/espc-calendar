@@ -956,6 +956,9 @@ html[data-theme="dark"] .shci.in{background:#22314a}html[data-theme="dark"] .shc
 .shck{border:1.5px solid var(--line);background:var(--card);color:var(--tx2);border-radius:999px;padding:6px 11px;font-size:12.5px;font-family:inherit}
 .shck.on{border-color:var(--accT);background:var(--tint);color:var(--accT);font-weight:600}
 .shck.dis{opacity:.4}
+.shsm{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.shsm span{flex:0 0 96px;font-size:12.5px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shsm .fld{margin:0;padding:8px 10px;font-size:14px;border-radius:10px}
 .shimg{display:block;width:100%;max-width:420px;margin:4px auto 0;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
 /* 個案廣播的案子名稱 */
 .mgfrom{font-size:12.5px;color:var(--tx2);margin:1px 0 3px}
@@ -5680,14 +5683,32 @@ function shareOpen(p){
 }
 function shareBack(){if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}SHR.url='';openDay(SHR.d||EV_D,SHR.p);}
 function shareMake(who){
-  SHR.who=who;SHR.opt=shareOpt(who);
+  SHR.who=who;SHR.opt=shareOpt(who);SHR.skip={};SHR.samp={};
   $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3></div><button class="ib" onclick="shareBack()">✕</button></div>'
     +'<p class="sec" style="margin:2px 0 6px">卡片要放哪些資訊<a href="#" style="float:right;font-weight:400;color:var(--accT)" onclick="shareReset();return false">還原預設</a></p>'
     +'<div class="shopt" id="sh-opt">'+shareOptHTML()+'</div>'
+    +'<p class="sec" style="margin:2px 0 6px">要放哪些子卡片<span style="font-weight:400;color:var(--tx3);margin-left:6px">點一下拿掉／加回</span></p>'
+    +'<div class="shopt" id="sh-sec"></div>'
+    +'<div id="sh-samp"></div>'
     +'<div id="sh-prev"><div class="load" style="padding:20px">'+SPIN+'</div></div>'
     +'<div id="sh-btns"></div>';
+  shareSampPaint();
   setTimeout(shareRender,20);
 }
+/** 採樣時間：每張子卡片可以自己改（只影響這次分享，清空＝不顯示採樣時間） */
+function shareSampPaint(){
+  var el=$('sh-samp');if(!el)return;
+  var g=shareGroup(SHR.p,SHR.d);if(!g||!SHR.opt.samp){el.innerHTML='';return;}
+  var m=shareModel(g,SHR.d,SHR.who,SHR.opt),sk=SHR.skip||{};
+  var h=m.secs.map(function(s,i){
+    if(sk[i])return '';
+    var orig='';s.rows.forEach(function(r){if(r[0]==='採樣時間')orig=String(r[1][0]||'');});
+    var v=SHR.samp[i]!==undefined?SHR.samp[i]:orig;
+    return '<label class="shsm"><span>'+he(s.t+(s.q?' '+s.q:''))+'</span><input class="fld" value="'+he(v)+'" placeholder="採樣時間（空白＝不顯示）" oninput="shareSamp('+i+',this.value)"></label>';
+  }).join('');
+  el.innerHTML=h?'<p class="sec" style="margin:2px 0 6px">採樣時間<span style="font-weight:400;color:var(--tx3);margin-left:6px">可以直接改</span></p>'+h:'';
+}
+function shareSamp(i,v){SHR.samp[i]=v;clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,250);}
 function shareOptHTML(){
   var o=SHR.opt;
   return SHARE_FIELDS.map(function(f){
@@ -5699,14 +5720,39 @@ function shareTog(k){
   SHR.opt[k]=SHR.opt[k]?0:1;
   lsS('espc_share_'+SHR.who,JSON.stringify(SHR.opt));    // 記住這次的選擇
   var el=$('sh-opt');if(el)el.innerHTML=shareOptHTML();
+  if(k==='samp')shareSampPaint();
   clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,120);
+}
+function shareSkip(i){
+  SHR.skip=SHR.skip||{};
+  var g=shareGroup(SHR.p,SHR.d),n=g?shareModel(g,SHR.d,SHR.who,SHR.opt).secs.length:0;
+  var left=0;for(var k=0;k<n;k++)if(!SHR.skip[k]&&k!==i)left++;
+  if(!SHR.skip[i]&&left<1){toast('至少要留一張子卡片','',1800);return;}
+  SHR.skip[i]=!SHR.skip[i];
+  shareSampPaint();
+  clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,80);
 }
 function shareReset(){lsD('espc_share_'+SHR.who);SHR.opt=shareOpt(SHR.who);var el=$('sh-opt');if(el)el.innerHTML=shareOptHTML();shareRender();}
 function shareRender(){
   var g=shareGroup(SHR.p,SHR.d);if(!g)return;
   var o={};Object.keys(SHR.opt).forEach(function(k){o[k]=SHR.opt[k];});
   if(!o.rep)o.repPh=0;if(!o.pm)o.pmPh=0;if(!o.st)o.stPh=0;
-  var m=shareModel(g,SHR.d,SHR.who,o),who=SHR.who;SHR.text=shareText(m);SHR.m=m;
+  var m=shareModel(g,SHR.d,SHR.who,o),who=SHR.who;
+  // 子卡片：使用者可以手動拿掉某幾張（只影響這次分享）
+  var sk=SHR.skip||{},secEl=$('sh-sec');
+  if(secEl)secEl.innerHTML=m.secs.map(function(s,i){
+    var loc='';s.rows.forEach(function(r){if(!loc&&r[0]==='點位')loc=String(r[1][0]||'').replace(/^1\.\s*/,'');});
+    var lab=s.t+(s.q?' '+s.q:'')+(loc?'・'+(loc.length>10?loc.slice(0,10)+'…':loc):'');
+    return '<button class="shck'+(sk[i]?'':' on')+'" onclick="shareSkip('+i+')">'+(sk[i]?'':'✓ ')+he(lab)+'</button>';}).join('');
+  var sv=SHR.opt.samp?(SHR.samp||{}):{};   // 沒勾「採樣時間」就不套用手動改的
+  m.secs.forEach(function(s,i){
+    if(sv[i]===undefined)return;
+    var nv=String(sv[i]).trim(),hit=false;
+    s.rows=s.rows.filter(function(r){if(r[0]!=='採樣時間')return true;hit=true;if(!nv)return false;r[1]=[nv];return true;});
+    if(!hit&&nv){var at=0;s.rows.forEach(function(r,k){if(r[0]==='點位')at=k+1;});s.rows.splice(at,0,['採樣時間',[nv]]);}
+  });
+  m.secs=m.secs.filter(function(s,i){return !sk[i];});
+  SHR.text=shareText(m);SHR.m=m;
   var cv=shareDraw(m);
   cv.toBlob(function(b){
     if(!b){toast('產生圖片失敗','no');return;}

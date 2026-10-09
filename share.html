@@ -107,7 +107,10 @@ function preview(m){
 function closeMe(){try{if(liff.isInClient())liff.closeWindow();else history.back();}catch(e){history.back();}}
 function send(){
   if(!M)return;
-  if(!liff.isApiAvailable('shareTargetPicker')){st('這個環境不能選擇傳送對象，請用手機的 LINE 打開');return;}
+  if(!liff.isApiAvailable('shareTargetPicker')){
+    st(liff.isInClient()?'LINE 的「Share target picker」功能還沒開：請到 LINE Developers → 這個 LIFF → 把 Share target picker 打開（ON），再重新分享一次'
+                        :'請用手機的 LINE 打開這個連結');
+    return;}
   st('請在 LINE 選擇要傳給誰…');
   liff.shareTargetPicker([flex(M)],{isMultiple:true}).then(function(r){
     if(r){st('✓ 已傳送');$('go').textContent='再傳給其他人';$('cl').style.display='block';setTimeout(function(){try{if(liff.isInClient())liff.closeWindow();}catch(e){}},1200);}
