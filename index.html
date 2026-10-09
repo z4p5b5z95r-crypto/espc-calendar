@@ -2449,6 +2449,23 @@ var TOSH_SVG='<svg class="tosh" viewBox="0 0 32 21"><g clip-path="url(#gtosh)">'
  +'<rect x="3" y="17.5" width="13" height="1.3" rx=".6" fill="#fff" opacity=".85"/>'
  +'</g><rect x=".4" y=".4" width="31.2" height="20.2" rx="3.1" fill="none" stroke="#000" stroke-opacity=".18" stroke-width=".8"/></svg>';
 function isTosh(t){return /職安卡/.test(String(t||''));}
+function isRing(t){return /出海|研究作業人員安全/.test(String(t||''));}
+/** 放在名字右邊、不掛在頭像的證照：職安卡、出海資格（游泳圈） */
+function isSide(t){return isTosh(t)||isRing(t);}
+function ringOf(n){
+  var l=safetyList(n);
+  for(var i=0;i<l.length;i++)if(isRing(l[i].type))return l[i];
+  return null;
+}
+/** 名字右邊的游泳圈（出海資格），有自己的燈號 */
+function ringMark(n){
+  var o=ringOf(n);
+  if(!o)return '';
+  return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
+    +'showSafety(\''+esc(n)+'\')" title="出海資格">'+RING_SVG.replace('class="pavring"','class="mki"')+hatDot(o)+'</button>';
+}
+/** 通訊錄名字右邊：游泳圈＋職安卡 */
+function sideMarks(n){return ringMark(n)+toshMark(n);}
 function toshOf(n){
   var l=safetyList(n);
   for(var i=0;i<l.length;i++)if(isTosh(l[i].type))return l[i];
@@ -2513,10 +2530,15 @@ function hatDot(o){return '<span class="hdot '+dotClass(o)+'"></span>';}
 /** 頭像＋工地帽：帽子壓在圓圈上緣，像戴在頭上 */
 function avatarHat(name){
   var n=String(name||'').trim();
-  var o=safetyOf(n,true);                   // 頭像燈號不看職安卡（職安卡在名字右邊有自己的燈號）
+  var o=null;                              // 頭像燈號不看職安卡、游泳圈（名字右邊有自己的燈號）
+  safetyList(n).forEach(function(c){
+    if(isSide(c.type))return;
+    if(!o||STATE_RANK[c.state]<STATE_RANK[o.state]||(c.state===o.state&&(c.days==null?9e9:c.days)<(o.days==null?9e9:o.days)))o=c;
+  });
   var b=certBadges(n);
+  b.ring=false;                            // 游泳圈改放名字右邊
   // 證照超過三張：頭像不掛東西（太擠），只留燈號；圖示都在名字後面的小標
-  if(safetyList(n).filter(function(c){return !isTosh(c.type);}).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
+  if(safetyList(n).filter(function(c){return !isSide(c.type);}).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
   var h='<div class="pavw'+(b.ring?' rg':'')+'"><div class="pav">'+he(n.slice(0,1))+'</div>';
   if(b.mask)h+=MASK_SVG.replace('<svg','<svg'+badgeClick(n));     // 面罩罩住圓圈
   if(b.safety){
@@ -4283,7 +4305,7 @@ function bookList(){
     if(ex===EXT_NO)ex='';
     h+='<div class="lrow'+(pinned&&s.name===me?' mine':'')+'">'+avatarHat(s.name)
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500;display:flex;align-items:center;flex-wrap:wrap">'
-      +'<span>'+he(s.name)+'</span>'+toshMark(s.name)
+      +'<span>'+he(s.name)+'</span>'+sideMarks(s.name)
       +(pinned&&s.name===me?'<span class="beta" style="background:var(--card2);color:var(--tx2)">我</span>':'')
       +(s.hidden?'<span class="beta" style="background:var(--card2);color:var(--tx3)">已隱藏</span>':'')
       +'</div>'
