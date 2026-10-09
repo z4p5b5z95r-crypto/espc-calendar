@@ -952,6 +952,27 @@ html[data-theme="dark"] .shci.in{background:#22314a}html[data-theme="dark"] .shc
 .shtg{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--card2);color:var(--tx2)}
 .shtg.x{text-decoration:line-through;color:var(--tx3)}
 .shopt{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.sedc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12);color:#1f1a17;font-size:14px}
+.sedh{background:linear-gradient(90deg,#ff9c55,#e0560f);color:#fff;padding:12px 14px}
+.sedt{font-size:17px;font-weight:700;outline:none}.seds2{font-size:12.5px;opacity:.95;outline:none;margin-top:2px}
+.sedb{padding:4px 10px 12px}
+.seds{margin-top:10px;border:1px solid #f0e2d8;border-radius:12px;overflow:hidden}
+.sedst{display:flex;align-items:center;gap:8px;background:#fdeee4;color:#c4510f;font-weight:700;padding:6px 6px 6px 10px}
+.sedst span:first-child{flex:1}.sedq{font-weight:700}
+.sedx{width:26px;height:26px;border-radius:50%;border:0;background:rgba(196,81,15,.12);color:#c4510f;font-size:13px;line-height:1;flex-shrink:0}
+.sedsb{padding:2px 6px 6px 10px}
+.sedr{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f3eee9}.sedr:first-child{border-top:0}
+.sedk{flex:0 0 64px;color:#9a918a;font-size:13px;padding-top:2px}
+.sedv{flex:1;min-width:0;outline:none;border-radius:6px;padding:1px 4px;margin:-1px -4px;word-break:break-word}
+.sedv:focus,.sedt:focus,.seds2:focus{background:rgba(243,111,33,.1);box-shadow:0 0 0 1.5px rgba(243,111,33,.5)}
+.sedt:focus,.seds2:focus{background:rgba(255,255,255,.2);box-shadow:0 0 0 1.5px rgba(255,255,255,.7);border-radius:6px}
+.sedrx{width:22px;height:22px;border-radius:50%;border:0;background:#f3eee9;color:#9a918a;font-size:11px;line-height:1;flex-shrink:0;margin-top:1px}
+.sedex{margin-top:8px;padding:0 6px 0 10px}
+.sedn{display:flex;align-items:flex-start;gap:8px;margin-top:10px;background:#f7f4f1;border-radius:10px;padding:8px 6px 8px 10px;font-size:12.5px;color:#6f6660}
+.sedn b{color:#3a322d;flex-shrink:0}
+.sedadd,.sedgone{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sedadd button,.sedgone button{border:1px dashed #d9cfc7;background:none;color:#9a918a;border-radius:999px;padding:3px 10px;font-size:12px;font-family:inherit}
+.sedgone{margin-top:10px;font-size:12px;color:#9a918a;align-items:center}
 .btn.shline{background:#06C755;border-color:#06C755;color:#fff;font-weight:600}
 .shck{border:1.5px solid var(--line);background:var(--card);color:var(--tx2);border-radius:999px;padding:6px 11px;font-size:12.5px;font-family:inherit}
 .shck.on{border-color:var(--accT);background:var(--tint);color:var(--accT);font-weight:600}
@@ -5676,94 +5697,101 @@ function castTap(p){
 function shareOpen(p){
   var d=EV_D,g=shareGroup(p,d);if(!g){toast('找不到這個行程','no');return;}
   SHR={p:p,d:d,who:'',file:null,url:'',text:''};
-  var tg=function(cu){var o=shareOpt(cu?'cu':'in');return SHARE_FIELDS.map(function(f){return '<span class="shtg'+(o[f[0]]?'':' x')+'">'+f[1]+'</span>';}).join('');};   // 照這支手機上次勾的顯示
+  var tg=function(cu){var o=SHARE_DEF[cu?'cu':'in'];return SHARE_FIELDS.map(function(f){return '<span class="shtg'+(o[f[0]]?'':' x')+'">'+f[1]+'</span>';}).join('');};   // 照這支手機上次勾的顯示
   openSheet('<div class="shh"><div><h3>分享這個行程</h3><p class="hint" style="margin-top:3px">'+he(pjKey(p))+'　'+shareDateLab(d)+'</p></div><button class="ib" onclick="shareBack()">✕</button></div>'
-    +'<div class="shch" onclick="shareMake(\'in\')"><div class="shci in">🏢</div><div><b>公司內部</b><small>預設全部內容；下一步可以自己勾選</small><div class="shtgs">'+tg(false)+'</div></div></div>'
-    +'<div class="shch" onclick="shareMake(\'cu\')"><div class="shci cu">🤝</div><div><b>客戶</b><small>預設只放點位、採樣時間、申報人員＋電話，附「時間為預估」備註；下一步可以自己勾選</small><div class="shtgs">'+tg(true)+'</div></div></div>');
+    +'<div class="shch" onclick="shareMake(\'in\')"><div class="shci in">🏢</div><div><b>公司內部</b><small>全部內容；下一步可以在卡片上直接改</small><div class="shtgs">'+tg(false)+'</div></div></div>'
+    +'<div class="shch" onclick="shareMake(\'cu\')"><div class="shci cu">🤝</div><div><b>客戶</b><small>點位、採樣時間、申報人員＋電話，附「時間為預估」備註；下一步可以在卡片上直接改</small><div class="shtgs">'+tg(true)+'</div></div></div>');
 }
 function shareBack(){if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}SHR.url='';openDay(SHR.d||EV_D,SHR.p);}
+/* ── 2026-10-09：直接在卡片上編輯（拿掉子卡片／拿掉某一列／改文字），不用上方的勾選 ── */
+var SHARE_ALL={loc:1,samp:1,eq:1,rep:1,repPh:1,rpt:1,pm:1,pmPh:1,car:1,st:1,stPh:1,nt:1,est:1};
+var SH_ROWKEY={'點位':'loc','採樣時間':'samp','儀器':'eq','申報人員':'rep','報告編號':'rpt','PM':'pm','公務車':'car','現場人員':'st','備註':'nt'};
 function shareMake(who){
-  SHR.who=who;SHR.opt=shareOpt(who);SHR.skip={};SHR.samp={};
-  $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3></div><button class="ib" onclick="shareBack()">✕</button></div>'
-    +'<p class="sec" style="margin:2px 0 6px">卡片要放哪些資訊<a href="#" style="float:right;font-weight:400;color:var(--accT)" onclick="shareReset();return false">還原預設</a></p>'
-    +'<div class="shopt" id="sh-opt">'+shareOptHTML()+'</div>'
-    +'<p class="sec" style="margin:2px 0 6px">要放哪些子卡片<span style="font-weight:400;color:var(--tx3);margin-left:6px">點一下拿掉／加回</span></p>'
-    +'<div class="shopt" id="sh-sec"></div>'
-    +'<div id="sh-samp"></div>'
-    +'<div id="sh-prev"><div class="load" style="padding:20px">'+SPIN+'</div></div>'
-    +'<div id="sh-btns"></div>';
-  shareSampPaint();
-  setTimeout(shareRender,20);
-}
-/** 採樣時間：每張子卡片可以自己改（只影響這次分享，清空＝不顯示採樣時間） */
-function shareSampPaint(){
-  var el=$('sh-samp');if(!el)return;
-  var g=shareGroup(SHR.p,SHR.d);if(!g||!SHR.opt.samp){el.innerHTML='';return;}
-  var m=shareModel(g,SHR.d,SHR.who,SHR.opt),sk=SHR.skip||{};
-  var h=m.secs.map(function(s,i){
-    if(sk[i])return '';
-    var orig='';s.rows.forEach(function(r){if(r[0]==='採樣時間')orig=String(r[1][0]||'');});
-    var v=SHR.samp[i]!==undefined?SHR.samp[i]:orig;
-    return '<label class="shsm"><span>'+he(s.t+(s.q?' '+s.q:''))+'</span><input class="fld" value="'+he(v)+'" placeholder="採樣時間（空白＝不顯示）" oninput="shareSamp('+i+',this.value)"></label>';
-  }).join('');
-  el.innerHTML=h?'<p class="sec" style="margin:2px 0 6px">採樣時間<span style="font-weight:400;color:var(--tx3);margin-left:6px">可以直接改</span></p>'+h:'';
-}
-function shareSamp(i,v){SHR.samp[i]=v;clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,250);}
-function shareOptHTML(){
-  var o=SHR.opt;
-  return SHARE_FIELDS.map(function(f){
-    var dep=(f[0]==='repPh'&&!o.rep)||(f[0]==='pmPh'&&!o.pm)||(f[0]==='stPh'&&!o.st);   // 沒放人就不能放電話
-    return '<button class="shck'+(o[f[0]]&&!dep?' on':'')+(dep?' dis':'')+'"'+(dep?' disabled':'')+' onclick="shareTog(\''+f[0]+'\')">'+(o[f[0]]&&!dep?'✓ ':'')+f[1]+'</button>';
-  }).join('');
-}
-function shareTog(k){
-  SHR.opt[k]=SHR.opt[k]?0:1;
-  lsS('espc_share_'+SHR.who,JSON.stringify(SHR.opt));    // 記住這次的選擇
-  var el=$('sh-opt');if(el)el.innerHTML=shareOptHTML();
-  if(k==='samp')shareSampPaint();
-  clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,120);
-}
-function shareSkip(i){
-  SHR.skip=SHR.skip||{};
-  var g=shareGroup(SHR.p,SHR.d),n=g?shareModel(g,SHR.d,SHR.who,SHR.opt).secs.length:0;
-  var left=0;for(var k=0;k<n;k++)if(!SHR.skip[k]&&k!==i)left++;
-  if(!SHR.skip[i]&&left<1){toast('至少要留一張子卡片','',1800);return;}
-  SHR.skip[i]=!SHR.skip[i];
-  shareSampPaint();
-  clearTimeout(SHR.t);SHR.t=setTimeout(shareRender,80);
-}
-function shareReset(){lsD('espc_share_'+SHR.who);SHR.opt=shareOpt(SHR.who);var el=$('sh-opt');if(el)el.innerHTML=shareOptHTML();shareRender();}
-function shareRender(){
   var g=shareGroup(SHR.p,SHR.d);if(!g)return;
-  var o={};Object.keys(SHR.opt).forEach(function(k){o[k]=SHR.opt[k];});
-  if(!o.rep)o.repPh=0;if(!o.pm)o.pmPh=0;if(!o.st)o.stPh=0;
-  var m=shareModel(g,SHR.d,SHR.who,o),who=SHR.who;
-  // 子卡片：使用者可以手動拿掉某幾張（只影響這次分享）
-  var sk=SHR.skip||{},secEl=$('sh-sec');
-  if(secEl)secEl.innerHTML=m.secs.map(function(s,i){
-    var loc='';s.rows.forEach(function(r){if(!loc&&r[0]==='點位')loc=String(r[1][0]||'').replace(/^1\.\s*/,'');});
-    var lab=s.t+(s.q?' '+s.q:'')+(loc?'・'+(loc.length>10?loc.slice(0,10)+'…':loc):'');
-    return '<button class="shck'+(sk[i]?'':' on')+'" onclick="shareSkip('+i+')">'+(sk[i]?'':'✓ ')+he(lab)+'</button>';}).join('');
-  var sv=SHR.opt.samp?(SHR.samp||{}):{};   // 沒勾「採樣時間」就不套用手動改的
+  SHR.who=who;SHR.full=shareModel(g,SHR.d,who,SHARE_ALL);SHR.hide={};SHR.ed={};
+  var o=SHARE_DEF[who];
+  SHR.full.secs.forEach(function(s,i){s.rows.forEach(function(r){var k=SH_ROWKEY[r[0]];if(k&&!o[k])SHR.hide['r'+i+':'+r[0]]=1;});});
+  SHR.full.extra.forEach(function(r){var k=SH_ROWKEY[r[0]];if(k&&!o[k])SHR.hide['x:'+r[0]]=1;});
+  if(!o.est)SHR.hide.note=1;
+  if(who==='cu')SHR.full.sub=shareDateLab(SHR.d)+' 監測行程';
+  $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3>'
+    +'<p class="hint" style="margin-top:2px">點文字可以直接改；按 ✕ 拿掉；按 ＋ 加回</p></div><button class="ib" onclick="shareBack()">✕</button></div>'
+    +'<div id="sh-ed"></div>'
+    +'<div style="text-align:right;margin:6px 2px 0"><a href="#" style="font-size:13px;color:var(--accT)" onclick="shareMake(SHR.who);return false">全部還原</a></div>'
+    +'<div id="sh-btns"></div>';
+  shareEdPaint();
+}
+function shVal(v){return v&&typeof v==='object'?v.t+(v.bk?' '+v.bk:''):String(v);}
+function shCE(k,txt,cls){   // 可直接編輯的文字
+  var t=SHR.ed[k]!==undefined?SHR.ed[k]:txt;
+  return '<div class="'+(cls||'sedv')+'" contenteditable="true" data-k="'+he(k)+'">'+he(t).replace(/\n/g,'<br>')+'</div>';
+}
+function shEdRow(k,r){
+  return '<div class="sedr"><span class="sedk">'+he(r[0])+'</span>'+shCE(k,r[1].map(shVal).join('\n'))
+    +'<button class="sedrx" title="拿掉這一列" onclick="shareHide(\''+esc(k)+'\')">✕</button></div>';
+}
+function shAdd(list){return list.length?'<div class="sedadd">'+list.map(function(x){return '<button onclick="shareShow(\''+esc(x[0])+'\')">＋ '+he(x[1])+'</button>';}).join('')+'</div>':'';}
+function shareEdPaint(){
+  var m=SHR.full,H=SHR.hide,h='<div class="sedc"><div class="sedh">'+shCE('title',m.title,'sedt')+shCE('sub',m.sub,'seds2')+'</div><div class="sedb">';
+  var gone=[];
   m.secs.forEach(function(s,i){
-    if(sv[i]===undefined)return;
-    var nv=String(sv[i]).trim(),hit=false;
-    s.rows=s.rows.filter(function(r){if(r[0]!=='採樣時間')return true;hit=true;if(!nv)return false;r[1]=[nv];return true;});
-    if(!hit&&nv){var at=0;s.rows.forEach(function(r,k){if(r[0]==='點位')at=k+1;});s.rows.splice(at,0,['採樣時間',[nv]]);}
+    if(H['c'+i]){gone.push(['c'+i,s.t+(s.q?' '+s.q:'')]);return;}
+    var add=[];
+    h+='<div class="seds"><div class="sedst"><span>'+he(s.t)+'</span><span class="sedq">'+he(s.q||'')+'</span>'
+      +'<button class="sedx" title="拿掉這張子卡片" onclick="shareHide(\'c'+i+'\')">✕</button></div><div class="sedsb">';
+    s.rows.forEach(function(r){var k='r'+i+':'+r[0];if(H[k])add.push([k,r[0]]);else h+=shEdRow(k,r);});
+    h+=shAdd(add)+'</div></div>';
   });
-  m.secs=m.secs.filter(function(s,i){return !sk[i];});
-  SHR.text=shareText(m);SHR.m=m;
-  var cv=shareDraw(m);
-  cv.toBlob(function(b){
-    if(!b){toast('產生圖片失敗','no');return;}
+  var ex='',addx=[];
+  m.extra.forEach(function(r){var k='x:'+r[0];if(H[k])addx.push([k,r[0]]);else ex+=shEdRow(k,r);});
+  if(ex)h+='<div class="sedex">'+ex+'</div>';
+  if(H.note)addx.push(['note','「時間為預估」備註']);
+  else h+='<div class="sedn"><b>備註</b>'+shCE('note',m.note||'時間為預估，依當天狀況調整。','sedv')+'<button class="sedrx" onclick="shareHide(\'note\')">✕</button></div>';
+  h+=shAdd(addx);
+  if(gone.length)h+='<div class="sedgone">已拿掉的子卡片：'+gone.map(function(x){return '<button onclick="shareShow(\''+x[0]+'\')">＋ '+he(x[1])+'</button>';}).join('')+'</div>';
+  h+='</div></div>';
+  var el=$('sh-ed');if(!el)return;
+  el.innerHTML=h;
+  el.oninput=function(e){var t=e.target;if(!t||!t.getAttribute)return;var k=t.getAttribute('data-k');if(!k)return;
+    SHR.ed[k]=t.innerText.replace(/ /g,' ').replace(/\n+$/,'');clearTimeout(SHR.t);SHR.t=setTimeout(shareBuild,400);};
+  shareBuild();
+}
+function shareHide(k){
+  if(/^c\d+$/.test(k)){var left=SHR.full.secs.filter(function(s,i){return !SHR.hide['c'+i]&&('c'+i)!==k;}).length;
+    if(!left){toast('至少要留一張子卡片','',1800);return;}}
+  SHR.hide[k]=1;shareEdPaint();
+}
+function shareShow(k){delete SHR.hide[k];shareEdPaint();}
+/** 依目前的編輯結果組出要傳出去的內容 */
+function shareFinal(){
+  var F=SHR.full,H=SHR.hide,E=SHR.ed;
+  var lines=function(k,orig,isRpt){
+    if(E[k]===undefined)return orig;
+    return String(E[k]).split('\n').map(function(x){return x.trim();}).filter(String).map(function(x){
+      if(isRpt){var m=x.match(/^(.*?)\s+([A-Z]?BK)$/i);if(m)return {t:m[1],bk:m[2].toUpperCase()};}return x;});
+  };
+  var m={title:E.title!==undefined?(E.title.trim()||F.title):F.title,sub:E.sub!==undefined?E.sub.trim():F.sub,secs:[],extra:[],note:''};
+  F.secs.forEach(function(s,i){
+    if(H['c'+i])return;
+    var rows=[];s.rows.forEach(function(r){var k='r'+i+':'+r[0];if(H[k])return;var v=lines(k,r[1],r[0]==='報告編號');if(v.length)rows.push([r[0],v]);});
+    m.secs.push({t:s.t,q:s.q,rows:rows});
+  });
+  F.extra.forEach(function(r){var k='x:'+r[0];if(H[k])return;var v=lines(k,r[1]);if(v.length)m.extra.push([r[0],v]);});
+  if(!H.note)m.note=E.note!==undefined?E.note.trim():(F.note||'時間為預估，依當天狀況調整。');
+  return m;
+}
+/** 背景先把圖片做好（手機分享要在按下的當下就有檔案） */
+function shareBuild(){
+  var m=shareFinal(),who=SHR.who;SHR.m=m;SHR.text=shareText(m);
+  shareDraw(m).toBlob(function(b){
+    if(!b)return;
     var fn=(m.title+'_'+SHR.d+(who==='cu'?'':'_內部')).replace(/[\\\/:*?"<>|\s]+/g,'_')+'.png';
     try{SHR.file=new File([b],fn,{type:'image/png'});}catch(e){SHR.file=b;}
     if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}
     SHR.url=URL.createObjectURL(b);
     var canFile=!!(navigator.canShare&&SHR.file instanceof File&&navigator.canShare({files:[SHR.file]}));
-    var pv=$('sh-prev'),bt=$('sh-btns');if(!pv||!bt)return;
-    pv.innerHTML='<img class="shimg" src="'+SHR.url+'" alt="行程卡">';
-    bt.innerHTML='<button class="btn btn-full shline" style="margin-top:12px" onclick="shareLine()">傳到 LINE（卡片）</button>'   // 2026-10-09：LINE Flex 卡片
+    var bt=$('sh-btns');if(!bt)return;
+    bt.innerHTML='<button class="btn btn-full shline" style="margin-top:12px" onclick="shareLine()">傳到 LINE（卡片）</button>'
       +'<div style="display:flex;gap:8px;margin-top:8px">'
       +(canFile?'<button class="btn" style="flex:1" onclick="shareSend()">'+SHARE_ICON+' 分享圖片</button>'
                :'<a class="btn" style="flex:1" href="'+SHR.url+'" download="'+he(fn)+'">下載圖片</a>')
@@ -5778,7 +5806,8 @@ function b64url(o){
   return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function shareLine(){
-  if(!SHR.m)return;
+  if(!SHR.full)return;
+  SHR.m=shareFinal();
   var m=JSON.parse(JSON.stringify(SHR.m));
   if(SHR.who!=='cu')m.app=location.origin+location.pathname+'?d='+SHR.d;   // 公司內部：卡片下面「在 App 打開」跳到那一天
   var url=LIFF_SHARE+'?d='+b64url(m);
@@ -5791,7 +5820,7 @@ function shareSend(){
   navigator.share({files:[SHR.file]}).catch(function(e){if(e&&e.name!=='AbortError')toast('無法分享，可以改用「複製文字」','no',3000);});
 }
 function shareCopy(){
-  var t=SHR.text;
+  var t=SHR.full?shareText(shareFinal()):SHR.text;
   var done=function(){toast('已複製，可以貼到 LINE','ok',2000);};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fb);else fb();
   function fb(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done();}catch(e){toast('複製失敗','no');}a.remove();}
