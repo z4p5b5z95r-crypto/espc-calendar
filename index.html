@@ -723,6 +723,34 @@ html[data-theme="dark"] .gseg{background:rgba(255,255,255,.08);}
 .anrs{font-size:13px;color:var(--tx2);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .anpt{font-size:10.5px;font-weight:700;color:#fff;background:#e5483b;border-radius:5px;padding:1px 5px;}
 .udot{width:8px;height:8px;border-radius:50%;background:var(--acc);flex:0 0 8px;}
+/* 2026-10-09：公告＝藍色＋公文紙，訊息＝橘色 */
+:root{--ann:var(--acc);--annT:var(--accT);--annBg:var(--tint);--annLine:#f0b48d;--paper:#fffaf0;--paperLine:#eadfca;}   /* 公告也用橘色（2026-10-09 改回，不用藍色） */
+html[data-theme="dark"]{--annLine:rgba(240,140,80,.45);--paper:#2a2621;--paperLine:#3d362d;}
+.mgbig{display:flex;gap:8px;margin:2px 0 8px}
+.mgbig button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 0;border-radius:14px;font-size:15px;font-weight:700;
+  font-family:inherit;background:var(--glStrong);border:1.5px solid var(--glLine);color:var(--tx2);-webkit-tap-highlight-color:transparent}
+.mgbig button svg{width:17px;height:17px}
+.mgbig button.on.m{background:var(--tint);border-color:#f0b48d;color:var(--accT)}
+.mgbig button.on.a{background:var(--annBg);border-color:var(--annLine);color:var(--annT)}
+.mgbig sup{color:#e1261a;font-size:11px;font-weight:800;margin-left:1px}
+.mgmini{display:flex;gap:18px;margin:4px 6px 2px}
+.mgmini button{border:0;background:none;padding:4px 0 5px;font-size:14px;color:var(--tx3);font-family:inherit;border-bottom:2px solid transparent}
+.mgmini button.on{color:var(--tx);font-weight:700;border-bottom-color:var(--acc)}
+.mg7{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);background:var(--card2);border-radius:10px;padding:6px 10px;margin:8px 0 2px}
+.mg7 svg{width:14px;height:14px;flex-shrink:0;color:var(--accT)}.mg7 b{color:var(--accT)}
+.annote{font-size:12.5px;color:var(--annT);background:var(--annBg);border-radius:12px;padding:8px 11px;margin:0 0 10px;line-height:1.55}
+.anr.anc2{position:relative;background:var(--paper);border:1px solid var(--paperLine);border-radius:14px;padding:11px 13px 11px 16px;margin-bottom:9px}
+.anr.anc2:first-child{border-top:1px solid var(--paperLine)}
+.anr.anc2:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--ann)}
+.anr.anc2.rd{opacity:.72}
+.anr.anc2 .udot{background:#e1261a}
+.ank{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--annT);background:var(--annBg);border-radius:6px;padding:2px 7px;margin-bottom:5px}
+.ank svg{width:12px;height:12px}
+/* 公告視窗：跟以前一樣；「公告」兩個字用橘色、不加框 */
+#annv .antag{background:none;padding:0;font-weight:700}
+.annz .pbt i{background:var(--ann)}
+
+.annz .mgseg button.on{color:var(--annT)}
 .adot{margin-left:8px;min-width:18px;height:18px;border-radius:9px;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;}
 #pdfv{position:fixed;inset:0;z-index:97;background:#2a2a2d;display:flex;flex-direction:column;}
 .pvh{display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:rgba(30,30,32,.92);color:#fff;}
@@ -1901,18 +1929,21 @@ function mgLoadHTML(){return '<div class="mgload">'+SPIN+'<span>下載訊息中�
 function mgLoadShow(on){var el=$('mgload');if(el)el.innerHTML=on?mgLoadHTML():'';}
 function msgPage(){
   // 不分欄：電腦、手機都一欄；「發通知」是右下角浮動按鈕
-  return msgPageList()+(can('cast')&&MSG_SEG!=='ann'?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發通知</button>':'');
+  return msgPageList()+(can('cast')&&MSG_SEG!=='ann'?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發送訊息</button>':'');
 }
 function msgPageList(){
   var all=msgItems(),sent=msgSent(),seg=(MSG_SEG==='sent'||MSG_SEG==='ann'?MSG_SEG:'in');
   var showSent=sent.length||can('cast');if(!showSent&&seg==='sent')seg='in';
   var unN=all.filter(function(m){return m.un;}).length,anN=annUnread();
-  var h='<div class="mgseg">'
-    +'<button class="'+(seg==='in'?'on':'')+'" onclick="MSG_SEG=\'in\';render()">收到的'+(unN?'<sup>'+(unN>99?'99+':unN)+'</sup>':'')+'</button>'
-    +(showSent?'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button>':'')
-    +'<button class="'+(seg==='ann'?'on':'')+'" onclick="MSG_SEG=\'ann\';render();if(!ANN.loaded)annLoad(true)">公告'+(anN?'<sup>'+anN+'</sup>':'')+'</button></div>';
+  // 2026-10-09：上方先分「訊息」「公告」兩大類（橘／藍），訊息底下才有「收到的／我發的」
+  var h='<div class="mgbig">'
+    +'<button class="'+(seg!=='ann'?'on m':'')+'" onclick="MSG_SEG=\'in\';render()">'+ic('mega',17)+'訊息'+(unN?'<sup>'+(unN>99?'99+':unN)+'</sup>':'')+'</button>'
+    +'<button class="'+(seg==='ann'?'on a':'')+'" onclick="MSG_SEG=\'ann\';render();if(!ANN.loaded)annLoad(true)">'+ic('file',17)+'公告'+(anN?'<sup>'+anN+'</sup>':'')+'</button></div>';
+  if(seg==='ann')return h+'<div class="annz"><div class="annote">公告發送後保存 1 年</div>'+annPage()+'</div>';
+  if(showSent)h+='<div class="mgmini"><button class="'+(seg==='in'?'on':'')+'" onclick="MSG_SEG=\'in\';render()">收到的</button>'
+    +'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button></div>';
+  h+='<div class="mg7">'+ic('clock',14)+'<span>訊息只保留 <b>7 天</b>，到期連同回條自動刪除'+(can('ann')?'；需要長期保存的請改發公告':'')+'</span></div>';
   if(seg==='sent')return h+msgSentList(sent);
-  if(seg==='ann')return h+'<div style="margin-top:10px">'+annPage()+'</div>';
   if(!INBOX.at){inboxLoad(true);return h+loader('讀取訊息…');}
   h+='<div id="mgload">'+(INBOX.busy?mgLoadHTML():'')+'</div>';   // 2026-10-07z：跟伺服器要新訊息時，上方顯示「下載訊息中…」
   var un=all.filter(function(m){return m.un;}),td=all.filter(function(m){return !m.un&&m.keep;}),old=all.filter(function(m){return !m.keep;});
@@ -1928,7 +1959,7 @@ function msgPageList(){
       h+='</div>';
     }
   }
-  h+='<p class="hint" style="text-align:center;margin:14px 0 4px">按了「收到」的隔天移到「歷史訊息」；訊息保留 7 天</p>';
+  h+='<p class="hint" style="text-align:center;margin:14px 0 4px">按了「收到」的隔天移到「歷史訊息」；訊息發出 7 天後自動刪除</p>';
   return h;
 }
 /* 我發出的廣播（群組＋個案），含回條、收回；伺服器保留 7 天 */
@@ -1944,7 +1975,7 @@ function msgSentList(sent){
     h+='<div class="mgi" style="cursor:default"><div class="mgic c">'+ic('mega',18)+'</div><div class="mgbd"><div class="mgt"><b>'+he(tag)+'</b><span>'+msgTime(msgAt(x.at))+'</span></div>'
       +castText(x)+(x.project?msgPjHTML(x):'')+rcptLine(x,'sent')+'</div></div>';   // 我發的個案廣播也能展開看行程
   });
-  return h+'</div><p class="hint" style="text-align:center;margin:14px 0 4px">發出的通知保留 7 天</p>';
+  return h+'</div><p class="hint" style="text-align:center;margin:14px 0 4px">發出的訊息 7 天後自動刪除（含回條）</p>';
 }
 function msgFind(key){var a=msgItems();for(var i=0;i<a.length;i++)if(a[i].key===key)return a[i];return null;}
 function msgMark(list){
@@ -3248,7 +3279,7 @@ function titleText(){
   if(sub==='perm')return '功能權限';
   if(sub==='navcfg')return '下方頁籤';
   if(sub==='annNew')return '發布公告';
-  if(sub==='cast')return '發通知';
+  if(sub==='cast')return '發送訊息';
   if(tab==='msg')return '訊息';
   if(tab==='today')return '今日';
   if(tab==='cal')return curY+' 年 '+MO[curM];
@@ -5627,7 +5658,8 @@ function castPaint(){
     +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="castTplAdd();return false">＋ 存成常用語</a>'
     +'<span style="flex:1"></span><span class="hint"><span id="cast-n">'+CAST.text.length+'</span>/300</span></div>';
   var cst=CAST.busy?'busy':CAST.done?'done':'';
-  h+='<button class="btn btn-p btn-full'+sendCls(cst)+'" style="margin-top:14px"'+(cst?' disabled':'')+' onclick="castSend()">'
+  h+='<p class="hint" style="margin:10px 4px 0">'+ic('clock',13)+' 訊息只保留 7 天，到期自動刪除</p>';
+  h+='<button class="btn btn-p btn-full'+sendCls(cst)+'" style="margin-top:10px"'+(cst?' disabled':'')+' onclick="castSend()">'
     +sendIn(cst,'送出廣播')+'</button>';
   openSheet(h);
 }
@@ -6164,7 +6196,8 @@ function gcastPage(){
   h+='<textarea class="fld" id="gc-t" rows="4" maxlength="300" placeholder="輸入要通知的內容…" style="margin-top:8px;resize:vertical;border-radius:16px;line-height:1.5"'
     +' oninput="GC.text=this.value;$(\'gc-n\').textContent=this.value.length">'+he(GC.text)+'</textarea>'
     +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="gcTplAdd();return false">＋ 存成常用語</a>'
-    +'<span style="flex:1"></span><span class="hint"><span id="gc-n">'+GC.text.length+'</span>/300</span></div>';
+    +'<span style="flex:1"></span><span class="hint"><span id="gc-n">'+GC.text.length+'</span>/300</span></div>'
+    +'<p class="hint" style="margin:6px 4px 0">'+ic('clock',13)+' 訊息只保留 7 天，到期自動刪除；需要長期保存請改發公告</p>';
   // 發送紀錄：預設收起來，點開才看（最小化）
   if(INBOX.sent.length&&!GC_EMBED){
     h+='<button class="fold" style="margin-top:14px" onclick="SENT_OPEN=!SENT_OPEN;render()"><span>我發出的通知</span>'
@@ -6271,21 +6304,21 @@ function annPage(){
   if(can('ann')){
     h+='<button class="btn btn-p btn-full" style="margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="go(\'msg\',\'annNew\')">'+ic('plus',17)+'發布公告</button>';
     h+='<div class="sec">已發布</div>';
-    h+=ANN.sent.length?'<div class="gcard">'+ANN.sent.map(function(x){
+    h+=ANN.sent.length?'<div class="gcard anl">'+ANN.sent.map(function(x){
       var n=x.rc.length,r=x.rc.filter(function(p){return p.r;}).length,pc=n?Math.round(r*100/n):0;
-      return '<div class="anr" onclick="annStat(\''+x.id+'\')"><div class="anrt"><b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+(x.push?'<span class="anpt" style="background:var(--tint);color:var(--accT)">已推播</span>':'')+'</div>'
+      return '<div class="anr" onclick="annStat(\''+x.id+'\')"><div class="anrt"><b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+(x.push?'<span class="anpt" style="background:var(--annBg);color:var(--annT)">已推播</span>':'')+'</div>'
         +'<div class="hint">'+annAt(x.at)+(x.groups?'・'+he(x.groups):'')+'</div>'
         +'<div class="pbr" style="margin-top:6px"><span class="pbl">已讀</span><span class="pbt"><i style="width:'+pc+'%"></i></span><span class="pbv" style="width:auto">'+r+'/'+n+'</span></div></div>';
     }).join('')+'</div>':'<div class="card"><div class="empty" style="padding:18px">還沒有發布過公告</div></div>';
-    if(!ANN.inbox.length)return h+'<p class="hint" style="text-align:center;margin:14px 0 4px">'+(can('ann')?'公告打開後保留一年；所有對象都打開滿一年，會從資料庫刪除（含附件）':'公告打開後保留一年')+'</p>';
+    if(!ANN.inbox.length)return h;
     h+='<div class="sec">收到的公告</div>';
   }
-  h+=ANN.inbox.length?'<div class="gcard">'+ANN.inbox.map(function(x){
+  h+=ANN.inbox.length?'<div class="gcard anl">'+ANN.inbox.map(function(x){
     return '<div class="anr" onclick="annOpenItem(\''+x.id+'\')"><div class="anrt">'+(x.read?'':'<span class="udot"></span>')+'<b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+'</div>'
       +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+'</div>'
       +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'')+'</div>';
   }).join('')+'</div>':(can('ann')?'':'<div class="card"><div class="empty" style="padding:22px">目前沒有公告</div></div>');
-  return h+'<p class="hint" style="text-align:center;margin:14px 0 4px">'+(can('ann')?'公告打開後保留一年；所有對象都打開滿一年，會從資料庫刪除（含附件）':'公告打開後保留一年')+'</p>';
+  return h;
 }
 function annStat(id){
   var x=ANN.sent.filter(function(a){return a.id===id;})[0];if(!x)return;
@@ -6330,7 +6363,7 @@ function annNewPage(){
   h+='<div class="gpad gcol"></div><div class="gdock gcol"><div class="gdt"><b>已選 '+sel.length+' 人</b><br>'+(f.file?'含 PDF 附件':'純文字公告')+(f.push?'・發推播通知':'・不發通知')+'</div>'
     +'<button class="btn btn-p'+sendCls(f.busy?'busy':f.done?'done':'')+'"'+(f.busy||f.done||!sel.length?' disabled':'')+' onclick="annSend()">'+sendIn(f.busy?'busy':f.done?'done':'','發布',f.file?'上傳中…':'發布中…','已發布')+'</button></div>';
   setTimeout(gcSearch,0);
-  return h;
+  return '<div class="annz">'+h+'</div>';
 }
 function annAll(on){STAFF.forEach(function(x){var n=String(x.name||'').trim();if(n&&n!==String(ENGNAME||'').trim())GC.ppl[n]=on;});render();}
 function annPick(inp){
