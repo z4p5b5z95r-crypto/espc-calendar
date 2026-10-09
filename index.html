@@ -1944,7 +1944,7 @@ function msgPageList(){
   var h='<div class="mgbig">'
     +'<button class="'+(seg!=='ann'?'on m':'')+'" onclick="MSG_SEG=\'in\';render()">'+ic('mega',17)+'訊息'+(unN?'<sup>'+(unN>99?'99+':unN)+'</sup>':'')+'</button>'
     +'<button class="'+(seg==='ann'?'on a':'')+'" onclick="MSG_SEG=\'ann\';render();if(!ANN.loaded)annLoad(true)">'+ic('file',17)+'公告'+(anN?'<sup>'+anN+'</sup>':'')+'</button></div>';
-  if(seg==='ann')return h+'<div class="annz"><div class="annote">公告發送後保存 1 年</div>'+annPage()+'</div>';
+  if(seg==='ann')return h+'<div class="annz">'+annPage()+'</div>';
   if(showSent)h+='<div class="mgmini"><button class="'+(seg==='in'?'on':'')+'" onclick="MSG_SEG=\'in\';render()">收到的</button>'
     +'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button></div>';
   h+='<div class="mg7">'+ic('clock',14)+'<span>訊息只保留 <b>7 天</b>，到期連同回條自動刪除'+(can('ann')?'；需要長期保存的請改發公告':'')+'</span></div>';
@@ -6306,25 +6306,44 @@ function annOk(id,fromQueue){
 function annOpenItem(id){var x=ANN.inbox.filter(function(a){return a.id===id;})[0]||ANN.sent.filter(function(a){return a.id===id;})[0];if(x)annShow(x,0);}
 
 /* 更多 → 公告 */
+var ANN_SEG='in',ANN_HIST=false,ANN_SENT_OPEN=false;
+/** 公告發送後 365 天刪除：顯示「剩 N 天刪除」，最後 30 天變橘色 */
+function annLeft(at){
+  var d=daysBetween(String(at||'').slice(0,10),twStr());
+  if(d==null)return '';
+  var n=Math.max(0,365-d);
+  return '<span style="'+(n<=30?'color:var(--warn);font-weight:600':'')+'">・'+(n?n+' 天後刪除':'今天刪除')+'</span>';
+}
+/* 訊息 → 公告：跟訊息一樣分「收到的」「我發的」
+   收到的：未讀在上面、已讀在下面；我發的：全部列出（新的在上） */
 function annPage(){
   if(!ANN.loaded)return loader('讀取公告…');
-  var h='';
-  if(can('ann')){
-    h+='<div class="sec" style="margin-top:4px">已發布</div>';
-    h+=ANN.sent.length?'<div class="gcard anl">'+ANN.sent.map(function(x){
-      var n=x.rc.length,r=x.rc.filter(function(p){return p.r;}).length,pc=n?Math.round(r*100/n):0;
-      return '<div class="anr" onclick="annStat(\''+x.id+'\')"><div class="anrt"><b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+(x.push?'<span class="anpt" style="background:var(--annBg);color:var(--annT)">已推播</span>':'')+'</div>'
-        +'<div class="hint">'+annAt(x.at)+(x.groups?'・'+he(x.groups):'')+'</div>'
-        +'<div class="pbr" style="margin-top:6px"><span class="pbl">已讀</span><span class="pbt"><i style="width:'+pc+'%"></i></span><span class="pbv" style="width:auto">'+r+'/'+n+'</span></div></div>';
-    }).join('')+'</div>':'<div class="card"><div class="empty" style="padding:18px">還沒有發布過公告</div></div>';
-    if(!ANN.inbox.length)return h;
-    h+='<div class="sec">收到的公告</div>';
+  var td=twStr(),day=function(x){return String(x.at).slice(0,10);};
+  var mine=can('ann')||ANN.sent.length,seg=mine&&ANN_SEG==='sent'?'sent':'in';
+  var unN=ANN.inbox.filter(function(x){return !x.read;}).length;
+  var h=mine?'<div class="mgmini" style="margin-top:0"><button class="'+(seg==='in'?'on':'')+'" onclick="ANN_SEG=\'in\';render()">收到的</button>'
+    +'<button class="'+(seg==='sent'?'on':'')+'" onclick="ANN_SEG=\'sent\';render()">我發的</button></div>':'';
+  h+='<div class="mg7">'+ic('clock',14)+'<span>公告發送後保存 <b>1 年</b>，到期自動刪除</span></div>';   // 跟訊息的 7 天說明同樣式
+  if(seg==='in'){
+    var row=function(x){
+      return '<div class="anr" onclick="annOpenItem(\''+x.id+'\')"><div class="anrt">'+(x.read?'':'<span class="udot"></span>')+'<b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+'</div>'
+        +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+annLeft(x.at)+'</div>'
+        +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'')+'</div>';
+    };
+    var un=ANN.inbox.filter(function(x){return !x.read;}),rd=ANN.inbox.filter(function(x){return x.read;});
+    if(un.length)h+='<div class="mgsec">未讀<b class="mgn">'+un.length+'</b></div><div class="gcard anl">'+un.map(row).join('')+'</div>';
+    if(rd.length)h+='<div class="mgsec">已讀</div><div class="gcard anl">'+rd.map(row).join('')+'</div>';
+    if(!ANN.inbox.length)h+='<div class="card" style="margin-top:12px"><div class="empty" style="padding:24px">目前沒有公告</div></div>';
+    return h;
   }
-  h+=ANN.inbox.length?'<div class="gcard anl">'+ANN.inbox.map(function(x){
-    return '<div class="anr" onclick="annOpenItem(\''+x.id+'\')"><div class="anrt">'+(x.read?'':'<span class="udot"></span>')+'<b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+'</div>'
-      +'<div class="hint">'+he(x.from)+'　'+annAt(x.at)+'</div>'
-      +(x.text?'<div class="anrs">'+he(x.text.replace(/\s+/g,' '))+'</div>':'')+'</div>';
-  }).join('')+'</div>':(can('ann')?'':'<div class="card"><div class="empty" style="padding:22px">目前沒有公告</div></div>');
+  var srow=function(x){
+    var n=x.rc.length,r=x.rc.filter(function(p){return p.r;}).length,pc=n?Math.round(r*100/n):0;
+    return '<div class="anr" onclick="annStat(\''+x.id+'\')"><div class="anrt"><b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+(x.push?'<span class="anpt" style="background:var(--annBg);color:var(--annT)">已推播</span>':'')+'</div>'
+      +'<div class="hint">'+annAt(x.at)+(x.groups?'・'+he(x.groups):'')+annLeft(x.at)+'</div>'
+      +'<div class="pbr" style="margin-top:6px"><span class="pbl">已讀</span><span class="pbt"><i style="width:'+pc+'%"></i></span><span class="pbv" style="width:auto">'+r+'/'+n+'</span></div></div>';
+  };
+  h+=ANN.sent.length?'<div class="gcard anl" style="margin-top:10px">'+ANN.sent.map(srow).join('')+'</div>'
+    :'<div class="card" style="margin-top:12px"><div class="empty" style="padding:24px">還沒有發布過公告</div></div>';
   return h;
 }
 function annStat(id){
@@ -6395,7 +6414,7 @@ function annSend(){
       if(r.noPush&&r.noPush.length)toast(r.noPush.length+' 人沒開推播通知，他們下次開 App 會看到公告','',4000,true);
       setTimeout(function(){
         ANNF={title:'',text:'',file:null,busy:false,push:false};GC_ANN.ppl={};GC_ANN.open={};GC_ANN.q='';
-        MSG_SEG='ann';go('msg');annLoad(true);
+        MSG_SEG='ann';ANN_SEG='sent';go('msg');annLoad(true);
       },3000);
     }).catch(function(){f.busy=false;toast('連線失敗','no');render();});
   };
