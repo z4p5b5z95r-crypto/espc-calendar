@@ -1929,7 +1929,8 @@ function mgLoadHTML(){return '<div class="mgload">'+SPIN+'<span>下載訊息中�
 function mgLoadShow(on){var el=$('mgload');if(el)el.innerHTML=on?mgLoadHTML():'';}
 function msgPage(){
   // 不分欄：電腦、手機都一欄；「發通知」是右下角浮動按鈕
-  return msgPageList()+(can('cast')&&MSG_SEG!=='ann'?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發送訊息</button>':'');
+  if(MSG_SEG==='ann')return msgPageList()+(can('ann')?'<button class="mgfab" onclick="go(\'msg\',\'annNew\')">'+ic('plus',18)+'發布公告</button>':'');   // 跟「發送訊息」同一個浮動按鈕
+  return msgPageList()+(can('cast')?'<button class="mgfab" onclick="go(\'msg\',\'cast\')">'+ic('plus',18)+'發送訊息</button>':'');
 }
 function msgPageList(){
   var all=msgItems(),sent=msgSent(),seg=(MSG_SEG==='sent'||MSG_SEG==='ann'?MSG_SEG:'in');
@@ -5648,17 +5649,17 @@ function castPaint(){
     +g.staff.filter(function(n){return String(n).trim()!==me;}).map(function(n){
       return '<button class="cchip'+(CAST.sel[n]?' on':'')+'" onclick="castSel(\''+esc(n)+'\')">'+he(n)+'</button>';
     }).join('')+'</div>';
-  h+='<p class="lb" style="margin-top:12px;display:flex;align-items:center">常用語<span style="flex:1"></span>'
+  h+='<p class="lb" style="margin-top:12px;display:flex;align-items:center">常用提醒<span style="flex:1"></span>'
     +'<a href="#" style="font-weight:400;color:var(--accT);font-size:13px" onclick="tplOpen(\'cast\');return false">編輯</a></p><div class="cchips">'
     +(tpl.length?tpl.map(function(t,i){
       return '<button class="cchip" onclick="castTplUse('+i+')">'+he(t)+'</button>';
-    }).join(''):'<span class="hint">還沒有常用語</span>')+'</div>';
+    }).join(''):'<span class="hint">還沒有常用提醒</span>')+'</div>';
   h+='<textarea class="fld" id="cast-t" rows="4" maxlength="300" placeholder="輸入要提醒的內容…" style="margin-top:10px;resize:vertical;border-radius:16px;line-height:1.5"'
     +' oninput="CAST.text=this.value;$(\'cast-n\').textContent=this.value.length">'+he(CAST.text)+'</textarea>'
-    +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="castTplAdd();return false">＋ 存成常用語</a>'
+    +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="castTplAdd();return false">＋ 存成常用提醒</a>'
     +'<span style="flex:1"></span><span class="hint"><span id="cast-n">'+CAST.text.length+'</span>/300</span></div>';
   var cst=CAST.busy?'busy':CAST.done?'done':'';
-  h+='<p class="hint" style="margin:10px 4px 0">'+ic('clock',13)+' 訊息只保留 7 天，到期自動刪除</p>';
+  h+='<p class="hint" style="margin:10px 4px 0;display:flex;align-items:center;gap:5px">'+ic('clock',13)+'訊息只保留 7 天，到期自動刪除</p>';
   h+='<button class="btn btn-p btn-full'+sendCls(cst)+'" style="margin-top:10px"'+(cst?' disabled':'')+' onclick="castSend()">'
     +sendIn(cst,'送出廣播')+'</button>';
   openSheet(h);
@@ -5929,11 +5930,11 @@ function castTplUse(i){
 function castTplSave(){gas('saveCastTpl',TOKEN,CAST_TPL).catch(function(){});}
 function castTplAdd(){
   var t=String(CAST.text||'').trim();
-  if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
+  if(!t){toast('先在下面輸入內容，再存成常用提醒','',2500);return;}
   CAST_TPL=CAST_TPL||[];
-  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
-  if(CAST_TPL.length>=TPL_MAX){toast('常用語最多 '+TPL_MAX+' 則，請先刪掉幾則','no',3000);return;}
-  CAST_TPL.push(t.slice(0,100));castTplSave();castPaint();toast('已存成常用語','ok');
+  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用提醒','',2000);return;}
+  if(CAST_TPL.length>=TPL_MAX){toast('常用提醒最多 '+TPL_MAX+' 則，請先刪掉幾則','no',3000);return;}
+  CAST_TPL.push(t.slice(0,100));castTplSave();castPaint();toast('已存成常用提醒','ok');
 }
 function castSend(){
   var names=Object.keys(CAST.sel).filter(function(n){return CAST.sel[n];});
@@ -6189,15 +6190,18 @@ function gcastPage(){
   if(!STAFF_READY)return loader('載入通訊錄…');
   var gs=gcGroups(),deps=gcDeps(gs),sel=gcNames(),tpl=CAST_TPL||[];
   if(!GC_DEP||!deps.some(function(d){return d.k===GC_DEP;}))GC_DEP=deps.length?deps[0].k:'';
-  var h=gcPicker(),picked=gs.filter(function(g){return gcCount(g);});
-  // 內容
-  h+='<div class="sec" style="display:flex">內容<span style="flex:1"></span><a href="#" style="color:var(--accT)" onclick="tplOpen(\'gc\');return false">編輯常用語</a></div>';
-  if(tpl.length)h+='<div class="cchips">'+tpl.map(function(t,i){return '<button class="cchip" onclick="gcTpl('+i+')">'+he(t)+'</button>';}).join('')+'</div>';
-  h+='<textarea class="fld" id="gc-t" rows="4" maxlength="300" placeholder="輸入要通知的內容…" style="margin-top:8px;resize:vertical;border-radius:16px;line-height:1.5"'
+  var h='',picked=gs.filter(function(g){return gcCount(g);});
+  // 2026-10-09：順序跟發布公告一樣：內容 → 常用提醒 → 對象
+  h+='<div class="sec" style="margin-top:4px">內容</div>';
+  h+='<textarea class="fld" id="gc-t" rows="4" maxlength="300" placeholder="輸入要通知的內容…" style="margin:0;resize:vertical;border-radius:16px;line-height:1.5"'
     +' oninput="GC.text=this.value;$(\'gc-n\').textContent=this.value.length">'+he(GC.text)+'</textarea>'
-    +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="gcTplAdd();return false">＋ 存成常用語</a>'
+    +'<div class="row" style="margin-top:4px"><a href="#" style="font-size:13px;color:var(--accT)" onclick="gcTplAdd();return false">＋ 存成常用提醒</a>'
     +'<span style="flex:1"></span><span class="hint"><span id="gc-n">'+GC.text.length+'</span>/300</span></div>'
-    +'<p class="hint" style="margin:6px 4px 0">'+ic('clock',13)+' 訊息只保留 7 天，到期自動刪除；需要長期保存請改發公告</p>';
+    +'<p class="hint" style="margin:6px 4px 0;display:flex;align-items:center;gap:5px">'+ic('clock',13)+'訊息只保留 7 天，到期自動刪除；需要長期保存請改發公告</p>';
+  h+='<div class="sec" style="display:flex">常用提醒<span style="flex:1"></span><a href="#" style="color:var(--accT)" onclick="tplOpen(\'gc\');return false">編輯</a></div>';
+  h+=tpl.length?'<div class="cchips">'+tpl.map(function(t,i){return '<button class="cchip" onclick="gcTpl('+i+')">'+he(t)+'</button>';}).join('')+'</div>'
+    :'<p class="hint" style="margin:0 4px">還沒有常用提醒，輸入內容後按「＋ 存成常用提醒」</p>';
+  h+='<div class="sec">對象</div>'+gcPicker();
   // 發送紀錄：預設收起來，點開才看（最小化）
   if(INBOX.sent.length&&!GC_EMBED){
     h+='<button class="fold" style="margin-top:14px" onclick="SENT_OPEN=!SENT_OPEN;render()"><span>我發出的通知</span>'
@@ -6231,11 +6235,11 @@ function gcSearch(){
 function gcTpl(i){var t=(CAST_TPL||[])[i];if(!t)return;GC.text=GC.text.trim()?GC.text.replace(/\s+$/,'')+'\n'+t:t;render();}
 function gcTplAdd(){
   var t=String(GC.text||'').trim();
-  if(!t){toast('先在下面輸入內容，再存成常用語','',2500);return;}
+  if(!t){toast('先在下面輸入內容，再存成常用提醒','',2500);return;}
   CAST_TPL=CAST_TPL||[];
-  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
-  if(CAST_TPL.length>=TPL_MAX){toast('常用語最多 '+TPL_MAX+' 則','no',3000);return;}
-  CAST_TPL.push(t.slice(0,100));castTplSave();render();toast('已存成常用語','ok');
+  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用提醒','',2000);return;}
+  if(CAST_TPL.length>=TPL_MAX){toast('常用提醒最多 '+TPL_MAX+' 則','no',3000);return;}
+  CAST_TPL.push(t.slice(0,100));castTplSave();render();toast('已存成常用提醒','ok');
 }
 /* ══ 公告：管理員發布（可附 PDF），指定對象發布後第一次開 App 跳出公告視窗 ══ */
 var ANN={inbox:[],sent:[],loaded:false,busy:false}, ANN_CHK=0, ANN_Q=[], ANN_TRY=0, ANN_OPEN={};
@@ -6302,8 +6306,7 @@ function annPage(){
   if(!ANN.loaded)return loader('讀取公告…');
   var h='';
   if(can('ann')){
-    h+='<button class="btn btn-p btn-full" style="margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="go(\'msg\',\'annNew\')">'+ic('plus',17)+'發布公告</button>';
-    h+='<div class="sec">已發布</div>';
+    h+='<div class="sec" style="margin-top:4px">已發布</div>';
     h+=ANN.sent.length?'<div class="gcard anl">'+ANN.sent.map(function(x){
       var n=x.rc.length,r=x.rc.filter(function(p){return p.r;}).length,pc=n?Math.round(r*100/n):0;
       return '<div class="anr" onclick="annStat(\''+x.id+'\')"><div class="anrt"><b>'+he(x.title)+'</b>'+(x.pdf?'<span class="anpt">PDF</span>':'')+(x.push?'<span class="anpt" style="background:var(--annBg);color:var(--annT)">已推播</span>':'')+'</div>'
@@ -6462,12 +6465,12 @@ function pdfSave(){
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);
 }
 
-/* ══ 常用語管理（個案廣播、群組廣播共用；每人各自一份） ══ */
+/* ══ 常用提醒管理（個案廣播、群組廣播共用；每人各自一份） ══ */
 var TPL_MAX=20, TPL={from:'',edit:-1};
 function tplOpen(from){TPL.from=from;TPL.edit=-1;tplPaint();}
 function tplPaint(){
   var tpl=CAST_TPL||[];
-  var h='<div class="shh"><div><h3>常用語</h3><p class="hint" style="margin-top:3px">'+tpl.length+'/'+TPL_MAX+'　只有你自己看得到</p></div>'
+  var h='<div class="shh"><div><h3>常用提醒</h3><p class="hint" style="margin-top:3px">'+tpl.length+'/'+TPL_MAX+'　只有你自己看得到</p></div>'
     +'<button class="ib" onclick="tplDone()">✕</button></div>';
   h+='<div class="tpl">'+(tpl.length?tpl.map(function(t,i){
     if(TPL.edit===i)return '<div class="tpr ed"><textarea class="fld" id="tpl-e" rows="3" maxlength="100">'+he(t)+'</textarea>'
@@ -6476,8 +6479,8 @@ function tplPaint(){
       +(i?'<button class="tpb" title="往上移" onclick="tplMove('+i+')">'+ic('up',16)+'</button>':'<span class="tpb0"></span>')
       +'<button class="tpb" title="修改" onclick="TPL.edit='+i+';tplPaint()">'+ic('edit',16)+'</button>'
       +'<button class="tpb del" title="刪除" onclick="tplDel('+i+')">'+ic('trash',16)+'</button></div>';
-  }).join(''):'<div class="hint" style="padding:14px 4px">還沒有常用語，在下面新增一則</div>')+'</div>';
-  if(tpl.length<TPL_MAX)h+='<div class="tpn"><textarea class="fld" id="tpl-n" rows="2" maxlength="100" placeholder="新增常用語…"></textarea>'
+  }).join(''):'<div class="hint" style="padding:14px 4px">還沒有常用提醒，在下面新增一則</div>')+'</div>';
+  if(tpl.length<TPL_MAX)h+='<div class="tpn"><textarea class="fld" id="tpl-n" rows="2" maxlength="100" placeholder="新增常用提醒…"></textarea>'
     +'<button class="btn btn-p" onclick="tplAdd()">'+ic('plus',16)+'新增</button></div>';
   h+='<button class="btn btn-full" style="margin-top:14px" onclick="tplDone()">完成</button>';
   openSheet(h);
@@ -6488,13 +6491,13 @@ function tplAdd(){
   var e=$('tpl-n'),t=String(e&&e.value||'').trim();
   if(!t){toast('請輸入內容','',1800);return;}
   CAST_TPL=CAST_TPL||[];
-  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用語','',2000);return;}
+  if(CAST_TPL.indexOf(t)>=0){toast('已經有這則常用提醒','',2000);return;}
   CAST_TPL.push(t.slice(0,100));castTplSave();tplPaint();
 }
 function tplSaveEdit(i){
   var t=String(($('tpl-e')||{}).value||'').trim();
   if(!t){tplDel(i);return;}
-  if(CAST_TPL.indexOf(t)>=0&&CAST_TPL.indexOf(t)!==i){toast('已經有這則常用語','',2000);return;}
+  if(CAST_TPL.indexOf(t)>=0&&CAST_TPL.indexOf(t)!==i){toast('已經有這則常用提醒','',2000);return;}
   CAST_TPL[i]=t.slice(0,100);TPL.edit=-1;castTplSave();tplPaint();
 }
 function tplDel(i){CAST_TPL.splice(i,1);TPL.edit=-1;castTplSave();tplPaint();}
