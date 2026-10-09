@@ -867,7 +867,11 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
 .mke{font-size:1.15em;line-height:1;display:block;flex-shrink:0;}
 .mkw{width:1.35em;height:1.35em;display:block;flex-shrink:0;
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
-.hat svg:not(.mki){width:1.05em;height:1.05em;color:var(--accT);}
+.tosh{width:1.6em;height:1.05em;display:block;flex-shrink:0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.22));}
+.hat.tsk{vertical-align:-5px;margin-left:6px;margin-right:4px;}
+.hat.tsk .hdot{top:-3px;right:-4px;}
+.hat+.hat{margin-left:11px;}            /* 兩個標記並排時拉開，燈號不壓到下一個 */
+.hat svg:not(.mki):not(.tosh){width:1.05em;height:1.05em;color:var(--accT);}
 .hat:active{transform:scale(.88);}
 .hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
   border:1.5px solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14);}
@@ -1106,7 +1110,7 @@ html[data-fs="l"] body{zoom:1.25;}
 .cbox.cbx{position:relative;overflow:visible}
 .cbic{position:absolute;left:-9px;top:-13px;width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--glLine);
   box-shadow:0 2px 8px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;color:var(--tx3);z-index:2}
-.cbic .cbiw{width:21px;height:21px;display:block}.cbic .cbie{font-size:17px;line-height:1}
+.cbic .cbiw{width:21px;height:21px;display:block}.cbic .cbit{width:23px;height:15px;display:block;border-radius:3px}.cbic .cbie{font-size:17px;line-height:1}
 @media(max-width:899px){.nav .nb{order:var(--o,50)}.nav .nb[data-t="more"]{order:99}.nav .nb.nbx{display:none!important}}
 @media(min-width:900px){.mobonly{display:none!important}}
 .ncrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--line)}
@@ -1231,6 +1235,7 @@ html[data-fs="l"] body{zoom:1.25;}
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<clipPath id="gtosh"><rect width="32" height="21" rx="3.4"/></clipPath>
 <filter id="ldgoo" x="-40%" y="-60%" width="180%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter><filter id="sgoo" filterUnits="userSpaceOnUse" x="-200" y="-200" width="500" height="500" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter>
 <filter id="navgoo"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -12" result="g"/><feComposite in="SourceGraphic" in2="g" operator="atop"/></filter>
 <linearGradient id="gsl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ebf0"/></linearGradient>
@@ -1257,7 +1262,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-10-09a';
+var APP_VER='2026-10-09b';
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -2304,7 +2309,7 @@ var TEAMS=['EIA-T','EIA-C','FE-T','FE-C','SP-T','SP-C'];
 // 證照種類建議清單，可自行輸入其他值
 var SAFETY_TYPES=['甲種職安衛業務主管','乙種職安衛業務主管','丙種職安衛業務主管',
   '營造業甲種','營造業乙種','急救人員','有機溶劑作業主管','缺氧作業主管','粉塵作業主管',
-  '貯存系統污染監測人員','船員證','研究作業人員安全實務訓練(出海資格)','初級救護技術員(EMT-1)'];
+  '貯存系統污染監測人員','船員證','研究作業人員安全實務訓練(出海資格)','初級救護技術員(EMT-1)','台灣職安卡'];
 var F={rg:'',en:'',ty:[],q:'',st:'',eq:[]};
 var tab='today',sub='';
 
@@ -2355,8 +2360,9 @@ function safetyList(name){
 }
 /** 最需要注意的那張（逾期 > 快到期 > 未填日期 > 有效），給工地帽燈號用 */
 var STATE_RANK={expired:0,warn:1,nodate:2,ok:3,forever:4};
-function safetyOf(name){
+function safetyOf(name,noTosh){
   var l=safetyList(name);
+  if(noTosh)l=l.filter(function(o){return !isTosh(o.type);});
   if(!l.length)return null;
   var best=l[0];
   l.forEach(function(o){
@@ -2433,6 +2439,32 @@ var SHIP_SVG='<svg class="pavship" viewBox="0 0 28 28">'   // 小帆船：白帆
  +'<path d="M4 20.6h18" stroke="#fff" stroke-width=".9" opacity=".55" stroke-linecap="round"/>'
  +'</svg>';
 
+/* 台灣職安卡：迷你卡片（綠／橘斜帶／藍底＋白色台灣＋大頭照）
+   很多人都有，所以不掛在頭像上，只放在名字右邊 */
+var TOSH_SVG='<svg class="tosh" viewBox="0 0 32 21"><g clip-path="url(#gtosh)">'
+ +'<rect width="32" height="21" fill="#3f9a5c"/>'
+ +'<path d="M0 13.2C9 9.6 19 7.4 32 6.4V21H0Z" fill="#ec8a3c"/>'
+ +'<rect y="15.6" width="32" height="5.4" fill="#2f63c4"/>'
+ +'<path d="M8.3 2.3c.9.4 1.2 1.5 1 2.7-.3 2.3-1 4.7-2.1 6.6-.4.8-.9 1.5-1.5 1.9-.5-.6-.6-1.7-.4-2.8.3-2.3 1.1-4.8 2-6.7.3-.8.6-1.4 1-1.7z" fill="#fff" opacity=".92"/>'
+ +'<rect x="21" y="2.8" width="7.6" height="9.8" rx="1" fill="#fff"/>'
+ +'<circle cx="24.8" cy="6.4" r="1.75" fill="#4a3a35"/>'
+ +'<path d="M21.9 12.6c.3-2 1.5-3.1 2.9-3.1s2.6 1.1 2.9 3.1z" fill="#4a3a35"/>'
+ +'<rect x="3" y="17.5" width="13" height="1.3" rx=".6" fill="#fff" opacity=".85"/>'
+ +'</g><rect x=".4" y=".4" width="31.2" height="20.2" rx="3.1" fill="none" stroke="#000" stroke-opacity=".18" stroke-width=".8"/></svg>';
+function isTosh(t){return /職安卡/.test(String(t||''));}
+function toshOf(n){
+  var l=safetyList(n);
+  for(var i=0;i<l.length;i++)if(isTosh(l[i].type))return l[i];
+  return null;
+}
+/** 名字右邊的職安卡小卡（含效期燈號） */
+function toshMark(n){
+  var o=toshOf(n);
+  if(!o)return '';
+  return '<button class="hat tsk" onclick="event.preventDefault();event.stopPropagation();'
+    +'showSafety(\''+esc(n)+'\')" title="台灣職安卡">'+TOSH_SVG+hatDot(o)+'</button>';
+}
+
 /** 依證照種類判斷要掛哪些標記
  *  safety：職安業務主管類 → 戴工地帽
  *  mask  ：缺氧／侷限空間 → 防毒面罩
@@ -2445,6 +2477,7 @@ function certBadges(name){
   var b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
   safetyList(name).forEach(function(o){
     var t=o.type||'';
+    if(isTosh(t))return;                     // 職安卡不掛在頭像
     if(/職安|職業安全|安全衛生|營造業[甲乙丙]種/.test(t))b.safety=true;
     if(/缺氧|侷限空間|局限空間/.test(t))b.mask=true;
     if(/急救/.test(t))b.kit=true;
@@ -2458,6 +2491,7 @@ function certBadges(name){
 /** 單張證照對應的圖示（證照詳情卡片左上角用）；對不到就用盾牌 */
 function certIcon(t){
   t=String(t||'');
+  if(isTosh(t))return TOSH_SVG.replace('class="tosh"','class="cbit"');
   if(/EMT|救護技術員/i.test(t))return EMT_SVG.replace('class="pavemt"','class="cbiw"');
   if(/急救/.test(t))return KIT_SVG.replace('class="pavkit"','class="cbiw"');
   if(/缺氧|侷限空間|局限空間/.test(t))return MASK_SVG.replace('class="pavmask"','class="cbiw"');
@@ -2482,10 +2516,10 @@ function hatDot(o){return '<span class="hdot '+dotClass(o)+'"></span>';}
 /** 頭像＋工地帽：帽子壓在圓圈上緣，像戴在頭上 */
 function avatarHat(name){
   var n=String(name||'').trim();
-  var o=safetyOf(n);
+  var o=safetyOf(n,true);                   // 頭像燈號不看職安卡（職安卡在名字右邊有自己的燈號）
   var b=certBadges(n);
   // 證照超過三張：頭像不掛東西（太擠），只留燈號；圖示都在名字後面的小標
-  if(safetyList(n).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
+  if(safetyList(n).filter(function(c){return !isTosh(c.type);}).length>3)b={safety:false,mask:false,kit:false,tank:false,ship:false,ring:false,emt:false};
   var h='<div class="pavw'+(b.ring?' rg':'')+'"><div class="pav">'+he(n.slice(0,1))+'</div>';
   if(b.mask)h+=MASK_SVG.replace('<svg','<svg'+badgeClick(n));     // 面罩罩住圓圈
   if(b.safety){
@@ -2507,8 +2541,8 @@ function avatarHat(name){
 
 /** 證照標記：點圖示看種類與效期，顏色隨狀態變化 */
 function hatMark(n){
-  var o=safetyOf(n);
-  if(!o)return '';
+  var o=safetyOf(n,true);
+  if(!o)return toshMark(n);
   var b=certBadges(n),inner='';
   if(b.safety)inner+='⛑️';                                        // 職安業務主管
   if(b.mask)inner+=MASK_SVG.replace('class="pavmask"','class="mki"');
@@ -2519,7 +2553,7 @@ function hatMark(n){
   if(b.emt)inner+=EMT_SVG.replace('class="pavemt"','class="mki"');
   if(!inner)inner=ic('shield',15);                                // 其他證照用通用盾牌
   return '<button class="hat" onclick="event.preventDefault();event.stopPropagation();'
-    +'showSafety(\''+esc(n)+'\')" title="證照">'+inner+hatDot(o)+'</button>';
+    +'showSafety(\''+esc(n)+'\')" title="證照">'+inner+hatDot(o)+'</button>'+toshMark(n);
 }
 
 function showSafety(n){
@@ -4252,7 +4286,7 @@ function bookList(){
     if(ex===EXT_NO)ex='';
     h+='<div class="lrow'+(pinned&&s.name===me?' mine':'')+'">'+avatarHat(s.name)
       +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
-      +he(s.name)
+      +he(s.name)+toshMark(s.name)
       +(pinned&&s.name===me?'<span class="beta" style="background:var(--card2);color:var(--tx2)">我</span>':'')
       +(s.hidden?'<span class="beta" style="background:var(--card2);color:var(--tx3)">已隱藏</span>':'')
       +'</div>'
@@ -6952,7 +6986,7 @@ function certsHTML(){
       +'<div class="cbh"><span>證照 '+(i+1)+'</span>'
       +'<button onclick="ecDel('+i+')">刪除</button></div>'
       +'<p class="lb">種類</p>'
-      +'<input class="fld" id="c-t'+i+'" list="sfl" value="'+he(c.type||'')+'" placeholder="例：急救人員、甲種職業安全衛生業務主管" style="margin-bottom:10px">'
+      +'<input class="fld" id="c-t'+i+'" list="sfl" value="'+he(c.type||'')+'" onchange="ecType('+i+')" placeholder="例：急救人員、甲種職業安全衛生業務主管" style="margin-bottom:10px">'
       +'<p class="lb">證書字號</p>'
       +'<input class="fld" id="c-c'+i+'" value="'+he(c.cert||'')+'" placeholder="選填" style="margin-bottom:10px">'
       +'<div style="display:flex;gap:8px">'
@@ -6979,6 +7013,11 @@ function expCol(v,y){
   if(!y||!v)return '';
   var d=daysBetween(twStr(),addYears(v,y));
   return d<0?'var(--err)':(d<=SAFETY_WARN_DAYS?'var(--warn)':'var(--ok)');
+}
+/** 種類選到職安卡：效期自動帶 3 年（每 3 年回訓） */
+function ecType(i){
+  var t=$('c-t'+i),y=$('c-y'+i);
+  if(t&&y&&isTosh(t.value)&&y.value==String(SAFETY_YEARS)){y.value='3';ecExp(i);}
 }
 function ecExp(i){
   var e=$('c-e'+i);
