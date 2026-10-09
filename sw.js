@@ -3,7 +3,7 @@
         2) 讓網站可「加入主畫面」成為 PWA
    注意：不做離線快取，永遠走網路，避免舊版卡住 */
 
-const SW_VERSION = 'espc-v14';
+const SW_VERSION = 'espc-v15';
 
 /* 通知紀錄＋App 圖示紅點：每則推播記在 Cache Storage（最多 60 則），
    紅點數字＝還沒看過的則數；點通知、或在 App 的通知列表點開／全部已讀，才會減少（index.html notes*） */
@@ -67,7 +67,7 @@ self.addEventListener('push', function (e) {
   const nid = 'n' + Date.now() + Math.random().toString(36).slice(2, 6);
   const jobs = [self.registration.showNotification(title, {
     body: body,
-    tag: d.cid ? 'espc-cast-' + d.cid : 'espc-' + (url.split('d=')[1] || 'push'),   // 同一天的提醒只留最新一則；廣播每則分開
+    tag: d.tag || (d.cid ? 'espc-cast-' + d.cid : 'espc-' + (url.split('d=')[1] || 'push')),   // 公告每則分開   // 同一天的提醒只留最新一則；廣播每則分開
     renotify: !d.recall,          // 收回：安靜地把原本那則換掉，不再響
     silent: !!d.recall,
     icon: 'icon-192-v4.png',
