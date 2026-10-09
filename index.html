@@ -1422,6 +1422,7 @@ var FCM_VAPID='BIz2nfyWMRth_bkPmkz-zdKvhVU39Y7RLmM29RxvFP-1Eu2r8pE0A8YV4Z_GvHHDZ
 var GAS_URL='https://script.google.com/macros/s/AKfycbxq0Lj59wXYKQkVnbaG607FOBmEmH64VkbxqfIOBbNnbufWlqQ82x5RAKmlbFhpOssHng/exec';
 
 /* 寫入類的動作要跑很久（整月資料逐列寫試算表），給長一點的時限 */
+var GAS_ONCE=['annPost','groupCast','castPush','todoSave'];
 var GAS_TIMEOUT={saveData:240000,clearAllData:180000,groupCast:120000,annPost:240000,annPdf:120000};
 var GAS_LOG=[];   // 最近 30 次後端呼叫花的時間（隱藏工具裡看得到，查慢的原因用）
 function gasLog(fn,t0,ok,j){
@@ -1432,13 +1433,16 @@ function gasLog(fn,t0,ok,j){
 function gas(fn){
   var t0=Date.now();
   var args=Array.prototype.slice.call(arguments,1);
-  var payload=JSON.stringify({fn:fn,args:args});
+  // 2026-10-09：發送類動作帶唯一 rid、一律用 POST。iPhone 關螢幕時會自動重送 GET 請求，造成同一則發好幾次；
+  // 後端看到同一個 rid 只執行一次
+  var once=GAS_ONCE.indexOf(fn)>=0;
+  var payload=JSON.stringify(once?{fn:fn,args:args,rid:Date.now().toString(36)+Math.random().toString(36).slice(2,10)}:{fn:fn,args:args});
   var ms=GAS_TIMEOUT[fn]||45000;
   var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
   var timer=setTimeout(function(){if(ctl)ctl.abort();},ms);
   var opt=ctl?{signal:ctl.signal}:{};
   var req;
-  if(payload.length<1800){
+  if(payload.length<1800&&!once){
     req=fetch(GAS_URL+'?payload='+encodeURIComponent(payload),opt);
   }else{
     opt.method='POST';opt.body=payload;
