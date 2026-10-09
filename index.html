@@ -858,20 +858,17 @@ html[data-theme="dark"]{--sep:rgba(255,255,255,.2);}
   border:1px solid var(--glLine);border-radius:var(--r);margin-bottom:7px;}
 .pavw{position:relative;flex-shrink:0;width:38px;padding-top:17px;}
 /* 職安帽用 emoji；因無法改色，效期狀態以右上角小圓點表示 */
-.hat{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:3px;
-  font-size:1em;line-height:1;margin-left:5px;vertical-align:-2px;flex-shrink:0;padding:0;}
-.hat .hdot{top:-2px;right:-5px;width:7px;height:7px;border-width:1.2px;}
-/* 內文用的小圖案：跟著文字大小走 */
-.mki{width:1.25em;height:1.25em;display:block;flex-shrink:0;
+.hat{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  font-size:1em;line-height:1;height:1.2em;margin-left:5px;vertical-align:-.2em;flex-shrink:0;padding:0;}
+.hat .hdot{top:-3px;right:-5px;width:7px;height:7px;border-width:1.2px;}
+/* 內文用的小圖案：統一同一個高度，跟著文字大小走 */
+.mki,.mkw{width:1.12em;height:1.12em;display:block;flex-shrink:0;
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
-.mke{font-size:1.15em;line-height:1;display:block;flex-shrink:0;}
-.mkw{width:1.35em;height:1.35em;display:block;flex-shrink:0;
-  filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
-.tosh{width:1.6em;height:1.05em;display:block;flex-shrink:0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.22));}
-.hat.tsk{vertical-align:-5px;margin-left:6px;margin-right:4px;}
-.hat.tsk .hdot{top:-3px;right:-4px;}
+.mke{font-size:1.1em;line-height:1;display:block;flex-shrink:0;}
+.tosh{width:1.55em;height:1.02em;display:block;flex-shrink:0;filter:drop-shadow(0 1px 1px rgba(0,0,0,.22));}
+.hat.tsk{margin-left:7px;margin-right:4px;}
 .hat+.hat{margin-left:11px;}            /* 兩個標記並排時拉開，燈號不壓到下一個 */
-.hat svg:not(.mki):not(.tosh){width:1.05em;height:1.05em;color:var(--accT);}
+.hat svg:not(.mki):not(.mkw):not(.tosh){width:1.05em;height:1.05em;color:var(--accT);}
 .hat:active{transform:scale(.88);}
 .hdot{position:absolute;top:0;right:-4px;width:9px;height:9px;border-radius:999px;
   border:1.5px solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.14);}
@@ -2544,7 +2541,7 @@ function hatMark(n){
   var o=safetyOf(n,true);
   if(!o)return toshMark(n);
   var b=certBadges(n),inner='';
-  if(b.safety)inner+='⛑️';                                        // 職安業務主管
+  if(b.safety)inner+='<span class="mke">⛑️</span>';                // 職安業務主管
   if(b.mask)inner+=MASK_SVG.replace('class="pavmask"','class="mki"');
   if(b.tank)inner+='<span class="mke">🛢️</span>';
   if(b.ship)inner+=SHIP_SVG.replace('class="pavship"','class="mkw"');
@@ -4285,8 +4282,8 @@ function bookList(){
     var ph=(s.phone||'').trim(),ex=(s.ext||'').trim();
     if(ex===EXT_NO)ex='';
     h+='<div class="lrow'+(pinned&&s.name===me?' mine':'')+'">'+avatarHat(s.name)
-      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">'
-      +he(s.name)+toshMark(s.name)
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500;display:flex;align-items:center;flex-wrap:wrap">'
+      +'<span>'+he(s.name)+'</span>'+toshMark(s.name)
       +(pinned&&s.name===me?'<span class="beta" style="background:var(--card2);color:var(--tx2)">我</span>':'')
       +(s.hidden?'<span class="beta" style="background:var(--card2);color:var(--tx3)">已隱藏</span>':'')
       +'</div>'
