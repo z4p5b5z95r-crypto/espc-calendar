@@ -14,11 +14,11 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif}
 .app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative}
-.hd{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top)) 18px 10px;background:linear-gradient(90deg,#fafafa 55%,#fdeee4)}
-.hd .u{font-size:12px;color:var(--tx3);display:flex;align-items:center;gap:6px}.hd .u i{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center}
-.hd .u a{margin-left:auto;color:var(--tx3);text-decoration:none}
-.hd b{display:block;font-size:22px;margin-top:6px}
-.bd{padding:4px 14px calc(110px + env(safe-area-inset-bottom))}
+.hd{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;background:linear-gradient(135deg,#F36F21,#C44E06);color:#fff}
+.hd .u{font-size:12px;color:rgba(255,255,255,.88);display:flex;align-items:center;gap:6px}.hd .u i{width:22px;height:22px;border-radius:50%;background:#fff;color:var(--accT);font-weight:700;font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center}
+.hd .u a{margin-left:auto;color:rgba(255,255,255,.88);text-decoration:none}
+.hd b{display:block;font-size:21px;margin-top:6px}
+.bd{padding:4px 14px calc(40px + env(safe-area-inset-bottom))}
 .sec{font-size:12px;color:var(--tx3);margin:14px 4px 6px}
 .fld{width:100%;border:1px solid var(--line);background:#fff;border-radius:999px;padding:11px 15px;font-size:16px;font-family:inherit;color:var(--tx);outline:none}
 .fld:focus{border-color:#f0b48d}
@@ -45,16 +45,17 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .acts .y{background:var(--acc);color:#fff}.acts .n{background:var(--card2);color:var(--err)}.acts .c{background:var(--card2);color:var(--tx2)}
 .grp{font-size:13px;font-weight:700;margin:16px 4px 6px;display:flex;align-items:center;gap:6px}.grp em{font-style:normal;font-size:11px;background:var(--tint);color:var(--accT);border-radius:999px;padding:1px 8px}
 .empty{text-align:center;color:var(--tx3);font-size:13.5px;padding:30px 0}
-.nav{position:fixed;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:496px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:22px;box-shadow:0 4px 18px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:space-around;font-size:11px;color:var(--tx3);z-index:6}
-.nav span{display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;cursor:pointer;padding:6px 10px;border-radius:16px}
-.nav span.on{color:var(--accT);background:var(--tint);font-weight:700}
-.nav sup{position:absolute;top:0;right:4px;background:#e1261a;color:#fff;border-radius:9px;font-size:10px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 4px}
-.nav .ic{font-size:19px;line-height:1}
+.nav{display:flex;gap:2px;margin-top:12px;background:rgba(255,255,255,.2);border-radius:999px;padding:3px;font-size:14px;color:rgba(255,255,255,.92)}
+.nav>span{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;position:relative;cursor:pointer;padding:8px 2px;border-radius:999px;white-space:nowrap}
+.nav>span.on{color:var(--accT);background:#fff;font-weight:800}
+.nav sup{position:absolute;top:-5px;right:4px;background:#e1261a;border:1.5px solid #fff;color:#fff;border-radius:9px;font-size:10px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.nav .ic{display:none}
+@media(max-width:420px){.nav.many{font-size:12.5px}}
 .ov{position:fixed;inset:0;z-index:15;display:none}.ov.on{display:block}
 .dim{position:absolute;inset:0;background:rgba(20,16,12,.32)}
 .sheet{position:absolute;left:50%;transform:translateX(-50%);width:100%;max-width:520px;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.15);max-height:90%;overflow-y:auto;animation:up .25s}
 @keyframes up{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
-.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(30,26,24,.9);color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:25;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(30,26,24,.9);color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:25;max-width:92%;overflow:hidden;text-overflow:ellipsis}
 .toast.on{opacity:1}
 .note{font-size:12.5px;color:var(--tx2);background:var(--card2);border-radius:12px;padding:8px 11px;margin-top:8px;line-height:1.55}
 .note.red{background:#fde4e1;color:#a5281d}
@@ -66,14 +67,14 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .sw:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
 .sw.on{background:var(--acc)}.sw.on:after{left:21px}
 .li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line);font-size:14px}.li:first-child{border-top:0}
-.embed .hd{padding-top:10px}
+.embed .hd{padding-top:12px}.embed .hd .u,.embed .hd b{display:none}.embed .nav{margin-top:0}
+.embed .bd{padding-top:6px}
 .ld{text-align:center;color:var(--tx3);padding:50px 0;font-size:14px}
 </style></head><body>
 <div class="app">
- <div class="hd"><div class="u" id="hu"></div><b id="ht">🚐 娃娃車</b></div>
+ <div class="hd"><div class="u" id="hu"></div><b id="ht">娃娃車預約</b><div class="nav" id="nav" style="display:none"></div></div>
  <div class="bd" id="bd"><div class="ld">載入中…</div></div>
 </div>
-<div class="nav" id="nav" style="display:none"></div>
 <div class="ov" id="ov"></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -136,45 +137,52 @@ var C={frm:'赤城',frmO:'',dest:'紅樓',destO:'',when:'asap',time:'',n:1,memo:
 var CALLON=false,TAPS=[];
 var LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};
 
-function setMe(j){M=j;lsS('bus_me',JSON.stringify({name:j.me.name,kind:j.me.kind}));lsS('bus_u',j.me.kind==='u'?j.me.username:'');}
-function logoutLocal(){TOKEN='';M=null;lsD('bus_token');lsD('bus_me');DATA={};PAGE='';}
+function setMe(j){M=j;try{lsS('bus_m',JSON.stringify(j.me?{ok:true,me:j.me,days:j.days,today:j.today,runToday:j.runToday,offToday:j.offToday,off:j.off}:j));}catch(e){}lsS('bus_me',JSON.stringify({name:j.me.name,kind:j.me.kind}));lsS('bus_u',j.me.kind==='u'?j.me.username:'');}
+function logoutLocal(){TOKEN='';M=null;lsD('bus_token');lsD('bus_me');lsD('bus_m');DATA={};PAGE='';}
 function logout(){if(TOKEN)gas('logout',TOKEN).catch(function(){});logoutLocal();LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};render();}
 
 function init(){
   // 行事曆換了人登入（或登出）：娃娃車跟著換
   if(EMBED&&TOKEN&&ls('espc_token')&&ls('bus_u')!==ls('espc_user'))logoutLocal();
+  // 開啟加速：上次的資料先畫出來，後台的最新狀態回來再更新
+  var cm=null;try{cm=JSON.parse(ls('bus_m')||'null');}catch(e){}
+  if(TOKEN&&cm&&cm.me&&cm.today===tw().day){M=cm;afterLogin(false);return;}
   if(TOKEN){
-    gas('me',TOKEN).then(function(j){if(!j.ok)throw new Error(j.error);setMe(j);afterLogin(false);}).catch(function(e){if(!TOKEN)render();else $('bd').innerHTML='<div class="ld">'+he(e.message)+'<br><button class="btn g" style="max-width:200px;margin:14px auto 0" onclick="init()">再試一次</button></div>';});
+    gas('me',TOKEN).then(function(j){if(!j.ok)throw new Error(j.error);setMe(j);afterLogin(false,true);}).catch(function(e){if(!TOKEN)render();else $('bd').innerHTML='<div class="ld">'+he(e.message)+'<br><button class="btn g" style="max-width:200px;margin:14px auto 0" onclick="init()">再試一次</button></div>';});
     return;
   }
   // 同一個瀏覽器已經登入行事曆：直接沿用（不用再打密碼）
   var ct=ls('espc_token');
   if(ct&&ct.indexOf('VIEW-')!==0){
-    gas('loginCal',ct).then(function(j){if(j&&j.ok){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);afterLogin(false);}else render();}).catch(function(){render();});
+    gas('loginCal',ct).then(function(j){if(j&&j.ok){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);afterLogin(false,true);}else render();}).catch(function(){render();});
     return;
   }
   render();
 }
-function afterLogin(first){
+function afterLogin(first,fresh){
   if(!PAGE)PAGE=M.me.isDriver?'drv':'book';
   if(location.hash==='#mine')PAGE='mine';
   render();load();pushRefresh();
+  if(!fresh&&PAGE!=='book')gas('me',TOKEN).then(function(j){if(j&&j.ok){var was=M&&M.me;setMe(j);if(!was||was.isDriver!==j.me.isDriver||was.isAdmin!==j.me.isAdmin||was.needPw!==j.me.needPw)render();}}).catch(function(){});
   if(first&&M.me.kind==='g'&&!standalone())setTimeout(function(){a2hsOpen();},400);
 }
 
 /* ── 畫面 ── */
 function render(){
-  if(!TOKEN||!M){$('nav').style.display='none';$('hu').innerHTML='';$('ht').textContent='';$('bd').innerHTML=loginHTML();return;}
+  var hd=document.querySelector('.hd');
+  if(!TOKEN||!M){hd.style.display='none';$('nav').style.display='none';$('bd').innerHTML=loginHTML();return;}
+  hd.style.display='';
   var me=M.me;
   $('hu').innerHTML='<i>'+he(me.name.slice(0,1))+'</i>'+he(me.name)+(me.kind==='g'?'　'+he(me.gid)+'（工號）':'')+(me.isDriver?'　（司機）':'')+(EMBED&&me.kind==='u'?'':'<a href="#" onclick="logoutAsk();return false">登出</a>');
-  if(!me.ext){$('ht').textContent='填一下分機';$('nav').style.display='none';$('bd').innerHTML=extHTML();return;}
-  var navs=[['book','🚐','預約',0],['mine','📋','我的預約',0]];
+  if(!me.ext){$('ht').textContent='娃娃車預約';$('nav').style.display='none';$('bd').innerHTML=extHTML();return;}
+  var act=(DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&(b.kind==='call'||!departed(b.day,b.slot));}).length;
+  var navs=[['book','🚐','預約',0],['mine','📋','我的預約'+(act?' ('+act+')':''),0]];
   if(me.isDriver||me.isAdmin)navs.unshift(['drv','🚐','娃娃車',(DATA.drv||[]).filter(function(b){return b.st==='w';}).length]);
   if(me.isDriver||me.isAdmin){navs[1]=['book','➕','我也要約',0];navs.push(['qr','▦','QR code',0]);}
   if(me.isAdmin)navs.push(['adm','⚙️','管理',0]);
-  $('nav').style.display='';
+  $('nav').style.display='';$('nav').className='nav'+(navs.length>3?' many':'');
   $('nav').innerHTML=navs.map(function(x){return '<span class="'+(PAGE===x[0]?'on':'')+'" onclick="go(\''+x[0]+'\')"><span class="ic">'+x[1]+'</span>'+x[2]+(x[3]?'<sup>'+x[3]+'</sup>':'')+'</span>';}).join('');
-  $('ht').textContent={book:'🚐 娃娃車預約',mine:'我的預約',drv:'娃娃車',qr:'預約 QR code',adm:'管理'}[PAGE]||'';
+  $('ht').textContent='娃娃車預約';
   var y=window.scrollY;
   $('bd').innerHTML=PAGE==='book'?bookHTML():PAGE==='mine'?mineHTML():PAGE==='drv'?drvHTML():PAGE==='qr'?qrHTML():PAGE==='adm'?admHTML():'';
   if(PAGE==='qr')qrDraw();
@@ -185,7 +193,7 @@ function logoutAsk(){sheet('<b style="font-size:17px">登出娃娃車？</b><p c
 /* 取資料 */
 function load(){
   if(!TOKEN||!M||!M.me.ext)return;
-  var fn=PAGE==='drv'?'drvList':PAGE==='adm'?'admLoad':PAGE==='mine'?'mine':PAGE==='book'?'me':'';
+  var fn=PAGE==='drv'?'drvList':PAGE==='adm'?'admLoad':(PAGE==='mine'||PAGE==='book')?'mine':'';
   if(!fn)return;
   var p=PAGE;
   gas(fn,TOKEN).then(function(j){
@@ -212,7 +220,7 @@ function loginHTML(){
       +'<button class="btn" id="lgb" '+(LG.gid.length<3||LG.busy?'disabled':'')+' onclick="gidGo()">'+(LG.busy?'請稍候…':'下一步')+'</button></div>'
       +'<p class="hint" style="text-align:center;margin-top:12px">不用密碼，輸入工號就能預約<br>有行事曆帳號的同事，姓名、分機會自動帶入</p>';
   }else{
-    h+='<div class="card" style="margin-top:12px"><div style="font-weight:700">第一次使用</div><div class="hint" style="margin:2px 0 0">工號 '+he(LG.gid)+'，請留下姓名和分機，司機有事會打給你；下次只要輸入工號</div>'
+    h+='<div class="card" style="margin-top:12px"><div style="font-weight:700">第一次使用</div><div class="hint" style="margin:2px 0 0">工號 '+he(LG.gid)+'，請輸入姓名和分機</div>'
       +'<div class="sec">姓名</div><input class="fld" id="lgn" placeholder="王小明" value="'+he(LG.name)+'" oninput="LG.name=this.value;lgChk()">'
       +'<div class="sec">分機</div><input class="fld" id="lge" placeholder="2538" inputmode="numeric" value="'+he(LG.ext)+'" oninput="LG.ext=this.value.replace(/[^0-9#-]/g,\'\');this.value=LG.ext;lgChk()">'+err
       +'<button class="btn" id="lgb" disabled onclick="regGo()">'+(LG.busy?'請稍候…':'完成，開始預約')+'</button>'
@@ -222,7 +230,7 @@ function loginHTML(){
   return h;
 }
 function lgChk(){var b=$('lgb');if(b)b.disabled=LG.busy||!(LG.name.trim()&&LG.ext.trim());}
-function loginOk(j,first){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};PAGE='';toast('歡迎，'+j.me.name);afterLogin(first);}
+function loginOk(j,first){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};PAGE='';toast('歡迎，'+j.me.name);afterLogin(first,true);}
 function gidGo(){
   if(LG.busy)return;LG.busy=true;LG.err='';render();
   gas('loginGid',LG.gid).then(function(j){LG.busy=false;
@@ -240,33 +248,33 @@ function regGo(){
 }
 /* 行事曆帳號沒有分機（通訊錄沒填）：問一次 */
 function extHTML(){
-  return '<div class="card" style="margin-top:12px"><div style="font-weight:700">司機有事會打給你</div><div class="hint" style="margin:2px 0 0">通訊錄裡找不到你的分機，請填一下（只要一次）</div>'
-    +'<div class="sec">分機</div><input class="fld" id="exf" inputmode="numeric" placeholder="2538" oninput="this.value=this.value.replace(/[^0-9#-]/g,\'\')">'
+  return '<div class="card" style="margin-top:12px"><div class="sec" style="margin-top:0">請輸入分機</div><input class="fld" id="exf" inputmode="numeric" placeholder="2538" oninput="this.value=this.value.replace(/[^0-9#-]/g,\'\')">'
     +'<button class="btn" onclick="extGo()">完成</button></div>';
 }
 function extGo(){var v=$('exf').value.trim();if(!v){toast('請輸入分機');return;}
-  gas('setExt',TOKEN,v).then(function(j){if(!j.ok){toast(j.error);return;}M.me.ext=v;afterLogin(false);}).catch(function(e){toast(e.message);});}
+  gas('setExt',TOKEN,v).then(function(j){if(!j.ok){toast(j.error);return;}M.me.ext=v;afterLogin(false,true);}).catch(function(e){toast(e.message);});}
 
 /* 用工號登入的司機／管理員：輸入行事曆密碼才開司機、管理功能（只有工號的話任何人都打得出來） */
 function unlockCard(){
   if(!M||!M.me.needPw)return '';
-  return '<div class="note" style="margin:10px 0"><b>你是娃娃車司機／管理員</b>，輸入行事曆密碼開啟接單和管理功能'
+  return '<div class="note" style="margin:10px 0"><b>你是管理員</b>，輸入行事曆密碼開啟管理功能'
     +'<div style="display:flex;gap:8px;margin-top:8px"><input class="fld" id="ulp" type="password" autocomplete="current-password" placeholder="行事曆密碼" style="flex:1;min-width:0;padding:8px 13px;font-size:15px" onkeydown="if(event.key===\'Enter\')unlockGo()">'
     +'<button class="chip s" style="background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" id="ulb" onclick="unlockGo()">開啟</button></div></div>';
 }
 function unlockGo(){var v=$('ulp').value;if(!v){toast('請輸入密碼');return;}$('ulb').disabled=true;
-  gas('unlock',TOKEN,v).then(function(j){if(!j.ok){toast(j.error,2500);$('ulb').disabled=false;return;}setMe(j);toast('已開啟司機／管理功能');go(j.me.isDriver?'drv':'book');}).catch(function(e){toast(e.message);$('ulb').disabled=false;});}
+  gas('unlock',TOKEN,v).then(function(j){if(!j.ok){toast(j.error,2500);$('ulb').disabled=false;return;}setMe(j);toast('已開啟管理功能');go(j.me.isDriver?'drv':'book');}).catch(function(e){toast(e.message);$('ulb').disabled=false;});}
 
 /* ── 預約 ── */
 function meCard(){
   var me=M.me;
+  if(EMBED&&me.kind==='u')return '';
   return '<div class="sec">預約人</div><div class="me"><i>'+he(me.name.slice(0,1))+'</i><div style="flex:1"><b>'+he(me.name)+'</b><div class="hint" style="margin:0">'
     +(me.kind==='g'?he(me.gid)+'・':'')+'分機 '+he(me.ext)+(me.kind==='u'?'・自動帶入':'')+'</div></div>'
     +(me.kind==='g'?'<a href="#" style="color:var(--accT);font-size:13px" onclick="logout();return false">不是我</a>':'')+'</div>';
 }
 function bookHTML(){
   var h=unlockCard()+meCard();
-  if(!CALLON)h+='<div class="seg" style="margin-top:14px"><button class="on" onclick="tap3()" style="font-weight:700;user-select:none;-webkit-user-select:none">🚐 預約班次</button></div>';
+  if(!CALLON)h+='<div onclick="tap3()" style="font-size:17px;font-weight:800;margin:16px 4px 0;user-select:none;-webkit-user-select:none;cursor:default">預約班次</div>';
   else h+='<div class="seg" style="margin-top:14px">'+[['bus','🚐 預約班次'],['call','🚨 臨時叫車']].map(function(m){return '<button class="'+((F.mode||'bus')===m[0]?'on':'')+'" onclick="F.mode=\''+m[0]+'\';render()" style="font-weight:700">'+m[1]+'</button>';}).join('')+'</div>';
   if(F.mode==='call')return h+callHTML();
   var days=(M.days||[]).filter(function(d){return !departed(d,'14:00');});
@@ -279,7 +287,6 @@ function bookHTML(){
   var offs=(M.off||[]).filter(function(o){return o.d>tw().day&&o.d<=days[days.length-1];});
   if(offs.length)h+='<p class="hint">'+offs.map(function(o){return md(o.d)+' '+he(o.n);}).join('、')+' 停駛</p>';
   h+='<div class="sec">行程</div><div class="seg">'+[['go','去程'],['back','回程'],['rt','來回']].map(function(t){return '<button class="'+(F.trip===t[0]?'on':'')+'" onclick="F.trip=\''+t[0]+'\';render()">'+t[1]+'</button>';}).join('')+'</div>';
-  if(F.trip==='rt')h+='<div class="note">來回＝同一班次送到後直接接回，不能上午去、下午回。下午才要回來，請分開預約「去程」和「回程」。</div>';
   h+='<div class="sec">'+(F.trip==='rt'?'班次':F.trip==='back'?'回程班次（從目的地接回）':'去程班次')+'</div><div class="seg">'+slots.map(function(s){var gone=departed(F.day,s);
     return '<button class="'+(F.slot===s?'on':'')+'" '+(gone?'disabled':'')+' onclick="F.slot=\''+s+'\';render()">'+slotLab(s)+(gone?'<small>已發車</small>':'')+'</button>';}).join('')+'</div>';
   h+='<div class="sec">'+(F.trip==='back'?'從哪裡接回（回到'+HOME+'）':F.trip==='rt'?'目的地（從'+HOME+'出發，再接回'+HOME+'）':'目的地（從'+HOME+'出發）')+'</div><div class="chips">'+DESTS.map(function(t){return '<button class="chip'+(F.dest===t?' on':'')+'" onclick="F.dest=\''+t+'\';render()">'+t+'</button>';}).join('')+'</div>';
@@ -480,6 +487,8 @@ function isIOS(){return /iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintos
 function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
 function pushReady(){return !!FB_CFG.appId;}
 function pushCard(){
+  // 有行事曆帳號、行事曆已經開了通知（或在行事曆裡打開）：通知會從行事曆跳出，不用再提醒
+  if(M&&M.me.kind==='u'&&(EMBED||M.me.calPush||ls('espc_push')))return '';
   if(!pushReady())return '';
   var on=pushSupported()&&Notification.permission==='granted'&&ls('bus_push');
   if(on)return '';

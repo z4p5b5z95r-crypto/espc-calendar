@@ -3287,9 +3287,8 @@ function render(){
   $('h-rb').innerHTML=rightButtons();
   renderChips();
   try{
-    if(tab==='bus'&&$('busf'))busFit();          // 娃娃車頁：iframe 已經在了就不要重畫（不然裡面會重新載入）
-    else $('page').innerHTML=pageHTML();
-    if(tab==='bus')setTimeout(busFit,0);
+    $('page').innerHTML=pageHTML();
+    setTimeout(busFit,0);
   }catch(err){
     // 任一頁渲染失敗時給出明確訊息，而不是默默留著上一頁的內容
     $('page').innerHTML='<div class="empty">畫面載入失敗<br><span style="font-size:12px">'
@@ -3427,14 +3426,24 @@ function pageHTML(){
 }
 
 /* ── 娃娃車預約（另一個程式 bus/，用 iframe 打開；同一個網域，會自動沿用行事曆的登入） ── */
-function busPage(){
-  return '<iframe id="busf" src="bus/?embed=1" title="娃娃車預約" style="display:block;width:100%;border:0;border-radius:16px;background:#f6f4f2;height:70vh" allow="clipboard-write"></iframe>';
+/* iframe 放在頁面外層、一直留著（切頁不會重新載入）；登入後先在背景預先載好，點頁籤就是秒開 */
+var BUS_PRE=false;
+function busPage(){ busEnsure(); return '<div id="busph" style="height:70vh"></div>'; }
+function busEnsure(){
+  if($('busw'))return;
+  var w=document.createElement('div');w.id='busw';
+  w.style.cssText='position:absolute;left:-9999px;top:0;width:360px;height:600px;z-index:4;border-radius:16px;overflow:hidden;background:#f6f4f2';
+  w.innerHTML='<iframe id="busf" src="bus/?embed=1" title="娃娃車預約" style="display:block;width:100%;height:100%;border:0" allow="clipboard-write"></iframe>';
+  document.body.appendChild(w);
 }
 function busFit(){
-  var f=$('busf');if(!f)return;
-  var top=f.getBoundingClientRect().top,bot=window.innerHeight;
-  if(navMobile()){var nv=$('nav');if(nv){var t=nv.getBoundingClientRect().top;if(t>top)bot=t-6;}}
-  f.style.height=Math.max(360,bot-top-8)+'px';
+  if(!BUS_PRE&&TOKEN&&!VIEWAS){BUS_PRE=true;setTimeout(busEnsure,2500);}   // 背景預先載入
+  var w=$('busw'),ph=$('busph');if(!w)return;
+  if(tab!=='bus'||!ph){w.style.left='-9999px';return;}
+  var r=ph.getBoundingClientRect(),bot=window.innerHeight;
+  if(navMobile()){var nv=$('nav');if(nv){var t=nv.getBoundingClientRect().top;if(t>r.top)bot=t-6;}}
+  var h=Math.max(360,bot-r.top-8);ph.style.height=h+'px';
+  w.style.left=(r.left+window.scrollX)+'px';w.style.top=(r.top+window.scrollY)+'px';w.style.width=r.width+'px';w.style.height=h+'px';
 }
 window.addEventListener('resize',function(){if(tab==='bus')busFit();});
 
