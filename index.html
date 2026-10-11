@@ -2939,10 +2939,11 @@ function boot(u,r,eng){
   appInit();
   var back=restoreTab();          // 重新整理後回到原本那一頁
   // 冷啟動：網址有帶要開哪裡 → sw.js 記的那筆用不到；沒帶（有些 iPhone 打開時會把參數丟掉）→ 畫面好了再去拿
-  if(/[?&](inbox|d|todo|due|ann)=/.test(location.search))swOpenClear();else setTimeout(swOpenTake,1500);
+  if(/[?&](inbox|d|todo|due|ann|bus)=/.test(location.search))swOpenClear();else setTimeout(swOpenTake,1500);
   var isDeep=takeDeep();
   if(INBOX_DEEP){INBOX_DEEP=false;MSG_SEG='in';back={t:'msg',s:''};swInboxTake();inboxLoad(true);}
   if(ANN_DEEP){ANN_DEEP=false;MSG_SEG='ann';back={t:'msg',s:''};}   // 點公告推播冷啟動 → 訊息 → 公告（公告內容照常自動跳出）   // 2026-10-07z：點廣播通知 → 直接打開訊息
+  if(BUS_DEEP){back={t:'bus',s:''};}   // 點娃娃車通知冷啟動 → 直接開娃娃車頁籤
   if(isDeep){   // 2026-10-07z：廣播 → 訊息；今天 → 今日；其他日期 → 行事曆那一天
     if(DEEP&&DEEP.p){DEEP=null;MSG_SEG='in';back={t:'msg',s:''};}
     else if(DEEP&&DEEP.d===twStr()){DEEP=null;back={t:'today',s:''};}
@@ -2953,7 +2954,9 @@ function boot(u,r,eng){
   loadStaff(function(){
     autoFilterSelf();
     gateProfile(function(){        // 只有後端也說沒同意過才會擋在確認畫面
+      if(back&&back.t==='bus'&&!can('bus'))back=null;
       if(back)go(back.t,back.s);
+      if(BUS_DEEP){var bp=BUS_DEEP;BUS_DEEP='';if(tab==='bus')busGoPage(bp);}
       else loadToday(false);
       checkDueNotice();
       if(TODO_DEEP)todoDeep();
@@ -3148,6 +3151,7 @@ function deepGo(url){
     if($('ov').classList.contains('open'))closeSheet();
     var d=q.get('d')||'';
     // 2026-10-07z：個案廣播（網址帶 &p=）→ 開訊息；今天的行程通知 → 開今日；其他日期 → 行事曆打開那一天
+    if(q.get('bus')!==null){if(can('bus')){go('bus');busGoPage(q.get('bus'));}return;}   // 點娃娃車通知 → 切到娃娃車頁籤（裡面跳到對應的頁面）
     if(q.get('p')){MSG_SEG='in';go('msg');return;}
     if(q.get('ann')){MSG_SEG='ann';go('msg');ANN_CHK=0;annCheck();return;}   // 點公告推播 → 訊息 → 公告，並跳出內容
     if(d&&d===twStr()){go('today');return;}
@@ -3184,6 +3188,7 @@ function takeDeep(){
     var q=new URLSearchParams(location.search||'');
     if(q.get('ann')){ANN_DEEP=true;q.delete('ann');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     if(q.get('inbox')){INBOX_DEEP=true;q.delete('inbox');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
+    if(q.get('bus')!==null){BUS_DEEP=q.get('bus')||'1';q.delete('bus');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     if(q.get('due')){DUE_DEEP=true;q.delete('due');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     if(q.get('todo')){TODO_DEEP=q.get('todo');q.delete('todo');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash);}
     var d=q.get('d')||'';
@@ -3429,7 +3434,14 @@ function pageHTML(){
 
 /* ── 娃娃車預約（另一個程式 bus/，用 iframe 打開；同一個網域，會自動沿用行事曆的登入） ── */
 /* iframe 放在頁面外層、一直留著（切頁不會重新載入）；登入後先在背景預先載好，點頁籤就是秒開 */
-var BUS_PRE=false;
+var BUS_PRE=false,BUS_DEEP;   // BUS_DEEP 不給初始值：開機時 takeDeep() 可能比這行早跑
+/** 叫娃娃車 iframe 切到某一頁（mine／drv／book），還沒載好就等載好再叫 */
+function busGoPage(pg){
+  busEnsure();var f=$('busf');if(!f)return;
+  var call=function(){try{if(f.contentWindow&&f.contentWindow.busGo){f.contentWindow.busGo(pg);return true;}}catch(e){}return false;};
+  if(call())return;
+  var n=0,t=setInterval(function(){if(call()||++n>40)clearInterval(t);},250);
+}
 function busPage(){ busEnsure(); return '<div id="busph" style="height:70vh"><div style="padding-top:60px">'+loader('載入中…')+'</div></div>'; }
 function busEnsure(){
   if($('busw'))return;
