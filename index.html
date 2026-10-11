@@ -1266,7 +1266,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
     <button class="nb" id="nb-allow" data-t="allow" style="display:none;touch-action:manipulation"><span data-ic="money"></span><em>津貼</em></button>
     <button class="nb" id="nb-stat" data-t="stat" style="display:none"><span data-ic="chart"></span><em>統計</em></button>
-    <button class="nb" id="nb-bus" data-t="bus"><span data-ic="bus"></span><em>娃娃車</em></button>
+    <button class="nb" id="nb-bus" data-t="bus" style="display:none"><span data-ic="bus"></span><em>娃娃車</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
@@ -1743,7 +1743,7 @@ var PERM_DEF_FE={todo:{role:['supervisor','scheduler','pm']},staff:{role:['super
   allowSet:{role:['supervisor','scheduler']},allowMgr:{role:['supervisor']},upload:{role:['supervisor','scheduler']},dl:{role:[]},
   cast:{role:['supervisor','scheduler']},acct:{role:['supervisor','scheduler']},stat:{role:[]},
   ann:{role:[]},castCase:{role:['supervisor','scheduler','pm']},hide:{role:[]},viewAs:{role:[]},
-  share:{role:['supervisor','scheduler','pm','office','bd']}};   // 2026-10-08：公布欄、行程廣播、隱藏、切換視角也能設定
+  share:{role:['supervisor','scheduler','pm','office','bd']},bus:{notRole:['sampler']}};   // 2026-10-08：公布欄、行程廣播、隱藏、切換視角也能設定
 var UPSPIN='<svg class="spin upspin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><g class="upc"><circle cx="84" cy="46" r="9"/><circle cx="97" cy="38" r="13"/><circle cx="113" cy="40" r="11"/><circle cx="124" cy="47" r="8"/><rect x="76" y="45" width="56" height="10" rx="5"/></g><circle class="upd" cx="90" cy="84" r="8"/><circle class="upd upd2" cx="102" cy="84" r="8"/><circle class="upd upd3" cx="114" cy="84" r="8"/></g></svg>';
 var SEND_IC='<svg class="sendic" viewBox="-48 -48 96 96" aria-hidden="true"><g filter="url(#sgoo)" fill="#F36F21"><circle class="sdC" cx="0" cy="0" r="15"/><circle class="sdO" cx="0" cy="0" r="10" style="--x:32px;--y:-30px"/><circle class="sdO sdO2" cx="0" cy="0" r="10" style="--x:40px;--y:12px"/><circle class="sdO sdO3" cx="0" cy="0" r="10" style="--x:-14px;--y:-42px"/></g></svg>';
 /** 送出按鈕的三種狀態：''＝一般、'busy'＝送出中（水珠動畫）、'done'＝成功（綠色打勾） */
@@ -1759,6 +1759,7 @@ var PERMS=null;
 (function(){try{var o=JSON.parse(ls('espc_perm')||'null');if(o&&o.u&&o.u===ls('espc_user'))PERMS=o.p;}catch(e){}})();
 function permDefOf(k,role,team){
   var d=PERM_DEF_FE[k]||{},tk=String(team||'').trim().toUpperCase();
+  if(d.notRole)return d.notRole.indexOf(role)<0;
   return (d.role||[]).indexOf(role)>=0||(d.team||[]).some(function(x){return x.toUpperCase()===tk;});
 }
 function can(k){
@@ -2176,8 +2177,9 @@ function navPerm(){
   $('nb-cast').style.display='none';             // 廣播併進「訊息」頁（右上「＋ 廣播」）
   $('nb-dl').style.display=can('dl')?'':'none';
   $('nb-stat').style.display=can('stat')?'':'none';
+  $('nb-bus').style.display=can('bus')?'':'none';
   allowNav();
-  var bad={upload:'upload',admin:'acct',cast:'cast',dl:'dl',stat:'stat',allow:'allow'}[tab];
+  var bad={upload:'upload',admin:'acct',cast:'cast',dl:'dl',stat:'stat',allow:'allow',bus:'bus'}[tab];
   if(bad&&!can(bad)&&typeof go==='function')go('today');
   if(sub==='cast'&&!can('cast')&&typeof go==='function')go('msg');
   navCustom();
@@ -2186,7 +2188,7 @@ function navPerm(){
    設定存在這支手機（localStorage espc_nav_<帳號>）：選的頁籤照順序放下面，最多 5 個，「更多」固定最右邊；沒選的從「更多」進去 */
 var NAV_MAX=5;
 function navAll(){   // 這個帳號可以用的頁籤（照權限）
-  return [['today','今日','sun',1],['cal','行事曆','cal',1],['msg','訊息','msg',1],['book','通訊錄','book',1],['bus','娃娃車','bus',1],
+  return [['today','今日','sun',1],['cal','行事曆','cal',1],['msg','訊息','msg',1],['book','通訊錄','book',1],['bus','娃娃車','bus',can('bus')],
     ['admin','帳號','users',can('acct')],['allow','津貼','money',can('allow')],['stat','統計','chart',can('stat')]]
     .filter(function(x){return x[3];});
 }
@@ -3437,7 +3439,7 @@ function busEnsure(){
   document.body.appendChild(w);
 }
 function busFit(){
-  if(!BUS_PRE&&TOKEN&&!VIEWAS){BUS_PRE=true;setTimeout(busEnsure,2500);}   // 背景預先載入
+  if(!BUS_PRE&&TOKEN&&!VIEWAS&&can('bus')){BUS_PRE=true;setTimeout(busEnsure,2500);}   // 背景預先載入
   var w=$('busw'),ph=$('busph');if(!w)return;
   if(tab!=='bus'||!ph){w.style.left='-9999px';return;}
   var r=ph.getBoundingClientRect(),bot=window.innerHeight;
@@ -3792,6 +3794,7 @@ function permLoad(){
 }
 function pmNorm(c){c=c||{};c.role=c.role||{};c.team=c.team||{};c.user=c.user||{};return c;}
 function pmDef(k,role,team){var d=(PM.d&&PM.d.def&&PM.d.def[k])||{},tk=String(team||'').trim().toUpperCase();
+  if(d.notRole)return d.notRole.indexOf(role)<0;
   return (d.role||[]).indexOf(role)>=0||(d.team||[]).some(function(x){return String(x).toUpperCase()===tk;});}
 function pmPick(o,k){return o&&(o[k]===1||o[k]===0)?o[k]===1:null;}
 function pmTeamCfg(team){var c=PM.d.cfg.team||{},tk=String(team||'').trim().toUpperCase(),hit=null;Object.keys(c).forEach(function(t){if(!hit&&t.toUpperCase()===tk)hit=c[t];});return hit;}
