@@ -1266,6 +1266,7 @@ html[data-fs="l"] body{zoom:1.25;}
     <button class="nb" id="nb-cast" data-t="cast" style="display:none"><span data-ic="mega"></span><em>廣播</em></button>
     <button class="nb" id="nb-allow" data-t="allow" style="display:none;touch-action:manipulation"><span data-ic="money"></span><em>津貼</em></button>
     <button class="nb" id="nb-stat" data-t="stat" style="display:none"><span data-ic="chart"></span><em>統計</em></button>
+    <button class="nb" id="nb-bus" data-t="bus"><span data-ic="bus"></span><em>娃娃車</em></button>
     <button class="nb" data-t="more"><span data-ic="menu"></span><em>更多</em></button>
   </div>
 </div>
@@ -1499,6 +1500,7 @@ var ICON={
  filter:'<path d="M4 4h16l-6 7v7l-4 2v-9z"/>',
  upload:'<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 9l5-5 5 5M12 4v12"/>',
  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+ bus:'<path d="M3 16.5V8a2 2 0 0 1 2-2h10.2a2 2 0 0 1 1.7.9l3.6 5.4c.3.4.5.9.5 1.4v2.8a1 1 0 0 1-1 1h-.8"/><path d="M5.5 17.5H4a1 1 0 0 1-1-1M3 12h18M8.5 6v6M13.5 6v6M10 17.5h4"/><circle cx="7.8" cy="17.5" r="1.9"/><circle cx="16.2" cy="17.5" r="1.9"/>',
  users:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.1a4 4 0 0 1 0 7.8M21 21v-2a4 4 0 0 0-3-3.9"/>',
  msg:'<path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 12.5h5"/>',
  bell:'<path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
@@ -2184,7 +2186,7 @@ function navPerm(){
    設定存在這支手機（localStorage espc_nav_<帳號>）：選的頁籤照順序放下面，最多 5 個，「更多」固定最右邊；沒選的從「更多」進去 */
 var NAV_MAX=5;
 function navAll(){   // 這個帳號可以用的頁籤（照權限）
-  return [['today','今日','sun',1],['cal','行事曆','cal',1],['msg','訊息','msg',1],['book','通訊錄','book',1],
+  return [['today','今日','sun',1],['cal','行事曆','cal',1],['msg','訊息','msg',1],['book','通訊錄','book',1],['bus','娃娃車','bus',1],
     ['admin','帳號','users',can('acct')],['allow','津貼','money',can('allow')],['stat','統計','chart',can('stat')]]
     .filter(function(x){return x[3];});
 }
@@ -2305,6 +2307,7 @@ function viewGo(un){
     lsS('espc_token',r.token);lsS('espc_role',r.role);lsS('espc_user',r.username);lsS('espc_eng',r.engineerName||'');
     if(r.profileOk)lsS('espc_prof','1');else lsD('espc_prof');
     lsS('espc_team',r.team||'');lsS('espc_perm',JSON.stringify({u:r.username,p:r.perms||{}}));lsD('espc_tab');
+    try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf('espc_c_')===0)localStorage.removeItem(k);}}catch(e){}   // 清掉管理員的快取，避免看到管理員才看得到的資料
     location.reload();
   }).catch(function(){toast('連線失敗','no');});
 }
@@ -3284,7 +3287,9 @@ function render(){
   $('h-rb').innerHTML=rightButtons();
   renderChips();
   try{
-    $('page').innerHTML=pageHTML();
+    if(tab==='bus'&&$('busf'))busFit();          // 娃娃車頁：iframe 已經在了就不要重畫（不然裡面會重新載入）
+    else $('page').innerHTML=pageHTML();
+    if(tab==='bus')setTimeout(busFit,0);
   }catch(err){
     // 任一頁渲染失敗時給出明確訊息，而不是默默留著上一頁的內容
     $('page').innerHTML='<div class="empty">畫面載入失敗<br><span style="font-size:12px">'
@@ -3313,6 +3318,7 @@ function titleText(){
   if(tab==='book')return '通訊錄';
   if(tab==='cast')return '廣播';
   if(tab==='stat')return '使用統計';
+  if(tab==='bus')return '娃娃車預約';
   return '更多';
 }
 
@@ -3416,8 +3422,21 @@ function pageHTML(){
   if(tab==='book')return bookPage();
   if(tab==='cast')return gcastPage();
   if(tab==='stat')return statPage();
+  if(tab==='bus')return busPage();
   return morePage();
 }
+
+/* ── 娃娃車預約（另一個程式 bus/，用 iframe 打開；同一個網域，會自動沿用行事曆的登入） ── */
+function busPage(){
+  return '<iframe id="busf" src="bus/?embed=1" title="娃娃車預約" style="display:block;width:100%;border:0;border-radius:16px;background:#f6f4f2;height:70vh" allow="clipboard-write"></iframe>';
+}
+function busFit(){
+  var f=$('busf');if(!f)return;
+  var top=f.getBoundingClientRect().top,bot=window.innerHeight;
+  if(navMobile()){var nv=$('nav');if(nv){var t=nv.getBoundingClientRect().top;if(t>top)bot=t-6;}}
+  f.style.height=Math.max(360,bot-top-8)+'px';
+}
+window.addEventListener('resize',function(){if(tab==='bus')busFit();});
 
 /* ── 今日 ── */
 var futOpen=false;            // 未來七天預設收起來，要看再點開
@@ -4809,12 +4828,13 @@ function goToday(){
 }
 
 function loadStaff(cb,force){
-  var c=force?null:cGet('staff');
+  var ck='staff_'+(UNAME||'')+(VIEWAS?'_v':'');   // 2026-10-11：通訊錄快取依帳號分開（管理員看得到隱藏的人，切換視角時不能沿用）
+  var c=force?null:cGet(ck);
   if(c&&c.staff){applyStaff(c.staff);STAFF_VER=c.version||'';if(cb){cb();cb=null;}}
   gas('getStaff',TOKEN,c?c.version:'').then(function(r){
     if(r&&r.ok&&!r.unchanged){
       applyStaff(r.staff||[]);STAFF_VER=r.version||'';
-      cSet('staff',{version:STAFF_VER,staff:STAFF});
+      cSet(ck,{version:STAFF_VER,staff:STAFF});
       if(tab==='book'&&!sub)render();
     }
     if(cb)cb();
