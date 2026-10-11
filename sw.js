@@ -3,7 +3,7 @@
         2) 讓網站可「加入主畫面」成為 PWA
    注意：不做離線快取，永遠走網路，避免舊版卡住 */
 
-const SW_VERSION = 'espc-v15';
+const SW_VERSION = 'espc-v16';
 
 /* 通知紀錄＋App 圖示紅點：每則推播記在 Cache Storage（最多 60 則），
    紅點數字＝還沒看過的則數；點通知、或在 App 的通知列表點開／全部已讀，才會減少（index.html notes*） */
@@ -70,7 +70,7 @@ self.addEventListener('push', function (e) {
     tag: d.tag || (d.cid ? 'espc-cast-' + d.cid : 'espc-' + (url.split('d=')[1] || 'push')),   // 公告每則分開   // 同一天的提醒只留最新一則；廣播每則分開
     renotify: !d.recall,          // 收回：安靜地把原本那則換掉，不再響
     silent: !!d.recall,
-    icon: 'icon-192-v4.png',
+    icon: d.icon || 'icon-192-v4.png',   // 娃娃車的通知帶自己的圖示
     badge: 'icon-192-v4.png',
     data: { url: url, nid: nid }
   })];
@@ -99,11 +99,16 @@ self.addEventListener('notificationclick', function (e) {
   const target = (e.notification.data && e.notification.data.url) || './';
   const nid = e.notification.data && e.notification.data.nid;
   // 2026-10-07z：iPhone 上 App 在背景時常常收不到下面的 postMessage → 另外記一筆「要打開哪裡」，App 回到前景時自己來拿
-  const keep = caches.open('espc-badge').then(function (c) {
+  const keep = target.indexOf('/bus/') >= 0 ? Promise.resolve() : caches.open('espc-badge').then(function (c) {
     return c.put('./__open', new Response(JSON.stringify({ url: target, at: Date.now() })));
   }).catch(function () {});
   e.waitUntil(keep.then(function () { return notesEdit(function (list) { list.forEach(function (x) { if (x.id === nid) x.r = 1; }); return list; }); }).then(function () { return
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      // 娃娃車的通知：打開娃娃車頁面（不是行事曆）
+      if (target.indexOf('/bus/') >= 0) {
+        for (let i = 0; i < list.length; i++) if (list[i].url.indexOf('/bus/') >= 0 && 'focus' in list[i]) return list[i].focus();
+        if (self.clients.openWindow) return self.clients.openWindow(target);
+      }
       for (let i = 0; i < list.length; i++) {
         const c = list[i];
         if ('focus' in c) {
