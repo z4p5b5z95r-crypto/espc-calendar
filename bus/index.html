@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>娃娃車預約</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F36F21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="娃娃車預約">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#f6f4f2;--card:#fff;--card2:#f1ede9;--tx:#2b2522;--tx2:#6f6660;--tx3:#a1978f;--acc:#C44E06;--accT:#B54705;--tint:#fbe6d8;--ok:#1e7a44;--okBg:#e3f3e9;--err:#c62f22;--errBg:#fde4e1;--warn:#8a5a00;--warnBg:#fff1d6;--line:rgba(0,0,0,.08)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif}
+.app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative}
+.hd{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top)) 18px 10px;background:linear-gradient(90deg,#fafafa 55%,#fdeee4)}
+.hd .u{font-size:12px;color:var(--tx3);display:flex;align-items:center;gap:6px}.hd .u i{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center}
+.hd .u a{margin-left:auto;color:var(--tx3);text-decoration:none}
+.hd b{display:block;font-size:22px;margin-top:6px}
+.bd{padding:4px 14px calc(110px + env(safe-area-inset-bottom))}
+.sec{font-size:12px;color:var(--tx3);margin:14px 4px 6px}
+.fld{width:100%;border:1px solid var(--line);background:#fff;border-radius:999px;padding:11px 15px;font-size:16px;font-family:inherit;color:var(--tx);outline:none}
+.fld:focus{border-color:#f0b48d}
+textarea.fld{border-radius:14px;height:84px;resize:none}
+.seg{display:flex;background:#e9e6e3;border-radius:12px;padding:3px}
+.seg button{flex:1;border:0;background:none;padding:9px 0;border-radius:10px;font-size:14px;color:var(--tx2);font-family:inherit;cursor:pointer;line-height:1.3}
+.seg button.on{background:#fff;color:var(--tx);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.seg button:disabled{color:var(--tx3);opacity:.6}
+.seg small{display:block;font-size:10.5px;font-weight:400;color:var(--tx3)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:9px 16px;border-radius:999px;background:#fff;border:1.5px solid var(--line);font-size:14px;cursor:pointer;font-family:inherit;color:var(--tx)}
+.chip.on{background:var(--tint);border-color:#f0b48d;color:var(--accT);font-weight:700}
+.chip.s{padding:6px 12px;font-size:13px}
+.me{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:11px 14px;border:1px solid var(--line);font-size:14px}
+.me i{width:34px;height:34px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-style:normal;color:var(--tx2);flex-shrink:0}
+.btn{display:block;width:100%;text-align:center;border:0;border-radius:999px;padding:13px;font-weight:700;font-size:15px;margin-top:18px;background:var(--acc);color:#fff;font-family:inherit;cursor:pointer}
+.btn.g{background:var(--card2);color:var(--tx)}.btn.r{background:var(--err)}.btn:disabled{opacity:.45}
+.hint{font-size:12px;color:var(--tx3);line-height:1.55;margin:6px 4px 0}
+.card{background:#fff;border-radius:18px;border:1px solid var(--line);padding:13px 14px;margin-bottom:9px}
+.st{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 8px}
+.st.w{background:var(--warnBg);color:var(--warn)}.st.ok{background:var(--okBg);color:var(--ok)}.st.no{background:var(--errBg);color:var(--err)}.st.x{background:var(--card2);color:var(--tx3)}
+.kv{font-size:13.5px;color:var(--tx2);margin-top:6px;line-height:1.7}.kv b{color:var(--tx);font-weight:600}
+.acts{display:flex;gap:8px;margin-top:10px}.acts button{flex:1;border:0;border-radius:999px;padding:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
+.acts .y{background:var(--acc);color:#fff}.acts .n{background:var(--card2);color:var(--err)}.acts .c{background:var(--card2);color:var(--tx2)}
+.grp{font-size:13px;font-weight:700;margin:16px 4px 6px;display:flex;align-items:center;gap:6px}.grp em{font-style:normal;font-size:11px;background:var(--tint);color:var(--accT);border-radius:999px;padding:1px 8px}
+.empty{text-align:center;color:var(--tx3);font-size:13.5px;padding:30px 0}
+.nav{position:fixed;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:496px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:22px;box-shadow:0 4px 18px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:space-around;font-size:11px;color:var(--tx3);z-index:6}
+.nav span{display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;cursor:pointer;padding:6px 10px;border-radius:16px}
+.nav span.on{color:var(--accT);background:var(--tint);font-weight:700}
+.nav sup{position:absolute;top:0;right:4px;background:#e1261a;color:#fff;border-radius:9px;font-size:10px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.nav .ic{font-size:19px;line-height:1}
+.ov{position:fixed;inset:0;z-index:15;display:none}.ov.on{display:block}
+.dim{position:absolute;inset:0;background:rgba(20,16,12,.32)}
+.sheet{position:absolute;left:50%;transform:translateX(-50%);width:100%;max-width:520px;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.15);max-height:90%;overflow-y:auto;animation:up .25s}
+@keyframes up{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(30,26,24,.9);color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:25;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1}
+.note{font-size:12.5px;color:var(--tx2);background:var(--card2);border-radius:12px;padding:8px 11px;margin-top:8px;line-height:1.55}
+.note.red{background:#fde4e1;color:#a5281d}
+.pz{background:#7b3fb8;color:#fff;border-radius:6px;padding:0 5px;font-weight:700}
+.pz.pr{background:#d32f2f}
+.qrbox{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;text-align:center;margin-top:8px}
+#qr{display:inline-block;padding:10px;background:#fff}
+.sw{position:relative;width:44px;height:26px;border-radius:13px;background:#ddd;border:0;flex-shrink:0;cursor:pointer;transition:background .2s}
+.sw:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
+.sw.on{background:var(--acc)}.sw.on:after{left:21px}
+.li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line);font-size:14px}.li:first-child{border-top:0}
+.embed .hd{padding-top:10px}
+.ld{text-align:center;color:var(--tx3);padding:50px 0;font-size:14px}
+</style></head><body>
+<div class="app">
+ <div class="hd"><div class="u" id="hu"></div><b id="ht">🚐 娃娃車</b></div>
+ <div class="bd" id="bd"><div class="ld">載入中…</div></div>
+</div>
+<div class="nav" id="nav" style="display:none"></div>
+<div class="ov" id="ov"></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ═══ ESPC 娃娃車預約（獨立 App，帳號共用行事曆）═══
+   後端：另一個 Google Apps Script 專案（Bus.gs），資料在另一個試算表「ESPC 娃娃車」 */
+var API='https://script.google.com/macros/s/AKfycbwleJIk3KGHbxJ7rT8YLSXhfgipEjP7X5pqbRM7uLi8PkCiEzqorwoVBXEt0C9vCAlA/exec';   // ← Apps Script 部署後的網址（…/exec）
+/* Firebase 推播：同一個 Firebase 專案、但要「另外新增一個網頁應用程式」的設定（appId 不能跟行事曆一樣，
+   不然同一支手機的瀏覽器裡兩個 App 會搶同一個推播代碼） */
+var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-calendar.firebaseapp.com",
+  projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
+  messagingSenderId:"265740284159",appId:"1:265740284159:web:c61f15fdebdc9920151cca"};   // ← 填娃娃車的 appId
+var FCM_VAPID='BIz2nfyWMRth_bkPmkz-zdKvhVU39Y7RLmM29RxvFP-1Eu2r8pE0A8YV4Z_GvHHDZDppae83aMTsLi3-0MiUYIE';
+var HOME='赤城',DESTS=['紅樓','紫軒','其他'],CALL_PL=['赤城','紅樓','紫軒','其他'],REASONS=['車輛保養','已經出車','路線太遠'];
+
+function $(i){return document.getElementById(i);}
+function he(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function ls(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+function lsS(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function lsD(k){try{localStorage.removeItem(k);}catch(e){}}
+function toast(t,ms){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},ms||2000);}
+function sheet(h){$('ov').innerHTML='<div class="dim" onclick="closeSheet()"></div><div class="sheet">'+h+'</div>';$('ov').classList.add('on');}
+function closeSheet(){$('ov').classList.remove('on');}
+
+/* ── 後端呼叫：一律 POST；會發推播的動作帶唯一 rid，iPhone 自動重送也只執行一次 ── */
+var ONCE=['book','call','drvCast'];
+function gas(fn){
+  var args=Array.prototype.slice.call(arguments,1);
+  var body={fn:fn,args:args};
+  if(ONCE.indexOf(fn)>=0)body.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+  var ctl=typeof AbortController!=='undefined'?new AbortController():null,tm=setTimeout(function(){if(ctl)ctl.abort();},45000);
+  return fetch(API,{method:'POST',body:JSON.stringify(body),signal:ctl?ctl.signal:undefined}).then(function(r){return r.json();}).then(function(j){
+    clearTimeout(tm);
+    if(j&&j.auth){logoutLocal();throw new Error('請重新登入');}
+    return j;
+  },function(e){clearTimeout(tm);throw new Error(e&&e.name==='AbortError'?'連線逾時，請再試一次':'連線失敗，請檢查網路');});
+}
+
+/* ── 時間（台灣） ── */
+function tw(){var d=new Date(Date.now()+8*3600e3);return{day:d.toISOString().slice(0,10),min:d.getUTCHours()*60+d.getUTCMinutes()};}
+function hm(s){var a=String(s||'').split(':');return +a[0]*60+ +a[1];}
+var WK='日一二三四五六';
+function dow(d){return new Date(d+'T12:00:00+08:00').getDay();}
+function md(d){var a=d.split('-');return (a[0]!==tw().day.slice(0,4)?a[0]+'/':'')+(+a[1])+'/'+(+a[2]);}
+function dlab(d){var t=tw().day,tm=new Date(new Date(t+'T12:00:00Z').getTime()+864e5).toISOString().slice(0,10);
+  return (d===t?'今天 ':d===tm?'明天 ':'')+md(d)+'（'+WK[dow(d)]+'）';}
+function slotLab(s){return s==='10:00'?'上午 10:00':s==='14:00'?'下午 2:00':s;}
+function departed(day,slot){var n=tw();return day<n.day||(day===n.day&&n.min>=hm(slot));}
+function pl(n){return n==='紫軒'?'<span class="pz">紫軒</span>':n==='紅樓'?'<span class="pz pr">紅樓</span>':he(n);}
+function route(b){if(b.kind==='call')return pl(b.frm)+' → '+pl(b.dest);return b.trip==='back'?pl(b.dest)+' → '+HOME:(b.trip==='rt'?HOME+' ⇄ '+pl(b.dest):HOME+' → '+pl(b.dest));}
+function tripLab(b){if(b.kind==='call')return '🚨 臨時叫車・'+(b.at==='asap'?'盡快':b.at);return b.trip==='rt'?'來回・'+slotLab(b.slot)+'（同趟去回）':(b.trip==='back'?'回程':'去程')+'・'+slotLab(b.slot);}
+
+/* ── 狀態 ── */
+/* 行事曆裡的「娃娃車」頁會用 iframe 打開這頁（?embed=1）：沿用行事曆的登入、通知也從行事曆跳出 */
+var EMBED=/[?&]embed=1/.test(location.search);
+try{if(window.self!==window.top)EMBED=true;}catch(e){EMBED=true;}
+if(EMBED)document.documentElement.classList.add('embed');
+var TOKEN=ls('bus_token'),M=null,PAGE='',DATA={},BUSY=false;
+var F={day:'',trip:'rt',slot:'',dest:'紅樓',other:'',n:1,memo:''};
+var C={frm:'赤城',frmO:'',dest:'紅樓',destO:'',when:'asap',time:'',n:1,memo:''};
+var CALLON=false,TAPS=[];
+var LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};
+
+function setMe(j){M=j;lsS('bus_me',JSON.stringify({name:j.me.name,kind:j.me.kind}));lsS('bus_u',j.me.kind==='u'?j.me.username:'');}
+function logoutLocal(){TOKEN='';M=null;lsD('bus_token');lsD('bus_me');DATA={};PAGE='';}
+function logout(){if(TOKEN)gas('logout',TOKEN).catch(function(){});logoutLocal();LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};render();}
+
+function init(){
+  // 行事曆換了人登入（或登出）：娃娃車跟著換
+  if(EMBED&&TOKEN&&ls('espc_token')&&ls('bus_u')!==ls('espc_user'))logoutLocal();
+  if(TOKEN){
+    gas('me',TOKEN).then(function(j){if(!j.ok)throw new Error(j.error);setMe(j);afterLogin(false);}).catch(function(e){if(!TOKEN)render();else $('bd').innerHTML='<div class="ld">'+he(e.message)+'<br><button class="btn g" style="max-width:200px;margin:14px auto 0" onclick="init()">再試一次</button></div>';});
+    return;
+  }
+  // 同一個瀏覽器已經登入行事曆：直接沿用（不用再打密碼）
+  var ct=ls('espc_token');
+  if(ct&&ct.indexOf('VIEW-')!==0){
+    gas('loginCal',ct).then(function(j){if(j&&j.ok){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);afterLogin(false);}else render();}).catch(function(){render();});
+    return;
+  }
+  render();
+}
+function afterLogin(first){
+  if(!PAGE)PAGE=M.me.isDriver?'drv':'book';
+  if(location.hash==='#mine')PAGE='mine';
+  render();load();pushRefresh();
+  if(first&&M.me.kind==='g'&&!standalone())setTimeout(function(){a2hsOpen();},400);
+}
+
+/* ── 畫面 ── */
+function render(){
+  if(!TOKEN||!M){$('nav').style.display='none';$('hu').innerHTML='';$('ht').textContent='';$('bd').innerHTML=loginHTML();return;}
+  var me=M.me;
+  $('hu').innerHTML='<i>'+he(me.name.slice(0,1))+'</i>'+he(me.name)+(me.kind==='g'?'　'+he(me.gid)+'（工號）':'')+(me.isDriver?'　（司機）':'')+(EMBED&&me.kind==='u'?'':'<a href="#" onclick="logoutAsk();return false">登出</a>');
+  if(!me.ext){$('ht').textContent='填一下分機';$('nav').style.display='none';$('bd').innerHTML=extHTML();return;}
+  var navs=[['book','🚐','預約',0],['mine','📋','我的預約',0]];
+  if(me.isDriver||me.isAdmin)navs.unshift(['drv','🚐','娃娃車',(DATA.drv||[]).filter(function(b){return b.st==='w';}).length]);
+  if(me.isDriver||me.isAdmin){navs[1]=['book','➕','我也要約',0];navs.push(['qr','▦','QR code',0]);}
+  if(me.isAdmin)navs.push(['adm','⚙️','管理',0]);
+  $('nav').style.display='';
+  $('nav').innerHTML=navs.map(function(x){return '<span class="'+(PAGE===x[0]?'on':'')+'" onclick="go(\''+x[0]+'\')"><span class="ic">'+x[1]+'</span>'+x[2]+(x[3]?'<sup>'+x[3]+'</sup>':'')+'</span>';}).join('');
+  $('ht').textContent={book:'🚐 娃娃車預約',mine:'我的預約',drv:'娃娃車',qr:'預約 QR code',adm:'管理'}[PAGE]||'';
+  var y=window.scrollY;
+  $('bd').innerHTML=PAGE==='book'?bookHTML():PAGE==='mine'?mineHTML():PAGE==='drv'?drvHTML():PAGE==='qr'?qrHTML():PAGE==='adm'?admHTML():'';
+  if(PAGE==='qr')qrDraw();
+  window.scrollTo(0,y);
+}
+function go(p){PAGE=p;window.scrollTo(0,0);render();load();}
+function logoutAsk(){sheet('<b style="font-size:17px">登出娃娃車？</b><p class="hint">'+(M&&M.me.kind==='g'?'下次輸入工號就能再進來。':'下次輸入工號就能再進來。')+'</p><button class="btn r" onclick="closeSheet();logout()">登出</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
+/* 取資料 */
+function load(){
+  if(!TOKEN||!M||!M.me.ext)return;
+  var fn=PAGE==='drv'?'drvList':PAGE==='adm'?'admLoad':PAGE==='mine'?'mine':PAGE==='book'?'me':'';
+  if(!fn)return;
+  var p=PAGE;
+  gas(fn,TOKEN).then(function(j){
+    if(!j.ok){toast(j.error||'讀取失敗');return;}
+    if(j.me)setMe(j);
+    if(fn==='drvList'){DATA.drv=j.list;DATA.sent=j.sent;DATA.push=j.push;}
+    if(fn==='mine'){DATA.mine=j.list;DATA.push=j.push;}
+    if(fn==='admLoad')DATA.adm=j;
+    if(PAGE===p&&!$('ov').classList.contains('on')&&!typing())render();
+  }).catch(function(e){toast(e.message);});
+}
+function typing(){var a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');}
+setInterval(function(){if(document.visibilityState==='visible')load();},30000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){load();pushRefresh();}});
+
+/* ── 登入 ── */
+function loginHTML(){
+  var h='<div style="text-align:center;margin:26px 0 6px"><img src="icon-192.png" style="width:76px;height:76px;border-radius:20px;box-shadow:0 6px 16px rgba(212,71,14,.3)" alt="">'
+    +'<div style="font-size:21px;font-weight:800;margin-top:12px">娃娃車預約</div><div class="hint" style="text-align:center">從'+HOME+'出發・每天上午 10:00、下午 2:00<br>週六日、國定假日停駛</div></div>';
+  var err=LG.err?'<p class="hint" style="color:var(--err)">'+he(LG.err)+'</p>':'';
+  if(LG.step===1){
+    h+='<div class="card" style="margin-top:18px"><div class="sec" style="margin-top:0">工號</div>'
+      +'<input class="fld" id="lgid" placeholder="例如 T30001" autocapitalize="characters" value="'+he(LG.gid)+'" style="font-size:18px;letter-spacing:1px;text-align:center" oninput="LG.gid=this.value.toUpperCase().replace(/\\s/g,\'\');this.value=LG.gid;$(\'lgb\').disabled=LG.gid.length<3" onkeydown="if(event.key===\'Enter\'&&LG.gid.length>=3)gidGo()">'+err
+      +'<button class="btn" id="lgb" '+(LG.gid.length<3||LG.busy?'disabled':'')+' onclick="gidGo()">'+(LG.busy?'請稍候…':'下一步')+'</button></div>'
+      +'<p class="hint" style="text-align:center;margin-top:12px">不用密碼，輸入工號就能預約<br>有行事曆帳號的同事，姓名、分機會自動帶入</p>';
+  }else{
+    h+='<div class="card" style="margin-top:12px"><div style="font-weight:700">第一次使用</div><div class="hint" style="margin:2px 0 0">工號 '+he(LG.gid)+'，請留下姓名和分機，司機有事會打給你；下次只要輸入工號</div>'
+      +'<div class="sec">姓名</div><input class="fld" id="lgn" placeholder="王小明" value="'+he(LG.name)+'" oninput="LG.name=this.value;lgChk()">'
+      +'<div class="sec">分機</div><input class="fld" id="lge" placeholder="2538" inputmode="numeric" value="'+he(LG.ext)+'" oninput="LG.ext=this.value.replace(/[^0-9#-]/g,\'\');this.value=LG.ext;lgChk()">'+err
+      +'<button class="btn" id="lgb" disabled onclick="regGo()">'+(LG.busy?'請稍候…':'完成，開始預約')+'</button>'
+      +'<button class="btn g" style="margin-top:8px" onclick="LG.step=1;LG.err=\'\';render()">返回</button></div>';
+    setTimeout(lgChk,0);
+  }
+  return h;
+}
+function lgChk(){var b=$('lgb');if(b)b.disabled=LG.busy||!(LG.name.trim()&&LG.ext.trim());}
+function loginOk(j,first){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};PAGE='';toast('歡迎，'+j.me.name);afterLogin(first);}
+function gidGo(){
+  if(LG.busy)return;LG.busy=true;LG.err='';render();
+  gas('loginGid',LG.gid).then(function(j){LG.busy=false;
+    if(!j.ok){LG.err=j.error;render();return;}
+    if(j.need){LG.step=2;render();setTimeout(function(){var f=$('lgn');if(f)f.focus();},50);return;}
+    loginOk(j,false);
+  }).catch(function(e){LG.busy=false;LG.err=e.message;render();});
+}
+function regGo(){
+  if(LG.busy)return;LG.busy=true;render();
+  gas('regGid',LG.gid,LG.name.trim(),LG.ext.trim()).then(function(j){LG.busy=false;
+    if(!j.ok){LG.err=j.error;render();return;}
+    loginOk(j,true);
+  }).catch(function(e){LG.busy=false;LG.err=e.message;render();});
+}
+/* 行事曆帳號沒有分機（通訊錄沒填）：問一次 */
+function extHTML(){
+  return '<div class="card" style="margin-top:12px"><div style="font-weight:700">司機有事會打給你</div><div class="hint" style="margin:2px 0 0">通訊錄裡找不到你的分機，請填一下（只要一次）</div>'
+    +'<div class="sec">分機</div><input class="fld" id="exf" inputmode="numeric" placeholder="2538" oninput="this.value=this.value.replace(/[^0-9#-]/g,\'\')">'
+    +'<button class="btn" onclick="extGo()">完成</button></div>';
+}
+function extGo(){var v=$('exf').value.trim();if(!v){toast('請輸入分機');return;}
+  gas('setExt',TOKEN,v).then(function(j){if(!j.ok){toast(j.error);return;}M.me.ext=v;afterLogin(false);}).catch(function(e){toast(e.message);});}
+
+/* 用工號登入的司機／管理員：輸入行事曆密碼才開司機、管理功能（只有工號的話任何人都打得出來） */
+function unlockCard(){
+  if(!M||!M.me.needPw)return '';
+  return '<div class="note" style="margin:10px 0"><b>你是娃娃車司機／管理員</b>，輸入行事曆密碼開啟接單和管理功能'
+    +'<div style="display:flex;gap:8px;margin-top:8px"><input class="fld" id="ulp" type="password" autocomplete="current-password" placeholder="行事曆密碼" style="flex:1;min-width:0;padding:8px 13px;font-size:15px" onkeydown="if(event.key===\'Enter\')unlockGo()">'
+    +'<button class="chip s" style="background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" id="ulb" onclick="unlockGo()">開啟</button></div></div>';
+}
+function unlockGo(){var v=$('ulp').value;if(!v){toast('請輸入密碼');return;}$('ulb').disabled=true;
+  gas('unlock',TOKEN,v).then(function(j){if(!j.ok){toast(j.error,2500);$('ulb').disabled=false;return;}setMe(j);toast('已開啟司機／管理功能');go(j.me.isDriver?'drv':'book');}).catch(function(e){toast(e.message);$('ulb').disabled=false;});}
+
+/* ── 預約 ── */
+function meCard(){
+  var me=M.me;
+  return '<div class="sec">預約人</div><div class="me"><i>'+he(me.name.slice(0,1))+'</i><div style="flex:1"><b>'+he(me.name)+'</b><div class="hint" style="margin:0">'
+    +(me.kind==='g'?he(me.gid)+'・':'')+'分機 '+he(me.ext)+(me.kind==='u'?'・自動帶入':'')+'</div></div>'
+    +(me.kind==='g'?'<a href="#" style="color:var(--accT);font-size:13px" onclick="logout();return false">不是我</a>':'')+'</div>';
+}
+function bookHTML(){
+  var h=unlockCard()+meCard();
+  if(!CALLON)h+='<div class="seg" style="margin-top:14px"><button class="on" onclick="tap3()" style="font-weight:700;user-select:none;-webkit-user-select:none">🚐 預約班次</button></div>';
+  else h+='<div class="seg" style="margin-top:14px">'+[['bus','🚐 預約班次'],['call','🚨 臨時叫車']].map(function(m){return '<button class="'+((F.mode||'bus')===m[0]?'on':'')+'" onclick="F.mode=\''+m[0]+'\';render()" style="font-weight:700">'+m[1]+'</button>';}).join('')+'</div>';
+  if(F.mode==='call')return h+callHTML();
+  var days=(M.days||[]).filter(function(d){return !departed(d,'14:00');});
+  if(!days.length)return h+'<div class="empty">近期沒有可以預約的班次<br><span style="font-size:12px">週六日、國定假日停駛</span></div>';
+  if(days.indexOf(F.day)<0)F.day=days[0];
+  var slots=['10:00','14:00'];
+  if(!F.slot||departed(F.day,F.slot))F.slot=slots.filter(function(s){return !departed(F.day,s);})[0];
+  if(M.offToday)h+='<div class="note red" style="margin-top:12px">今天停駛（'+he(M.offToday)+'）</div>';
+  h+='<div class="sec">日期</div><div class="seg">'+days.map(function(d){var l=dlab(d).split(' ');return '<button class="'+(F.day===d?'on':'')+'" onclick="F.day=\''+d+'\';F.slot=\'\';render()">'+(l.length>1?l[0]+'<small>'+l[1]+'</small>':l[0])+'</button>';}).join('')+'</div>';
+  var offs=(M.off||[]).filter(function(o){return o.d>tw().day&&o.d<=days[days.length-1];});
+  if(offs.length)h+='<p class="hint">'+offs.map(function(o){return md(o.d)+' '+he(o.n);}).join('、')+' 停駛</p>';
+  h+='<div class="sec">行程</div><div class="seg">'+[['go','去程'],['back','回程'],['rt','來回']].map(function(t){return '<button class="'+(F.trip===t[0]?'on':'')+'" onclick="F.trip=\''+t[0]+'\';render()">'+t[1]+'</button>';}).join('')+'</div>';
+  if(F.trip==='rt')h+='<div class="note">來回＝同一班次送到後直接接回，不能上午去、下午回。下午才要回來，請分開預約「去程」和「回程」。</div>';
+  h+='<div class="sec">'+(F.trip==='rt'?'班次':F.trip==='back'?'回程班次（從目的地接回）':'去程班次')+'</div><div class="seg">'+slots.map(function(s){var gone=departed(F.day,s);
+    return '<button class="'+(F.slot===s?'on':'')+'" '+(gone?'disabled':'')+' onclick="F.slot=\''+s+'\';render()">'+slotLab(s)+(gone?'<small>已發車</small>':'')+'</button>';}).join('')+'</div>';
+  h+='<div class="sec">'+(F.trip==='back'?'從哪裡接回（回到'+HOME+'）':F.trip==='rt'?'目的地（從'+HOME+'出發，再接回'+HOME+'）':'目的地（從'+HOME+'出發）')+'</div><div class="chips">'+DESTS.map(function(t){return '<button class="chip'+(F.dest===t?' on':'')+'" onclick="F.dest=\''+t+'\';render()">'+t+'</button>';}).join('')+'</div>';
+  if(F.dest==='其他')h+='<input class="fld" id="oth" style="margin-top:8px" maxlength="40" placeholder="輸入地點，例如：高鐵桃園站 2 號出口" value="'+he(F.other)+'" oninput="F.other=this.value;chk()">';
+  h+='<div class="sec">人數</div><div class="seg" style="max-width:220px">'+[1,2,3,4].map(function(n){return '<button class="'+(F.n===n?'on':'')+'" onclick="F.n='+n+';render()">'+n+(n===4?'+':'')+'</button>';}).join('')+'</div>';
+  h+='<div class="sec">備註（選填）</div><input class="fld" maxlength="100" placeholder="例如：有大件行李" value="'+he(F.memo)+'" oninput="F.memo=this.value">';
+  h+='<button class="btn" id="go" onclick="bookGo()">'+(BUSY?'送出中…':'送出預約')+'</button>';
+  h+='<p class="hint" style="text-align:center">不限人數，發車前都可以約；送出後司機會確認</p>';
+  setTimeout(chk,0);
+  return h;
+}
+function chk(){var b=$('go');if(b)b.disabled=BUSY||!F.slot||(F.dest==='其他'&&!F.other.trim());}
+function tap3(){var t=Date.now();TAPS=TAPS.filter(function(x){return t-x<800;});TAPS.push(t);if(TAPS.length>=3){TAPS=[];CALLON=true;toast('🚨 已開啟臨時叫車');render();}}
+function bookGo(){
+  if(BUSY)return;
+  if(departed(F.day,F.slot)){toast('這班已經發車了，請選下一班');render();return;}
+  BUSY=true;render();
+  gas('book',TOKEN,{day:F.day,trip:F.trip,slot:F.slot,dest:F.dest==='其他'?F.other.trim():F.dest,n:F.n,memo:F.memo.trim()}).then(function(j){
+    BUSY=false;
+    if(!j.ok){toast(j.error||'送出失敗',3000);render();return;}
+    F.memo='';F.other='';toast('✓ 已送出，等司機確認');go('mine');
+  }).catch(function(e){BUSY=false;toast(e.message,3000);render();});
+}
+/* 臨時叫車（隱藏）：不用等固定班次 */
+function callHTML(){
+  if(!M.runToday)return '<div class="note red" style="margin-top:12px">今天停駛'+(M.offToday?'（'+he(M.offToday)+'）':'（週末）')+'，不能叫車</div>';
+  var h='<div class="note red" style="margin-top:10px">不在 10:00／2:00 班次的臨時用車。送出後司機會回覆「接單＋大約幾分鐘到」或不接單。</div>';
+  var pick=function(lab,key,okey,opts,ph){var v=C[key];
+    return '<div class="sec">'+lab+'</div><div class="chips">'+opts.map(function(t){return '<button class="chip'+(v===t?' on':'')+'" onclick="C.'+key+'=\''+t+'\';render()">'+t+'</button>';}).join('')+'</div>'
+      +(v==='其他'?'<input class="fld" style="margin-top:8px" maxlength="40" placeholder="'+ph+'" value="'+he(C[okey])+'" oninput="C.'+okey+'=this.value;cchk()">':'');};
+  h+=pick('上車地點','frm','frmO',CALL_PL,'輸入上車地點');
+  h+=pick('目的地','dest','destO',['紅樓','紫軒','赤城','其他'],'輸入目的地，例如：高鐵桃園站');
+  h+='<div class="sec">時間</div><div class="seg">'+[['asap','盡快'],['at','指定時間']].map(function(t){return '<button class="'+(C.when===t[0]?'on':'')+'" onclick="C.when=\''+t[0]+'\';render()">'+t[1]+'</button>';}).join('')+'</div>'
+    +(C.when==='at'?'<input class="fld" type="time" style="margin-top:8px" value="'+he(C.time)+'" oninput="C.time=this.value;cchk()">':'');
+  h+='<div class="sec">人數</div><div class="seg" style="max-width:220px">'+[1,2,3,4].map(function(n){return '<button class="'+(C.n===n?'on':'')+'" onclick="C.n='+n+';render()">'+n+(n===4?'+':'')+'</button>';}).join('')+'</div>';
+  h+='<div class="sec">備註（選填）</div><input class="fld" maxlength="100" placeholder="例如：在 1 樓大門口" value="'+he(C.memo)+'" oninput="C.memo=this.value">';
+  h+='<button class="btn r" id="cgo" onclick="callGo()">'+(BUSY?'送出中…':'🚨 送出叫車')+'</button>';
+  setTimeout(cchk,0);
+  return h;
+}
+function cval(){return{frm:C.frm==='其他'?C.frmO.trim():C.frm,dest:C.dest==='其他'?C.destO.trim():C.dest};}
+function cchk(){var b=$('cgo');if(!b)return;var v=cval();
+  b.disabled=BUSY||!(v.frm&&v.dest&&v.frm!==v.dest&&(C.when==='asap'||(C.time&&hm(C.time)>=tw().min)));}
+function callGo(){
+  if(BUSY)return;var v=cval();BUSY=true;render();
+  gas('call',TOKEN,{frm:v.frm,dest:v.dest,at:C.when==='asap'?'asap':C.time,n:C.n,memo:C.memo.trim()}).then(function(j){
+    BUSY=false;
+    if(!j.ok){toast(j.error||'送出失敗',3000);render();return;}
+    C.memo='';toast('✓ 已送出，等司機回覆');go(M.me.isDriver?'drv':'mine');
+  }).catch(function(e){BUSY=false;toast(e.message,3000);render();});
+}
+
+/* ── 我的預約 ── */
+function stHTML(b){return b.st==='w'?'<span class="st w">等待司機確認</span>':b.st==='ok'?'<span class="st ok">司機已接單</span>':b.st==='no'?'<span class="st no">司機不接單</span>':'<span class="st x">已取消</span>';}
+function mineHTML(){
+  var h=unlockCard()+pushCard();
+  var l=DATA.mine;
+  if(!l)return h+'<div class="ld">載入中…</div>';
+  if(!l.length)return h+'<div class="empty">還沒有預約</div>';
+  return h+l.map(function(b){
+    var live=(b.st==='w'||b.st==='ok')&&(b.kind==='call'||!departed(b.day,b.slot));
+    return '<div class="card">'+(b.last?'<div style="background:#e5483b;color:#fff;border-radius:12px;padding:9px 11px;margin-bottom:8px;font-size:13.5px;font-weight:700">📣 '+he(b.last)+' <span style="font-weight:400;opacity:.85">'+he(b.lastAt||'')+'</span></div>':'')
+      +stHTML(b)+(b.kind==='call'?' <span class="st no">🚨 臨時叫車</span>':'')
+      +'<div class="kv"><b>'+dlab(b.day)+'</b>　'+(b.kind==='call'?(b.at==='asap'?'盡快':b.at):tripLab(b))+'<br>'+route(b)+'・'+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')
+      +(b.st==='ok'?'<br>司機：<b>'+he(b.drv)+'</b>'+(b.drvExt?'　分機 '+he(b.drvExt):''):'')+(b.st==='ok'&&b.eta?'<br><b style="color:var(--ok)">🚐 約 '+he(b.eta)+' 分鐘到</b>':'')
+      +(b.st==='no'?'<br>原因：<b>'+he(b.why)+'</b>':'')+(b.cx?'<br><span style="color:var(--tx3)">'+he(b.cx)+'</span>':'')+'</div>'
+      +(b.st==='ok'&&live&&b.kind!=='call'?'<div class="note" style="margin-top:8px">⏰ 出發前 3 分鐘會推播提醒你</div>':'')
+      +(live?'<div class="acts"><button class="c" onclick="cancelOpen(\''+b.id+'\')">取消預約</button></div>':'')+'</div>';
+  }).join('');
+}
+var CX={id:'',leg:'all',why:''};
+function findB(id,list){return (list||[]).filter(function(x){return x.id===id;})[0];}
+function cancelOpen(id){CX={id:id,leg:'all',why:''};cxPaint();}
+function cxPaint(){var b=findB(CX.id,DATA.mine);if(!b)return;
+  var legs=b.trip==='rt'?[['all','整趟來回'],['go','只取消去程'],['back','只取消回程']]:[];
+  sheet('<b style="font-size:17px">取消預約</b>'
+    +'<div class="kv" style="margin-top:4px">'+dlab(b.day)+'　'+tripLab(b)+'　'+route(b)+'</div>'
+    +(legs.length?'<div class="sec" style="margin-left:0">要取消哪一趟</div><div class="chips">'+legs.map(function(l){return '<button class="chip s'+(CX.leg===l[0]?' on':'')+'" onclick="CX.why=$(\'cxw\').value;CX.leg=\''+l[0]+'\';cxPaint()">'+l[1]+'</button>';}).join('')+'</div>':'')
+    +'<div class="sec" style="margin-left:0">原因（選填，司機看得到）</div><input class="fld" id="cxw" maxlength="100" placeholder="例如：會議延後，不用搭了" value="'+he(CX.why)+'">'
+    +(b.st==='ok'?'<p class="hint">司機已經接單，取消後會推播通知司機</p>':'')
+    +'<button class="btn r" id="cxb" onclick="cancelGo()">確定取消</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">不取消</button>');
+}
+function cancelGo(){var b=$('cxb');b.disabled=true;b.textContent='處理中…';
+  gas('cancel',TOKEN,CX.id,CX.leg,$('cxw').value.trim()).then(function(j){
+    if(!j.ok){toast(j.error,3000);b.disabled=false;b.textContent='確定取消';return;}
+    closeSheet();toast('已取消');load();
+  }).catch(function(e){toast(e.message);b.disabled=false;b.textContent='確定取消';});
+}
+
+/* ── 司機 ── */
+function drvHTML(){
+  var l=DATA.drv;
+  var h=M.me.isDriver?pushCard():'';
+  if(!l)return h+'<div class="ld">載入中…</div>';
+  var calls=l.filter(function(b){return b.kind==='call'&&(b.st==='w'||b.st==='ok');});
+  if(calls.length)h+='<div style="background:#fff;border:2px solid #e5483b;border-radius:20px;padding:10px 12px;margin:8px 0 6px"><div style="font-weight:800;color:#c62f22;margin-bottom:4px">🚨 臨時叫車</div>'+calls.map(function(b){
+    return '<div style="border-top:1px solid var(--line);padding:8px 0">'+(b.st==='w'?'<span class="st w">待回覆</span>':'<span class="st ok">'+he(b.drv)+' 已接・約 '+he(b.eta)+' 分鐘</span>')
+      +' <span class="hint">'+he(b.created.slice(11,16))+' 叫車</span>'
+      +'<div class="kv"><b>'+he(b.who)+'</b>　分機 '+he(b.ext)+'<br><b>'+route(b)+'</b>・'+(b.at==='asap'?'盡快':b.at)+'・'+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+'</div>'
+      +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="etaOpen(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')+'</div>';
+  }).join('')+'</div>';
+  var bus=l.filter(function(b){return b.kind==='bus';});
+  if(!bus.length)return h+'<div class="empty">目前沒有班次預約</div>';
+  var groups={},keys=[];
+  bus.forEach(function(b){var k=b.day+'|'+b.slot;if(!groups[k]){groups[k]=[];keys.push(k);}groups[k].push(b);});
+  keys.sort();
+  return h+keys.map(function(k){
+    var g=groups[k],d=k.split('|')[0],s=k.split('|')[1];
+    var ppl=g.filter(function(b){return b.st!=='no';}).reduce(function(a,b){return a+b.n;},0);
+    var okN=g.filter(function(b){return b.st==='ok';}).length,today=d===tw().day;
+    return '<div class="grp">'+dlab(d)+' '+slotLab(s)+'<em>'+ppl+' 人</em>'
+      +(today&&okN&&M.me.isDriver?'<button class="chip s" style="margin-left:auto;background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" onclick="castOpen(\''+s+'\')">📣 發車廣播</button>':'')
+      +'</div>'+(today&&DATA.sent&&DATA.sent[k]?'<div class="note" style="margin:-2px 0 8px">✓ '+DATA.sent[k]+' 已發發車廣播</div>':'')
+      +g.map(function(b){
+        var leg=b.trip==='back'?'回':b.trip==='rt'?'來回':'去';
+        return '<div class="card"><span class="st" style="background:'+(leg==='去'?'#e3ecfb;color:#2a5aa8':leg==='來回'?'#fdeee4;color:#b4470e':'#efe4fb;color:#6a3aa8')+'">'
+          +(leg==='去'?'去程　'+HOME+' → '+pl(b.dest):leg==='來回'?'來回　'+HOME+' ⇄ '+pl(b.dest):'回程　'+pl(b.dest)+' → '+HOME)+'</span> '
+          +(b.st==='w'?'<span class="st w">待確認</span>':b.st==='ok'?'<span class="st ok">'+he(b.drv)+' 已接單</span>':'<span class="st no">不接單</span>')
+          +'<div class="kv"><b>'+he(b.who)+'</b>　分機 '+he(b.ext)+'<br>'+(b.trip==='rt'?'來回（同趟送到後接回）・':'')+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+(b.st==='no'?'<br>原因：'+he(b.why):'')+(b.cx?'<br><span style="color:var(--tx3)">'+he(b.cx)+'</span>':'')+'</div>'
+          +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="acceptGo(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')+'</div>';
+      }).join('');
+  }).join('');
+}
+function act(p,ok){return p.then(function(j){if(!j.ok){toast(j.error||'失敗',3000);load();return;}closeSheet();toast(ok);load();}).catch(function(e){toast(e.message);});}
+function acceptGo(id){act(gas('drvAccept',TOKEN,id),'✓ 已接單');}
+function etaOpen(id){var b=findB(id,DATA.drv);if(!b)return;
+  sheet('<b style="font-size:17px">接這趟臨時叫車</b><div class="kv" style="margin-top:4px">'+he(b.who)+'・'+route(b)+'・'+(b.at==='asap'?'盡快':b.at)+'</div>'
+    +'<div class="sec" style="margin-left:0">大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;act(gas(\'drvAccept\',TOKEN,\''+id+'\','+m+'),\'✓ 已接單，約 '+m+' 分鐘到\')">'+m+' 分鐘</button>';}).join('')+'</div>'
+    +'<button class="btn g" style="margin-top:14px" onclick="closeSheet()">取消</button>');}
+function rejectOpen(id){var b=findB(id,DATA.drv);if(!b)return;
+  sheet('<b style="font-size:17px">不接這筆預約</b><div class="kv" style="margin-top:4px">'+he(b.who)+'・'+dlab(b.day)+' '+tripLab(b)+' '+route(b)+'</div>'
+    +'<div class="sec" style="margin-left:0">原因（必填）</div><div class="chips" style="margin-bottom:8px">'+REASONS.map(function(r){return '<button class="chip s" onclick="rjPick(\''+r+'\')">'+r+'</button>';}).join('')+'</div>'
+    +'<textarea class="fld" id="rjt" maxlength="100" placeholder="寫給預約的人看，例如：車輛送保養，請改搭計程車" oninput="$(\'rjb\').disabled=!this.value.trim()"></textarea>'
+    +'<button class="btn r" id="rjb" disabled onclick="this.disabled=true;act(gas(\'drvReject\',TOKEN,\''+id+'\',$(\'rjt\').value.trim()),\'已回覆不接單\')">確定不接單</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
+function rjPick(r){var t=$('rjt');t.value=t.value.trim()?t.value+'，'+r:r;$('rjb').disabled=false;}
+var CS={slot:''};
+function castOpen(s){
+  var l=(DATA.drv||[]).filter(function(b){return b.kind==='bus'&&b.day===tw().day&&b.slot===s&&b.st==='ok';});
+  CS.slot=s;
+  sheet('<b style="font-size:17px">📣 發車廣播</b><div class="kv" style="margin-top:4px">今天 '+slotLab(s)+'・發給這班已接單的 '+l.length+' 位</div>'
+    +'<div class="chips" style="margin:10px 0">'+l.map(function(b){return '<span class="chip s" style="cursor:default">'+he(b.who)+'</span>';}).join('')+'</div>'
+    +'<div class="chips" style="margin-bottom:8px">'+['即將出發，請盡快上車！','司機在門口等你','還差你一位，2 分鐘後發車'].map(function(t){return '<button class="chip s" onclick="$(\'cst\').value=\'娃娃車 '+slotLab(s)+' \'+this.textContent">'+t+'</button>';}).join('')+'</div>'
+    +'<textarea class="fld" id="cst" maxlength="120">娃娃車 '+slotLab(s)+' 即將出發，請盡快上車！</textarea>'
+    +'<p class="hint">有開通知的人會跳推播；「我的預約」也會顯示紅色廣播</p>'
+    +'<button class="btn" id="csb" onclick="castGo()">發送廣播</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');
+}
+function castGo(){var t=$('cst').value.trim();if(!t){toast('請輸入內容');return;}$('csb').disabled=true;
+  gas('drvCast',TOKEN,CS.slot,t).then(function(j){if(!j.ok){toast(j.error,3000);$('csb').disabled=false;return;}closeSheet();toast('✓ 已發給 '+j.n+' 位');load();}).catch(function(e){toast(e.message);$('csb').disabled=false;});}
+
+/* ── QR code ── */
+var BUS_URL=location.origin+location.pathname.replace(/index\.html$/,'');
+function qrHTML(){
+  return '<div class="qrbox"><div id="qr"></div><div style="margin-top:10px;font-weight:800;font-size:17px">掃描預約娃娃車</div>'
+    +'<div class="hint" style="text-align:center">貼在公司門口或車上；有行事曆帳號的用帳號，沒帳號的輸入工號</div>'
+    +'<div class="hint" style="text-align:center;word-break:break-all">'+he(BUS_URL)+'</div>'
+    +'<button class="btn g" style="margin-top:12px" onclick="qrSave()">下載 QR code 圖檔</button></div>';
+}
+var QRJS=null;
+function loadJS(src){return new Promise(function(ok,no){var s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=function(){no(new Error('載入失敗'));};document.head.appendChild(s);});}
+function qrDraw(){
+  if(!QRJS)QRJS=loadJS('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js');
+  QRJS.then(function(){var el=$('qr');if(!el)return;el.innerHTML='';new QRCode(el,{text:BUS_URL,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});})
+    .catch(function(){QRJS=null;var el=$('qr');if(el)el.innerHTML='<div class="hint">QR code 載入失敗，請檢查網路</div>';});
+}
+function qrSave(){
+  var cv=document.querySelector('#qr canvas');if(!cv){toast('還沒產生好');return;}
+  var W=600,H=760,c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.imageSmoothingEnabled=false;x.drawImage(cv,60,60,480,480);
+  x.fillStyle='#2b2522';x.textAlign='center';x.font='bold 44px sans-serif';x.fillText('🚐 娃娃車預約',W/2,610);
+  x.font='26px sans-serif';x.fillStyle='#6f6660';x.fillText('上午 10:00・下午 2:00（從'+HOME+'出發）',W/2,662);x.fillText('沒有帳號？輸入工號就能預約',W/2,704);
+  var a=document.createElement('a');a.download='娃娃車預約QRcode.png';a.href=c.toDataURL('image/png');document.body.appendChild(a);a.click();a.remove();
+}
+
+/* ── 管理（行事曆管理員）：司機、停駛日 ── */
+var ADQ='';
+function admHTML(){
+  var a=DATA.adm;if(!a)return '<div class="ld">載入中…</div>';
+  var q=ADQ.trim(),l=a.accts.filter(function(x){return x.drv||!q||x.n.indexOf(q)>=0||x.u.indexOf(q)>=0;});
+  var h='<div class="sec">娃娃車司機（打開＝會收到預約推播、可以接單）</div><div class="card">'
+    +'<input class="fld" placeholder="搜尋姓名或帳號" value="'+he(ADQ)+'" oninput="ADQ=this.value;admPaint()" style="margin-bottom:6px">'
+    +'<div id="adl">'+admList(l)+'</div></div>';
+  h+='<div class="sec">停駛日（週六日本來就停駛，不用加）</div><div class="card">'
+    +'<div style="display:flex;gap:8px"><input class="fld" type="date" id="ofd" style="flex:1.2;min-width:0"><input class="fld" id="ofn" placeholder="名稱" style="flex:1;min-width:0"></div>'
+    +'<button class="btn" style="margin-top:8px" onclick="offAdd()">加入停駛日</button>'
+    +'<div style="margin-top:8px">'+(a.off.length?a.off.map(function(o){return '<div class="li"><b style="font-weight:600;width:130px">'+md(o.d)+'（'+WK[dow(o.d)]+'）</b><span style="flex:1;color:var(--tx2)">'+he(o.n)+'</span><a href="#" style="color:var(--err);font-size:13px" onclick="offDel(\''+o.d+'\');return false">刪除</a></div>';}).join(''):'<div class="hint">沒有設定</div>')+'</div></div>';
+  return h;
+}
+function admList(l){return l.slice(0,60).map(function(x){return '<div class="li"><span style="flex:1">'+he(x.n)+' <span class="hint">'+he(x.u)+'</span></span><button class="sw'+(x.drv?' on':'')+'" onclick="drvSet(\''+he(x.u)+'\','+(!x.drv)+')"></button></div>';}).join('')||'<div class="hint">找不到</div>';}
+function admPaint(){var a=DATA.adm,q=ADQ.trim();$('adl').innerHTML=admList(a.accts.filter(function(x){return x.drv||!q||x.n.indexOf(q)>=0||x.u.indexOf(q)>=0;}));}
+function admDone(p,msg){p.then(function(j){if(!j.ok){toast(j.error,3000);return;}DATA.adm=j;toast(msg);render();}).catch(function(e){toast(e.message);});}
+function drvSet(u,on){admDone(gas('admDriver',TOKEN,u,on),on?'已設為司機':'已取消司機');}
+function offAdd(){var d=$('ofd').value,n=$('ofn').value.trim();if(!d){toast('請選日期');return;}admDone(gas('admOff',TOKEN,d,n||'停駛',true),'已加入停駛日');}
+function offDel(d){admDone(gas('admOff',TOKEN,d,'',false),'已刪除');}
+
+/* ── 通知（推播） ── */
+function standalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;}
+function isIOS(){return /iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);}
+function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
+function pushReady(){return !!FB_CFG.appId;}
+function pushCard(){
+  if(!pushReady())return '';
+  var on=pushSupported()&&Notification.permission==='granted'&&ls('bus_push');
+  if(on)return '';
+  if(isIOS()&&!standalone())return '<div class="note" style="margin:10px 0">🔔 iPhone 要先把這頁<b>加入主畫面</b>，才收得到司機回覆和出發提醒。<a href="#" style="color:var(--accT);font-weight:700" onclick="a2hsOpen();return false">看怎麼加</a></div>';
+  if(!pushSupported())return '<div class="note" style="margin:10px 0">這個瀏覽器不支援通知。<a href="#" style="color:var(--accT);font-weight:700" onclick="a2hsOpen();return false">加入主畫面</a>後再打開試試</div>';
+  if(Notification.permission==='denied')return '<div class="note red" style="margin:10px 0">通知被封鎖了，請到手機「設定」裡允許娃娃車通知</div>';
+  return '<div class="note" style="margin:10px 0;display:flex;align-items:center;gap:10px"><span style="flex:1">🔔 開啟通知，司機回覆、出發前 3 分鐘、發車廣播會跳出來'+(M&&M.me.kind==='u'?'<br><span style="color:var(--tx3)">沒開的話，會改從行事曆 App 通知</span>':'')+'</span><button class="chip s" style="background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" id="pbtn" onclick="pushOn()">開啟</button></div>';
+}
+var FB_READY=null;
+function fbMessaging(){
+  if(!FB_READY){var base='https://www.gstatic.com/firebasejs/10.14.1/';
+    FB_READY=loadJS(base+'firebase-app-compat.js').then(function(){return loadJS(base+'firebase-messaging-compat.js');})
+      .then(function(){if(!firebase.apps.length)firebase.initializeApp(FB_CFG);return firebase.messaging();});
+    FB_READY.catch(function(){FB_READY=null;});}
+  return FB_READY;
+}
+function swReg(){return navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready;});}
+function pushOn(){
+  var b=$('pbtn');if(b){b.disabled=true;b.textContent='…';}
+  (Notification.permission==='granted'?Promise.resolve('granted'):Notification.requestPermission()).then(function(p){
+    if(p!=='granted')throw new Error('沒有取得通知權限');return swReg();
+  }).then(function(reg){return fbMessaging().then(function(m){return m.getToken({vapidKey:FCM_VAPID,serviceWorkerRegistration:reg});});
+  }).then(function(tok){if(!tok)throw new Error('取不到推播代碼');
+    return gas('savePush',TOKEN,tok,true).then(function(r){if(!r.ok)throw new Error(r.error);lsS('bus_push',tok);lsS('bus_push_day',tw().day);});
+  }).then(function(){toast('已開啟通知');render();}).catch(function(e){toast(e.message||'開啟失敗',3000);render();});
+}
+/* 每次打開（最多每小時一次）：推播代碼換了就更新後台 */
+var PUSH_AT=0;
+function pushRefresh(){
+  if(!TOKEN||!pushReady()||!pushSupported()||Notification.permission!=='granted'||!ls('bus_push'))return;
+  if(Date.now()-PUSH_AT<3600000)return;PUSH_AT=Date.now();
+  swReg().then(function(reg){return reg.pushManager.getSubscription().then(function(sub){
+    if(!sub){lsD('bus_push');render();return;}
+    return fbMessaging().then(function(m){return m.getToken({vapidKey:FCM_VAPID,serviceWorkerRegistration:reg});}).then(function(tok){
+      var old=ls('bus_push');
+      if(tok&&(tok!==old||ls('bus_push_day')!==tw().day))gas('savePush',TOKEN,tok,true).then(function(r){if(r.ok){lsS('bus_push',tok);lsS('bus_push_day',tw().day);}});
+      if(tok&&old&&old!==tok)gas('savePush',TOKEN,old,false).catch(function(){});
+    });
+  });}).catch(function(){});
+}
+/* 加入主畫面教學（第一次用工號登入會自動跳出） */
+var A2={os:''};
+function a2hsOpen(os){A2.os=os||A2.os||(/Android/i.test(navigator.userAgent)?'and':'ios');
+  var step=function(n,t,ic){return '<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)"><span style="width:26px;height:26px;border-radius:50%;background:var(--tint);color:var(--accT);font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+n+'</span><span style="flex:1;font-size:14px;line-height:1.5">'+t+'</span>'+(ic?'<span style="font-size:20px">'+ic+'</span>':'')+'</div>';};
+  var ios=step(1,'按 Safari 下方的<b>「分享」</b>按鈕','⬆️')+step(2,'往下滑，點<b>「加入主畫面」</b>','➕')+step(3,'右上角按<b>「新增」</b>','✅')+step(4,'從主畫面打開<b>娃娃車預約</b>，在「我的預約」按<b>「開啟通知」</b>','🔔');
+  var and=step(1,'按 Chrome 右上角的<b>「⋮」</b>','⋮')+step(2,'點<b>「加到主畫面」</b>或<b>「安裝應用程式」</b>','➕')+step(3,'按<b>「新增／安裝」</b>','✅')+step(4,'打開後在「我的預約」按<b>「開啟通知」</b>','🔔');
+  sheet('<div style="text-align:center"><div style="font-size:34px">🔔</div><b style="font-size:18px">加入主畫面，才收得到通知</b>'
+    +'<p class="hint" style="text-align:center;margin-top:6px">司機接單／不接單、出發前 3 分鐘提醒、發車廣播，都要把這頁加入主畫面才會跳出來</p></div>'
+    +'<div class="seg" style="margin:12px 0 4px"><button class="'+(A2.os==='ios'?'on':'')+'" onclick="a2hsOpen(\'ios\')">iPhone</button><button class="'+(A2.os==='and'?'on':'')+'" onclick="a2hsOpen(\'and\')">Android</button></div>'
+    +(A2.os==='ios'?ios:and)+'<button class="btn" onclick="closeSheet()">我知道了</button>');
+}
+/* 點通知打開：service worker 叫畫面重新整理 */
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.type==='push'||d.type==='open'){if(d.url&&d.url.indexOf('#mine')>=0&&M)PAGE='mine';load();}});
+
+init();
+</script>
+</body></html>
