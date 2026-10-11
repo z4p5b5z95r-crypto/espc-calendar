@@ -117,6 +117,20 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 @keyframes puff{0%{opacity:.9;transform:translate(0,0) scale(.4)}100%{opacity:0;transform:translate(-34px,-10px) scale(1.6)}}
 @keyframes road{to{background-position:-34px 0}}
 @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.rs{background:#fff;border:1.5px solid #ead9cc;border-radius:18px;padding:10px 14px 8px;margin:0 0 10px}
+.rs .tt{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--tx2);margin-bottom:4px}
+.rs .tt b{font-size:22px;color:var(--tx);font-weight:800}
+.rs ol{list-style:none;margin:0;padding:0;position:relative}
+.rs ol::before{content:'';position:absolute;left:11px;top:14px;bottom:14px;border-left:2px dashed #d8c7b8}
+.rs li{position:relative;display:flex;align-items:center;gap:10px;padding:5px 0;min-height:30px}
+.rs .no{flex:0 0 24px;height:24px;border-radius:50%;background:#fff;border:2px solid #c9b6a6;color:var(--tx2);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:1}
+.rs li.hm .no{background:var(--acc);border-color:var(--acc);color:#fff}
+.rs .nm{font-weight:800;font-size:15.5px;min-width:0;flex:1}
+.rs .nm .pl{font-size:15px}
+.rs .io{display:flex;gap:6px;flex:none}
+.rs .io span{font-size:13px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.rs .dn{background:#fde9e4;color:#c0442b}.rs .up{background:#e3f3e8;color:#23824a}
+.rs .ft{font-size:12px;color:var(--tx3);margin-top:4px;border-top:1px dashed var(--line);padding-top:6px}
 .tk5 .van.R{transform:scaleX(-1)}
 .tk5 .ft{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12.5px;color:var(--tx2);gap:8px}
 .tk5 .ft b{color:var(--tx)}
@@ -197,7 +211,7 @@ if(EMBED)document.documentElement.classList.add('embed');
 var TOKEN=ls('bus_token'),M=null,PAGE='',DATA={},BUSY=false;
 var F={day:'',trip:'rt',slot:'',dest:'紅樓',other:'',n:1,memo:''};
 var C={frm:'赤城',frmO:'',dest:'紅樓',destO:'',when:'asap',time:'',n:1,memo:''};
-var CALLON=false,TAPS=[];
+var CALLON=false,TAPS=[],PEND='';
 var LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};
 
 function setMe(j){M=j;try{lsS('bus_m',JSON.stringify(j.me?{ok:true,me:j.me,days:j.days,today:j.today,runToday:j.runToday,offToday:j.offToday,off:j.off}:j));}catch(e){}lsS('bus_me',JSON.stringify({name:j.me.name,kind:j.me.kind}));lsS('bus_u',j.me.kind==='u'?j.me.username:'');}
@@ -229,7 +243,7 @@ function cacheLists(){['mine','drvList'].forEach(function(fn){var c=null;try{c=J
 function afterLogin(first,fresh){
   cacheLists();
   if(!PAGE)PAGE=M.me.isDriver?'drv':'book';
-  if(location.hash==='#mine')PAGE='mine';
+  var hp=location.hash.length>1||PEND?pageOk(PEND||location.hash.slice(1)):'';PEND='';if(hp)PAGE=hp;
   render();load();pushRefresh();
   if(!fresh&&PAGE!=='book')gas('me',TOKEN).then(function(j){if(j&&j.ok){var was=M&&M.me;setMe(j);if(!was||was.isDriver!==j.me.isDriver||was.isAdmin!==j.me.isAdmin||was.needPw!==j.me.needPw)render();}}).catch(function(){});
   if(first&&M.me.kind==='g'&&!standalone())setTimeout(function(){a2hsOpen();},400);
@@ -257,6 +271,10 @@ function render(){
   if(PAGE==='qr')qrDraw();
   window.scrollTo(0,y);
 }
+/* 行事曆點了娃娃車通知 → 叫這裡切到對應的頁面（還沒登入好就先記著） */
+function pageOk(p){if(!M||!M.me)return '';var d=M.me.isDriver||M.me.isAdmin;
+  if(p==='mine'||p==='book')return p;if(p==='drv'&&d)return 'drv';return M.me.isDriver?'drv':'';}
+window.busGo=function(p){p=String(p||'');if(!M||!M.me){PEND=p;return;}var q=pageOk(p);if(q&&q!==PAGE)go(q);else load();};
 function go(p){PAGE=p;window.scrollTo(0,0);render();load();}
 function logoutAsk(){sheet('<b style="font-size:17px">登出娃娃車？</b><p class="hint">'+(M&&M.me.kind==='g'?'下次輸入工號就能再進來。':'下次輸入工號就能再進來。')+'</p><button class="btn r" onclick="closeSheet();logout()">登出</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
 /* 取資料 */
@@ -494,6 +512,23 @@ function cancelGo(){var b=$('cxb');b.disabled=true;b.textContent='處理中…';
 }
 
 /* ── 司機 ── */
+/* 司機用：這一班的路線總表（越簡單越好）— 赤城出發 → 紫軒 → 紅樓 → 其他 → 回赤城 */
+var STOP_ORD=['紫軒','紅樓'];
+function routeSum(g){
+  var a=g.filter(function(b){return b.st==='w'||b.st==='ok';});if(!a.length)return '';
+  var go=0,bk=0,st={},ord=[],tot=0,trunk=0,wait=0;
+  a.forEach(function(b){var n=+b.n||1;tot+=n;if(b.trunk)trunk+=n;if(b.st==='w')wait++;
+    if(!st[b.dest]){st[b.dest]={dn:0,up:0};ord.push(b.dest);}
+    if(b.trip!=='back'){go+=n;st[b.dest].dn+=n;}
+    if(b.trip!=='go'){bk+=n;st[b.dest].up+=n;}});
+  ord.sort(function(x,y){var i=STOP_ORD.indexOf(x),j=STOP_ORD.indexOf(y);return (i<0?9:i)-(j<0?9:j);});
+  var io=function(dn,up,last){return '<span class="io">'+(dn?'<span class="dn">↓ 下 '+dn+'</span>':'')+(up?'<span class="up">↑ 上 '+up+'</span>':'')+(!dn&&!up?'<span style="color:var(--tx3);font-weight:600">'+(last?'空車回':'空車出發')+'</span>':'')+'</span>';};
+  var h='<div class="rs"><div class="tt"><b>'+tot+' 人</b>停 '+ord.length+' 站'+(trunk?'・後車廂 '+trunk+' 人':'')+'</div><ol>';
+  h+='<li class="hm"><span class="no">起</span><span class="nm">'+HOME+'</span>'+io(0,go)+'</li>';
+  ord.forEach(function(d,i){h+='<li><span class="no">'+(i+1)+'</span><span class="nm">'+pl(d)+'</span>'+io(st[d].dn,st[d].up)+'</li>';});
+  h+='<li class="hm"><span class="no">回</span><span class="nm">'+HOME+'</span>'+io(bk,0,1)+'</li>';
+  return h+'</ol>'+(wait?'<div class="ft">含 '+wait+' 筆待確認</div>':'')+'</div>';
+}
 function drvHTML(){
   var l=DATA.drv;
   var h=M.me.isDriver?pushCard():'';
@@ -517,6 +552,7 @@ function drvHTML(){
     return '<div class="grp">'+dlab(d)+' '+slotLab(s)+'<em>'+ppl+' 人</em>'
       +(today&&okN&&M.me.isDriver?'<button class="chip s" style="margin-left:auto;background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" onclick="castOpen(\''+s+'\')">📣 發車廣播</button>':'')
       +'</div>'+(today&&DATA.sent&&DATA.sent[k]?'<div class="note" style="margin:-2px 0 8px">✓ '+DATA.sent[k]+' 已發發車廣播</div>':'')
+      +routeSum(g)
       +g.map(function(b){
         var leg=b.trip==='back'?'回':b.trip==='rt'?'來回':'去';
         return '<div class="card"><span class="st" style="background:'+(leg==='去'?'#e3ecfb;color:#2a5aa8':leg==='來回'?'#fdeee4;color:#b4470e':'#efe4fb;color:#6a3aa8')+'">'
