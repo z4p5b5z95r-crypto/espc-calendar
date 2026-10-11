@@ -3428,11 +3428,11 @@ function pageHTML(){
 /* ── 娃娃車預約（另一個程式 bus/，用 iframe 打開；同一個網域，會自動沿用行事曆的登入） ── */
 /* iframe 放在頁面外層、一直留著（切頁不會重新載入）；登入後先在背景預先載好，點頁籤就是秒開 */
 var BUS_PRE=false;
-function busPage(){ busEnsure(); return '<div id="busph" style="height:70vh"></div>'; }
+function busPage(){ busEnsure(); return '<div id="busph" style="height:70vh"><div style="padding-top:60px">'+loader('載入中…')+'</div></div>'; }
 function busEnsure(){
   if($('busw'))return;
   var w=document.createElement('div');w.id='busw';
-  w.style.cssText='position:absolute;left:-9999px;top:0;width:360px;height:600px;z-index:4;border-radius:16px;overflow:hidden;background:#f6f4f2';
+  w.style.cssText='position:absolute;left:-9999px;top:0;width:360px;height:600px;z-index:4;border-radius:16px;overflow:hidden';
   w.innerHTML='<iframe id="busf" src="bus/?embed=1" title="娃娃車預約" style="display:block;width:100%;height:100%;border:0" allow="clipboard-write"></iframe>';
   document.body.appendChild(w);
 }
