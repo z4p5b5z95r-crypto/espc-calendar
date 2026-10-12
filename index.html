@@ -52,7 +52,8 @@ html[data-theme="dark"]{
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{-webkit-text-size-adjust:100%;}
-html,body{overflow-x:clip;}   /* 只能上下滑：iPhone 會把 iframe 撐寬造成整頁可以左右滑 */
+html,body{overflow-x:clip;}
+.pmk{cursor:default;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}   /* 只能上下滑：iPhone 會把 iframe 撐寬造成整頁可以左右滑 */
 body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",Roboto,sans-serif;
   background:var(--bg);color:var(--tx);font-size:15px;line-height:1.5;
   -webkit-font-smoothing:antialiased;min-height:100vh;}
@@ -5685,7 +5686,7 @@ function openDay(d,focus){
       +'<span class="pnm">'+he(g.project+carTag(g))
       +(g.no?'<span class="pno">'+he(g.no)+'</span>':'')
       // 📣 放在案號後面（在標題列裡，但按它只開廣播、不會展開／收合）
-      +(cc?'<span class="pcast" role="button" title="廣播給現場人員" onclick="event.stopPropagation();castTap(\''+esc(g.project)+'\')">'+CAST_ICON.replace('width="21" height="21"','width="15" height="15"')+'</span>':'')   // 2026-10-08：分享先隱藏，連點廣播按鈕三下才開
+      +(cc?'<span class="pcast" role="button" title="廣播給現場人員" onclick="event.stopPropagation();castTap(\''+esc(g.project)+'\')">'+CAST_ICON.replace('width="21" height="21"','width="15" height="15"')+'</span>':'')
       +'</span>'
       +'<span class="pty" style="color:'+c+'">'+he(typeLabel(g))+'</span></span>'
       +'<span class="pchev'+(on?' on':'')+'">'+ic('right',15)+'</span></button>'
@@ -5900,15 +5901,16 @@ function shareDraw(m){
   if(fh<H){var c2=document.createElement('canvas');c2.width=W;c2.height=fh;c2.getContext('2d').drawImage(cv,0,0);return c2;}
   return cv;
 }
-/** 廣播按鈕：點一下＝廣播；快速連點三下＝分享（分享功能暫時隱藏在這裡） */
-var CAST_TAPS=0,CAST_TT=0;
-function castTap(p){
-  CAST_TAPS++;clearTimeout(CAST_TT);
-  if(CAST_TAPS>=3){CAST_TAPS=0;if(can('share'))shareOpen(p);else castOpen(p);return;}
-  CAST_TT=setTimeout(function(){var n=CAST_TAPS;CAST_TAPS=0;if(n)castOpen(p);},320);   // 等一下看是不是要連點
+/** 廣播按鈕：點一下＝廣播 */
+function castTap(p){castOpen(p);}
+/** 行程分享（隱藏）：在行程內容裡快速點「PM」三下才開 */
+var PM_TAPS=[];
+function pmTap(p,d){
+  var t=Date.now();PM_TAPS=PM_TAPS.filter(function(x){return t-x<700;});PM_TAPS.push(t);
+  if(PM_TAPS.length>=3){PM_TAPS=[];if(can('share'))shareOpen(p,d);}
 }
-function shareOpen(p){
-  var d=EV_D,g=shareGroup(p,d);if(!g){toast('找不到這個行程','no');return;}
+function shareOpen(p,d0){
+  var d=d0||EV_D,g=shareGroup(p,d);if(!g){toast('找不到這個行程','no');return;}
   SHR={p:p,d:d,who:'',file:null,url:'',text:''};
   var tg=function(cu){var o=SHARE_DEF[cu?'cu':'in'];return SHARE_FIELDS.map(function(f){return '<span class="shtg'+(o[f[0]]?'':' x')+'">'+f[1]+'</span>';}).join('');};   // 照這支手機上次勾的顯示
   openSheet('<div class="shh"><div><h3>分享這個行程</h3><p class="hint" style="margin-top:3px">'+he(pjKey(p))+'　'+shareDateLab(d)+'</p></div><button class="ib" onclick="shareBack()">✕</button></div>'
@@ -5927,7 +5929,7 @@ function shareMake(who){
   SHR.full.extra.forEach(function(r){var k=SH_ROWKEY[r[0]];if(k&&!o[k])SHR.hide['x:'+r[0]]=1;});
   if(!o.est)SHR.hide.note=1;
   if(who==='cu')SHR.full.sub=shareDateLab(SHR.d)+' 監測行程';
-  $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3>'
+  $('sheetin').innerHTML='<div class="shh"><button class="ib" onclick="shareOpen(SHR.p,SHR.d)">‹</button><div style="flex:1"><h3>'+(who==='cu'?'🤝 分享給客戶':'🏢 分享到公司內部')+'</h3>'
     +'<p class="hint" style="margin-top:2px">點文字可以直接改；按 ✕ 拿掉；按 ＋ 加回</p></div><button class="ib" onclick="shareBack()">✕</button></div>'
     +'<div id="sh-ed"></div>'
     +'<div style="text-align:right;margin:6px 2px 0"><a href="#" style="font-size:13px;color:var(--accT)" onclick="shareMake(SHR.who);return false">全部還原</a></div>'
@@ -6905,7 +6907,8 @@ function evDetail(g){
     else ents.push({t:t,locs:tg.locs,eqs:tg.eqs,reps:tg.reps,nums:tg.nums,qtys:tg.qtys,samp:tg.samp});
   });
   var multi=ents.length>1;
-  var shared=dr('PM',g.engs.map(telLink).join('<br>'))
+  var pmv=g.engs.map(telLink).join('<br>');
+  var shared=(pmv?'<div class="dr"><span class="dk pmk" onclick="pmTap(\''+esc(g.project)+'\',\''+((g.rows[0]&&g.rows[0].date)||'')+'\')">PM</span><span class="dv">'+pmv+'</span></div>':'')   // 2026-10-12：點「PM」三下＝分享這個行程
     +(idle?'':dr('公務車',he(g.cars.join('、'))))
     +(idle?'':dr('現場',g.staff.map(telLink).join('<br>')))
     +dr('備註',he(g.notes.join('；')));
