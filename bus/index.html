@@ -145,6 +145,32 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .ordc{background:#fff8f2;border:1.5px solid #f0d9c6;border-radius:18px;padding:14px 16px;margin:12px 0}
 .ordc .on{font-size:22px;font-weight:800}.ordc .on span{font-size:15px;color:var(--tx2);font-weight:600}
 .ordc .ot{font-size:16px;font-weight:700;margin-top:6px}.ordc .or{font-size:16px;font-weight:700;margin-top:4px}.ordc .om{font-size:13px;color:var(--tx2);margin-top:6px}
+.ov.na .sheet,.ov.na .tkpop,.ov.na .dim{animation:none!important}
+.tk5 .cdb{font-variant-numeric:tabular-nums;color:#1d8148}.tk5 .cdb.cdz{color:#c0442b}
+.tk5 .cdl{font-style:normal;font-size:12.5px;font-weight:700;color:var(--tx2);align-self:center}
+.tk5.void .ft .rpb{filter:none;opacity:1;color:#2a5a8a;border-color:#bcd3ea;background:#fff}
+.dim.blur{background:rgba(30,24,20,.28);-webkit-backdrop-filter:blur(12px) saturate(1.1);backdrop-filter:blur(12px) saturate(1.1);animation:fadein .2s}
+.tkpop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(90vw,420px);animation:tkpop .35s cubic-bezier(.2,1.3,.4,1)}
+.tkpop .tk5{margin:34px 0 18px;box-shadow:0 20px 50px rgba(0,0,0,.22)}
+.tkpop .tkx{background:#fff;color:var(--tx);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+@keyframes tkpop{from{opacity:0;transform:translate(-50%,-46%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.tk5.hl{animation:tkhl 1.1s ease-out 3}
+@keyframes tkhl{0%{box-shadow:0 0 0 0 rgba(243,111,33,.75)}100%{box-shadow:0 0 0 16px rgba(243,111,33,0)}}
+@media (min-width:900px){
+  .app{max-width:1180px}
+  .hd{padding-left:32px;padding-right:32px}
+  .bd{padding:10px 32px 48px}
+  .sheet{max-width:520px;bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:24px;max-height:86vh;overflow:auto}
+  .bk2{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:40px;align-items:start}
+  .bk2 .side{position:sticky;top:110px;max-height:calc(100vh - 130px);overflow:auto;padding:6px 18px 10px 6px}
+  .tkg{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:0 26px}
+  .tkg.one{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+  .gb{display:grid;grid-template-columns:380px minmax(0,1fr);gap:18px;align-items:start}
+  .gb .rs{margin:0;position:sticky;top:120px}
+  .gb .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+  .gb .cards .card{margin:0}
+}
 .ended{margin:22px 0 10px;opacity:.75}.ended summary{font-size:13px;font-weight:700;color:var(--tx3);cursor:pointer;padding:8px 4px;list-style:none}
 .ended summary::before{content:'▸ '}.ended[open] summary::before{content:'▾ '}
 .rs li[data-d]{touch-action:pan-y}.rs .hdl{flex:none;width:26px;height:26px;margin-left:2px;display:flex;align-items:center;justify-content:center;color:#b9a99b;font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -191,13 +217,15 @@ function ls(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
 function lsS(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function lsD(k){try{localStorage.removeItem(k);}catch(e){}}
 function toast(t,ms){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},ms||2000);}
-function sheet(h){$('ov').innerHTML='<div class="dim" onclick="closeSheet()"></div><div class="sheet">'+h+'</div>';$('ov').classList.add('on');}
-function closeSheet(){$('ov').classList.remove('on');ORD_OPEN='';}
+function sheet(h){$('ov').innerHTML='<div class="dim" onclick="closeSheet()"></div><div class="sheet">'+h+'</div>';$('ov').classList.add('on');$('ov').classList.remove('na');}
+function WIDE(){return window.innerWidth>=900;}   // 電腦版：寬螢幕兩欄
+var WIDE_WAS=null;window.addEventListener('resize',function(){var w=WIDE();if(WIDE_WAS!==null&&w!==WIDE_WAS&&M&&!$('ov').classList.contains('on'))render();WIDE_WAS=w;});
+function closeSheet(){$('ov').classList.remove('on','na');ORD_OPEN='';TKP='';}
 
 /* ── 後端呼叫：一律 POST；會發推播的動作帶唯一 rid，iPhone 自動重送也只執行一次 ── */
 var SPIN='<svg class="spin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><rect x="58" y="70" width="84" height="12" rx="6"/><circle class="ldj" cx="74" cy="64" r="9"/><circle class="ldj ldj2" cx="100" cy="64" r="9"/><circle class="ldj ldj3" cx="126" cy="64" r="9"/></g></svg>';
 function LD(t){return '<div class="ld">'+SPIN+'<span>'+(t||'載入中…')+'</span></div>';}
-var ONCE=['book','call','drvCast','drvRetime'];
+var ONCE=['book','call','drvCast','drvCallCast','riderReply','drvRetime'];
 function gas(fn){
   var args=Array.prototype.slice.call(arguments,1);
   var body={fn:fn,args:args};
@@ -220,8 +248,21 @@ function dlab(d){var t=tw().day,tm=new Date(new Date(t+'T12:00:00Z').getTime()+8
   return (d===t?'今天 ':d===tm?'明天 ':'')+md(d)+'（'+WK[dow(d)]+'）';}
 function slotLab(s){if(s==='10:00')return '上午 10:00';if(s==='14:00')return '下午 2:00';var m=hm(s);if(isNaN(m))return s;var H=Math.floor(m/60);return (m<720?'上午 ':'下午 ')+(H>12?H-12:H)+':'+('0'+m%60).slice(-2);}
 function eff(day,slot){return (M&&M.re&&M.re[day+'|'+slot])||slot;}   // 司機改過時間就用新的
-function expired(b){var n=tw(),t=b.kind==='call'?(b.at&&b.at!=='asap'?b.at:String(b.created||'').slice(11,16)):eff(b.day,b.slot);   // 表定發車後 1 小時：車票過期
-  return b.day<n.day||(b.day===n.day&&n.min>=hm(t)+60);}
+/* 所有娃娃車：發車後 1 小時就算過期（班次＝表定／改過的時間；臨時叫車＝指定時間，「盡快」＝司機接單時間＋預計幾分鐘到） */
+/* 臨時叫車：司機回覆「約幾分鐘到」→ 從接單那一刻開始倒數 */
+/** 司機不接單的單：當天、還沒發車前可以改回接單 */
+function redoOk(b){return b.st==='no'&&String(b.upd||'').slice(0,10)===tw().day&&(b.kind==='call'?!expired(b):!departed(b.day,b.slot));}
+function etaAt(b){if(b.kind!=='call'||b.st!=='ok'||!b.eta||!b.upd)return 0;var t=Date.parse(String(b.upd).replace(' ','T')+'+08:00');return isNaN(t)?0:t+(+b.eta)*60000;}
+function cdTxt(ms){var s=Math.max(0,Math.round(ms/1000));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
+function cdTick(){var now=Date.now();[].forEach.call(document.querySelectorAll('[data-cd]'),function(e){var left=+e.getAttribute('data-cd')-now;
+  if(left>0)e.textContent=e.hasAttribute('data-big')?cdTxt(left):'還有 '+cdTxt(left)+' 抵達';else{e.textContent=e.hasAttribute('data-big')?'已抵達':'司機應該已經到了';e.classList.add('cdz');}});}
+setInterval(cdTick,1000);
+function depMin(b){
+  if(b.kind!=='call')return hm(eff(b.day,b.slot));
+  if(b.at&&b.at!=='asap')return hm(b.at);
+  if(b.st==='ok'&&b.upd)return hm(String(b.upd).slice(11,16))+(+b.eta||0);
+  return hm(String(b.created||'').slice(11,16));}
+function expired(b){var n=tw();return b.day<n.day||(b.day===n.day&&n.min>=depMin(b)+60);}
 function departed(day,slot){var n=tw();return day<n.day||(day===n.day&&n.min>=hm(eff(day,slot)));}
 function pl(n){return n==='紫軒'?'<span class="pz">紫軒</span>':n==='紅樓'?'<span class="pz pr">紅樓</span>':he(n);}
 function route(b){if(b.kind==='call')return pl(b.frm)+' → '+pl(b.dest);return b.trip==='back'?pl(b.dest)+' → '+HOME:(b.trip==='rt'?HOME+' ⇄ '+pl(b.dest):HOME+' → '+pl(b.dest));}
@@ -269,74 +310,110 @@ function afterLogin(first,fresh){
   if(!PAGE)PAGE=M.me.isDriver?'drv':'book';
   var src=PEND||location.hash.slice(1),od=ordParse(src);
   var hp=src?pageOk(src):'';PEND='';if(hp)PAGE=hp;
-  if(od)setTimeout(function(){ordGo(od);},0);else setTimeout(swOpenTake,600);
+  if(tkParse(src)){var tid=tkParse(src),td=tkData(src);setTimeout(function(){tkGo(tid,td);},0);}
+  if(od)setTimeout(function(){ordGo(od);},0);
+  if(od||tkParse(src)){if(window.caches)caches.open('bus-open').then(function(c){c.delete('./__open');}).catch(function(){});}else swOpenPoll();
   render();load();pushRefresh();
   if(!fresh&&PAGE!=='book')gas('me',TOKEN).then(function(j){if(j&&j.ok){var was=M&&M.me;setMe(j);if(!was||was.isDriver!==j.me.isDriver||was.isAdmin!==j.me.isAdmin||was.needPw!==j.me.needPw)render();}}).catch(function(){});
   if(first&&M.me.kind==='g'&&!standalone())setTimeout(function(){a2hsOpen();},400);
 }
 
 /* ── 畫面 ── */
-function render(){
+function render(){setTimeout(cdTick,0);
   var hd=document.querySelector('.hd');
   if(!TOKEN||!M){hd.style.display='none';$('nav').style.display='none';$('bd').innerHTML=loginHTML();return;}
   hd.style.display='';
   var me=M.me;
   $('hu').innerHTML='<i>'+he(me.name.slice(0,1))+'</i>'+he(me.name)+(me.ext?' #'+he(me.ext):'')+(me.kind==='g'?'　'+he(me.gid):'')+(me.isDriver?'　（司機）':'')+(EMBED&&me.kind==='u'?'':'<a href="#" onclick="logoutAsk();return false">登出</a>');
   if(!me.ext&&me.kind==='g'){$('ht').textContent='娃娃車預約';$('nav').style.display='none';$('bd').innerHTML=extHTML();return;}
-  var act=(DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&(b.kind==='call'||!departed(b.day,b.slot));}).length;
+  // 我的預約亮燈：只算還沒搭的（已取消、不接單、已發車、過期的都不算）
+  var act=(DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&!expired(b)&&(b.kind==='call'||!departed(b.day,b.slot));}).length;
   ACT=act;
   var navs=[];   // 一般人只有預約頁（我的預約在右上角按鈕）；司機／管理員才有上方分頁
-  if(me.isDriver||me.isAdmin)navs=[['drv','🚐','娃娃車',(DATA.drv||[]).filter(function(b){return b.st==='w';}).length],['book','➕','預約',0],['qr','▦','QR code',0]];
+  if(me.isDriver||me.isAdmin)navs=[['drv','🚐','娃娃車',(DATA.drv||[]).filter(function(b){return b.st==='w'&&!expired(b);}).length],['book','➕','預約',0],['qr','▦','QR code',0]];
   if(me.isAdmin)navs.push(['adm','⚙️','管理',0]);
   hd.classList.toggle('hasnav',navs.length>0);
   $('nav').style.display=navs.length?'':'none';$('nav').className='nav';
   $('nav').innerHTML=navs.map(function(x){return '<span class="'+(PAGE===x[0]||(PAGE==='mine'&&x[0]==='book')?'on':'')+'" onclick="go(\''+x[0]+'\')"><span class="ic">'+x[1]+'</span>'+x[2]+(x[3]?'<sup>'+x[3]+'</sup>':'')+'</span>';}).join('');
   $('ht').textContent='娃娃車預約';
   var y=window.scrollY;
-  $('bd').innerHTML=PAGE==='book'?bookHTML():PAGE==='mine'?mineHTML():PAGE==='drv'?drvHTML():PAGE==='qr'?qrHTML():PAGE==='adm'?admHTML():'';
+  $('bd').innerHTML=PAGE==='book'?(WIDE()?'<div class="bk2"><div>'+bookHTML()+'</div><div class="side">'+mineHTML(true)+'</div></div>':bookHTML()):PAGE==='mine'?mineHTML():PAGE==='drv'?drvHTML():PAGE==='qr'?qrHTML():PAGE==='adm'?admHTML():'';
   if(PAGE==='qr')qrDraw();
   window.scrollTo(0,y);
 }
 /* 行事曆點了娃娃車通知 → 叫這裡切到對應的頁面（還沒登入好就先記著） */
 /* 司機點「新的預約」通知：網址帶著這筆的內容 → 不用等下載，直接顯示、可以接單／不接單 */
-var ORD=null,ORD_OPEN='';
+var ORD=null,ORD_OPEN='',TK='';
+/* 乘客點「司機確認／不接單／改時間／廣播／提醒」通知 → 直接打開我的預約、捲到那張車票並閃一下 */
+function tkParse(s){var m=String(s||'').match(/^#?t=([A-Za-z0-9]+)(~.*)?$/);return m?m[1]:'';}
+/* 通知網址帶著車票內容（#t=ID~資料）：點開馬上就有，不用等下載 */
+function tkData(s){var m=String(s||'').match(/^#?t=([A-Za-z0-9]+)~(.+)$/);if(!m)return null;var o=null;
+  try{o=JSON.parse(decodeURIComponent(m[2]));}catch(e){try{o=JSON.parse(m[2]);}catch(_){return null;}}
+  return {id:m[1],kind:o.k||'bus',day:o.d||'',slot:o.s||'',trip:o.t||'',dest:o.ds||'',frm:o.f||'',n:+o.n||1,at:o.a||'',st:o.st||'w',drv:o.dr||'',drvExt:o.dx||'',why:o.w||'',eta:o.e||'',upd:o.u||'',trunk:!!o.tr,at2:o.a2||'',strike:!!o.sk,memo:o.m||'',rep:!!o.r,last:o.l||'',lastAt:o.la||''};}
+var TKP='',TKD=null;
+function tkGo(id,data){if(!id||!M||!M.me)return;
+  if(TKP===id&&$('ov').classList.contains('on')){if(data&&(data.upd||'')>((TKD&&TKD.upd)||'')){TKD=data;tkPop(id,true);}return;}
+  try{if(/^#t=/.test(location.hash))history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  if(PAGE!=='mine'){PAGE='mine';window.scrollTo(0,0);render();}
+  TKD=data||null;tkPop(id);load();}
+/** 像行事曆公告：背景模糊，中間一張車票，下面關閉 */
+function tkPop(id,quiet){TKP=id;var b=findB(id,DATA.mine),d=TKD&&TKD.id===id?TKD:null;
+  if(d&&(!b||(d.upd||'')>(b.upd||'')))b=d;   // 通知帶來的比手上的新就用通知的
+  $('ov').innerHTML='<div class="dim blur" onclick="closeSheet()"></div><div class="tkpop">'+(b?tkHTML(b,true):'<div class="tk5" style="padding:30px 0">'+LD()+'</div>')
+    +'<button class="btn tkx" onclick="closeSheet()">關閉</button></div>';
+  $('ov').classList.add('on');$('ov').classList.toggle('na',!!quiet);TKST=b?b.st+'|'+(b.at2||'')+'|'+(b.upd||'')+'|'+(b.last||''):'';}
+var TKST='';
+function tkPopRefresh(){if(!TKP||!$('ov').classList.contains('on')||!document.querySelector('.tkpop'))return;
+  var b=findB(TKP,DATA.mine);if(b&&(!TKD||TKD.id!==TKP||(b.upd||'')>=(TKD.upd||''))){TKD=null;if(b.st+'|'+(b.at2||'')+'|'+(b.upd||'')+'|'+(b.last||'')!==TKST)tkPop(TKP,true);}}
+function tkShow(){if(!TK)return;var e=$('tk-'+TK);if(!e)return;var id=TK;TK='';
+  setTimeout(function(){e.scrollIntoView({behavior:'smooth',block:'center'});e.classList.remove('hl');void e.offsetWidth;e.classList.add('hl');},60);}
 function ordParse(s){var m=String(s||'').match(/^#?o=(.+)$/);if(!m)return null;var o=null;
   try{o=JSON.parse(decodeURIComponent(m[1]));}catch(e){try{o=JSON.parse(m[1]);}catch(_){return null;}}
   if(!o||!o.i)return null;
-  return {id:o.i,who:o.w||'',ext:o.x||'',day:o.d||'',slot:o.s||'',trip:o.t||'',dest:o.ds||'',frm:o.f||'',n:+o.n||1,kind:o.k||'bus',at:o.a||'',trunk:!!o.tr,memo:o.m||'',st:'w',_n:1};}
+  return {id:o.i,who:o.w||'',ext:o.x||'',day:o.d||'',slot:o.s||'',trip:o.t||'',dest:o.ds||'',frm:o.f||'',n:+o.n||1,kind:o.k||'bus',at:o.a||'',trunk:!!o.tr,memo:o.m||'',st:o.st||'w',upd:o.u||'',why:o.y||'',reply:o.rp||'',_n:1};}
 function ordB(id){return ORD&&ORD.id===id?ORD:null;}
-function ordGo(o){if(!o||!M||!M.me||!(M.me.isDriver||M.me.isAdmin))return;ORD=o;
+function ordGo(o){if(!o||!M||!M.me||!(M.me.isDriver||M.me.isAdmin))return;
+  if(ORD_OPEN===o.id&&$('ov').classList.contains('on'))return;   // 已經開著同一筆：不要再跳一次
+  ORD=o;
   try{if(/^#o=/.test(location.hash))history.replaceState(null,'',location.pathname+location.search);}catch(e){}
   if(PAGE!=='drv'){PAGE='drv';render();}ordSheet(o.id);load();}
-function ordSheet(id){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;ORD_OPEN=id;
+function ordSheet(id,quiet){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;ORD_OPEN=id;ORD_ST=b.st;
   var call=b.kind==='call';
   var stx=b.st==='ok'?'<span class="st ok">'+he(b.drv||'')+' 已確認</span>':b.st==='no'?'<span class="st no">已回覆不接單</span>':b.st==='x'?'<span class="st x">已取消</span>':'<span class="st w">待確認</span>';
-  var h='<div style="display:flex;align-items:center;gap:8px"><b style="font-size:17px">'+(call?'🚨 臨時叫車':'🚐 新的預約')+'</b>'+stx+'</div>'
+  var h='<div style="display:flex;align-items:center;gap:8px"><b style="font-size:17px">'+(b.st==='no'&&b.reply?'💬 乘客回覆':call?'🚨 臨時叫車':'🚐 新的預約')+'</b>'+stx+'</div>'
     +'<div class="ordc"><div class="on">'+he(b.who)+(b.ext?' <span>#'+he(b.ext)+'</span>':'')+'</div>'
     +'<div class="ot">'+(call?(b.at==='asap'?'盡快':'今天 '+he(b.at)):dlab(b.day)+'　'+tripLab(b))+'</div>'
     +'<div class="or">'+route(b)+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</div>'
-    +(b.memo?'<div class="om">備註：'+he(b.memo)+'</div>':'')+'</div>';
+    +(b.memo?'<div class="om">備註：'+he(b.memo)+'</div>':'')
+    +(b.st==='no'&&b.why?'<div class="om">不接單原因：'+he(b.why)+'</div>':'')
+    +(b.reply?'<div class="om" style="color:#2a5a8a;font-weight:700">💬 乘客回覆：'+he(b.reply)+'</div>':'')+'</div>';
+  if(redoOk(b)&&M.me.isDriver)h+=call?'<div class="sec" style="margin-left:0">改為接單：大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>'
+    :'<button class="btn" onclick="accFx(\''+id+'\',0)">改為接單</button>';
   if(b.st==='w'&&M.me.isDriver){
     if(call)h+='<div class="sec" style="margin-left:0">接單：大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>';
     else h+='<button class="btn" onclick="accFx(\''+id+'\',0)">接單</button>';
     h+='<button class="btn g" style="margin-top:8px" onclick="rejectOpen(\''+id+'\')">不接單</button>';
   }
   h+='<button class="btn g" style="margin-top:8px" onclick="ORD_OPEN=\'\';closeSheet()">'+(b.st==='w'?'等一下再說':'關閉')+'</button>';
-  sheet(h);}
+  sheet(h);$('ov').classList.toggle('na',!!quiet);}
+var ORD_ST='';
 function ordRefresh(){   // 背景抓到最新清單：這筆的狀態變了（別的司機接走、乘客取消）就更新畫面
   if(!ORD_OPEN||!$('ov').classList.contains('on'))return;
   var x=findB(ORD_OPEN,DATA.drv);
-  if(x){if(ORD&&ORD.id===ORD_OPEN&&x.st===ORD.st&&!ORD._n)return;ORD=Object.assign({},x);ordSheet(ORD_OPEN);}
-  else if(ORD&&ORD.id===ORD_OPEN&&ORD.st!=='x'){ORD.st='x';ORD._n=0;ordSheet(ORD_OPEN);}
+  if(x){ORD=Object.assign({},x);if(x.st!==ORD_ST)ordSheet(ORD_OPEN,true);}   // 狀態沒變就不重畫（不會再跳一次）
+  else if(ORD&&ORD.id===ORD_OPEN&&ORD_ST!=='x'){ORD.st='x';ordSheet(ORD_OPEN,true);}
 }
 function swOpenTake(){if(!window.caches)return;caches.open('bus-open').then(function(c){return c.match('./__open').then(function(r){return r?r.json():null;}).then(function(j){
   if(!j)return;c.delete('./__open');if(Date.now()-(j.at||0)>120000||!M)return;
-  var o=ordParse(String(j.url||'').split('#')[1]);if(o)ordGo(o);else if(/#mine/.test(j.url||'')&&PAGE!=='mine')go('mine');});}).catch(function(){});}
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')setTimeout(swOpenTake,150);});
-window.addEventListener('hashchange',function(){var o=ordParse(location.hash.slice(1));if(o)ordGo(o);else if(location.hash==='#mine'&&M&&PAGE!=='mine')go('mine');});
-function pageOk(p){if(!M||!M.me)return '';var d=M.me.isDriver||M.me.isAdmin;if(/^o=/.test(p))return d?'drv':'';
+  var hs=String(j.url||'').split('#')[1],o=ordParse(hs);if(o)ordGo(o);else if(tkParse(hs))tkGo(tkParse(hs),tkData(hs));else if(/#mine/.test(j.url||'')&&PAGE!=='mine')go('mine');});}).catch(function(){});}
+/* iPhone 在背景時常常收不到 Service Worker 的訊息：回到前景就去拿 sw 記下的「點了哪一則」，多試幾次 */
+function swOpenPoll(){[60,300,800,1600].forEach(function(t){setTimeout(swOpenTake,t);});}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')swOpenPoll();});
+window.addEventListener('focus',swOpenPoll);window.addEventListener('pageshow',swOpenPoll);
+window.addEventListener('hashchange',function(){var o=ordParse(location.hash.slice(1));if(o)ordGo(o);else if(tkParse(location.hash))tkGo(tkParse(location.hash),tkData(location.hash));else if(location.hash==='#mine'&&M&&PAGE!=='mine')go('mine');});
+function pageOk(p){if(!M||!M.me)return '';var d=M.me.isDriver||M.me.isAdmin;if(/^o=/.test(p))return d?'drv':'';if(/^t=/.test(p))return 'mine';
   if(p==='mine'||p==='book')return p;if(p==='drv'&&d)return 'drv';return M.me.isDriver?'drv':'';}
-window.busGo=function(p){p=String(p||'');if(!M||!M.me){PEND=p;return;}var o=ordParse(p);if(o){ordGo(o);return;}var q=pageOk(p);if(q&&q!==PAGE)go(q);else load();};
+window.busGo=function(p){p=String(p||'');if(!M||!M.me){PEND=p;return;}var o=ordParse(p);if(o){ordGo(o);return;}if(tkParse(p)){tkGo(tkParse(p),tkData(p));return;}var q=pageOk(p);if(q&&q!==PAGE)go(q);else load();};
 function go(p){PAGE=p;window.scrollTo(0,0);render();load();}
 function logoutAsk(){sheet('<b style="font-size:17px">登出娃娃車？</b><p class="hint">'+(M&&M.me.kind==='g'?'下次輸入工號就能再進來。':'下次輸入工號就能再進來。')+'</p><button class="btn r" onclick="closeSheet();logout()">登出</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
 /* 取資料 */
@@ -350,7 +427,7 @@ function load(){
     if(j.me)setMe(j);
     if(fn==='drvList'){DATA.drv=j.list;DATA.sent=j.sent;DATA.push=j.push;DATA.reps=j.reps||[];ordRefresh();}
     try{if(fn==='drvList'||fn==='mine')lsS('bus_d_'+fn+'_'+uid(),JSON.stringify({d:tw().day,l:j.list,s:j.sent||null}));}catch(e){}
-    if(fn==='mine'){DATA.mine=j.list;DATA.push=j.push;if(j.reps)DATA.reps=j.reps;}
+    if(fn==='mine'){DATA.mine=j.list;DATA.push=j.push;if(j.reps)DATA.reps=j.reps;tkPopRefresh();}
     if(fn==='admLoad')DATA.adm=j;
     if(PAGE===p&&!$('ov').classList.contains('on')&&!typing()&&!DRAG)render();
   }).catch(function(e){toast(e.message);});
@@ -423,12 +500,13 @@ function meCard(){
     +(me.kind==='g'?'<a href="#" style="color:var(--accT);font-size:13px" onclick="logout();return false">不是我</a>':'')+'</div>';
 }
 var ACT=0;
-function myBtn(){return '<button class="mybtn" onclick="go(\'mine\')">📋 我的預約'+(ACT?'<i>'+ACT+'</i>':'')+'</button>';}
+function myBtn(){if(WIDE())return '';return '<button class="mybtn" onclick="go(\'mine\')">📋 我的預約'+(ACT?'<i>'+ACT+'</i>':'')+'</button>';}
 function bookHTML(){
   var h=unlockCard()+meCard();
   h+='<div class="hrow"><div class="h2" onclick="tap3()">預約班次</div>'+myBtn()+'</div>';
-  if(CALLON)h+='<div style="height:10px"></div>';
-  if(!CALLON){}
+  var CO=CALLON||M.me.sup;   // 主管帳號：臨時叫車直接顯示；其他人點「預約班次」三下才出現
+  if(CO)h+='<div style="height:10px"></div>';
+  if(!CO){}
   else h+='<div class="seg" style="margin-top:14px">'+[['bus','🚐 預約班次'],['call','🚨 臨時叫車']].map(function(m){return '<button class="'+((F.mode||'bus')===m[0]?'on':'')+'" onclick="F.mode=\''+m[0]+'\';render()" style="font-weight:700">'+m[1]+'</button>';}).join('')+'</div>';
   if(F.mode==='call')return h+callHTML();
   var days=(M.days||[]).filter(function(d){return !departed(d,'14:00');});
@@ -526,18 +604,19 @@ function callGo(){
 function stHTML(b){return b.st==='w'?'<span class="st w">等待司機確認</span>':b.st==='ok'?'<span class="st ok">司機確認</span>':b.st==='no'?'<span class="st no">司機不接單</span>':'<span class="st x">已取消</span>';}
 /* 印章：郵戳式（上弧 SGS、中間橫框「確認／作廢」、上方日期、下弧司機名字或「已取消」） */
 function stampSVG(ok,date,who,rot){
-  var ex=ok==='exp',c=ex?'#56606b':ok?'#1d8148':'#cf2323';
+  var ex=ok==='exp',rj=ok==='no',c=ex?'#56606b':rj?'#c2410c':ok?'#1d8148':'#cf2323';
   return '<svg class="stamp" viewBox="0 0 120 120" style="transform:rotate('+rot+'deg);color:'+c+'"><g filter="url(#ink)" fill="currentColor" stroke="currentColor">'
    +'<circle cx="60" cy="60" r="55" fill="none" stroke-width="4.5"/><circle cx="60" cy="60" r="49" fill="none" stroke-width="1.5"/>'
    +'<text font-size="14" font-weight="900" stroke="none" letter-spacing="5" text-anchor="middle"><textPath href="#arcT" startOffset="50%">SGS</textPath></text>'
    +'<text font-size="11" font-weight="800" stroke="none" letter-spacing="2" text-anchor="middle" dominant-baseline="hanging"><textPath href="#arcB" startOffset="50%">'+he(who||'')+'</textPath></text>'
    +'<rect x="8" y="45" width="104" height="30" fill="none" stroke-width="3"/>'
-   +'<text x="60" y="68" font-size="22" font-weight="900" stroke="none" text-anchor="middle" letter-spacing="6">'+(ex?'過期':ok?'確認':'作廢')+'</text>'
+   +'<text x="60" y="68" font-size="22" font-weight="900" stroke="none" text-anchor="middle" letter-spacing="6">'+(ex?'過期':rj?'拒絕':ok?'確認':'作廢')+'</text>'
    +'<text x="60" y="40" font-size="8.5" font-weight="800" stroke="none" text-anchor="middle" letter-spacing="1">'+he(date||'')+'</text></g></svg>';
 }
 function stDate(s){var d=String(s||'').slice(0,10);return d?d.replace(/-/g,'.'):'';}
-function mineHTML(){
-  var h='<div class="hrow"><button class="back" onclick="go(\'book\')">‹ 返回預約</button></div><div class="hrow" style="margin-top:4px"><div class="h2">我的預約</div></div>'+unlockCard()+pushCard();
+function mineHTML(side){
+  setTimeout(tkShow,0);
+  var h=side?'<div class="hrow"><div class="h2">我的預約</div></div>':'<div class="hrow"><button class="back" onclick="go(\'book\')">‹ 返回預約</button></div><div class="hrow" style="margin-top:4px"><div class="h2">我的預約</div></div>'+unlockCard()+pushCard();
   var l=DATA.mine;
   if(!l)return h+LD();
   if(!l.length)return h+'<div class="empty">還沒有預約</div>';
@@ -545,24 +624,30 @@ function mineHTML(){
   // 排序：還沒搭的 → 已取消／不接單 → 已過期（發車後 1 小時）放最後
   var key=function(b){var ex=expired(b),act=!ex&&(b.st==='w'||b.st==='ok')&&(b.kind==='call'||!departed(b.day,b.slot));return (act?'0':ex?'2':'1')+b.day+(b.kind==='call'?(b.at==='asap'?'00:00':b.at):b.slot);};
   l=l.slice().sort(function(a,b){var x=key(a),y=key(b);return x<y?-1:x>y?1:0;});
-  return h+l.map(function(b){
+  return h+'<div class="tkg'+(side?' one':'')+'">'+l.map(function(b){return tkHTML(b);}).join('')+'</div>';
+}
+/** 一張車票（我的預約列表、點通知跳出的車票共用）；pop＝跳出視窗用：不放取消鈕、id 不重複 */
+function tkHTML(b,pop){
     var call=b.kind==='call',ex=expired(b)&&(b.st==='w'||b.st==='ok'),live=!ex&&(b.st==='w'||b.st==='ok')&&(call||!departed(b.day,b.slot)),x=b.st==='x';
     var frm=call?b.frm:(b.trip==='back'?b.dest:HOME),to=call?b.dest:(b.trip==='back'?HOME:b.dest),rt=!call&&b.trip==='rt';
     var trip=call?'🚨 臨時叫車':(b.trip==='rt'?'來回':b.trip==='back'?'回程':'去程');
-    var tm=call?(b.at==='asap'?'盡快':b.at):(b.at2||b.slot),old=!call&&b.at2&&b.strike&&!x?b.slot:'';   // 改時間：已確認的票像機票一樣劃掉原時間
+    var arr=call&&/已抵達/.test(b.last||''),ea=etaAt(b),cd=ea&&!x&&!arr&&ea-Date.now()>-3600000;   // 司機按了「車輛已抵達」就不再倒數
+    var tm=call?(arr?'已抵達':b.at==='asap'?'盡快':b.at):(b.at2||b.slot),old=!call&&b.at2&&b.strike&&!x?b.slot:'';   // 改時間：已確認的票像機票一樣劃掉原時間
     var part=b.cx&&!x?String(b.cx).split('：')[0]:'';   // 來回只取消一趟：只寫「已取消回程」，不寫原因
     var foot=x?'<span>已取消</span>'
-      :b.st==='ok'?'<span>司機 <b>'+he(b.drv)+'</b>'+(b.drvExt?' #'+he(b.drvExt):'')+(call&&b.eta?'・<b style="color:var(--ok)">約 '+he(b.eta)+' 分鐘到</b>':'')+'</span>'
+      :b.st==='ok'?'<span>司機 <b>'+he(b.drv)+'</b>'+(b.drvExt?' #'+he(b.drvExt):'')+(call&&b.eta&&!arr?'・<b style="color:var(--ok)"'+(ea?' data-cd="'+ea+'"':'')+'>約 '+he(b.eta)+' 分鐘到</b>':'')+'</span>'
       :b.st==='no'?'<span style="color:var(--err)">司機不接單・'+he(b.why)+'</span>':'<span></span>';
-    return '<div class="tk5'+(x||ex?' void':'')+'"><div class="bar"><span>'+dlab(b.day)+'</span><small>'+(b.rep?'🔁 固定・':'')+trip+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</small></div><div class="in">'
+    var canRp=b.st==='no'&&!expired(b)&&(call||!departed(b.day,b.slot));
+    var rj=b.st==='no';
+    return '<div class="tk5'+(x||ex||rj?' void':'')+'"'+(pop?'':' id="tk-'+b.id+'"')+'><div class="bar"><span>'+dlab(b.day)+'</span><small>'+(b.rep?'🔁 固定・':'')+trip+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</small></div><div class="in">'
       +(b.last&&!x?'<div class="bc">📣 '+he(b.last)+' <span style="font-weight:400;opacity:.85">'+he(b.lastAt||'')+'</span></div>':'')
-      +'<div class="sp"><span class="tm">'+(old?'<s class="old">'+he(old)+'</s>':'')+'<span'+(b.at2&&!x?' class="nw"':'')+'>'+he(tm)+'</span>'+(old?'<em class="chg">時間更改</em>':'')+'</span>'+(b.st==='w'&&!ex?'<span class="st w">等待司機確認</span>':'')+'</div>'
+      +'<div class="sp"><span class="tm">'+(old?'<s class="old">'+he(old)+'</s>':'')+(cd?'<span class="cdb" data-cd="'+ea+'" data-big>'+(ea>Date.now()?cdTxt(ea-Date.now()):'已抵達')+'</span><em class="cdl">預計 '+new Date(ea+8*3600e3).toISOString().slice(11,16)+' 抵達</em>':'<span'+(b.at2&&!x?' class="nw"':'')+'>'+he(tm)+'</span>')+(old?'<em class="chg">時間更改</em>':'')+'</span>'+(b.st==='w'&&!ex?'<span class="st w">等待司機確認</span>':'')+'</div>'
       +'<div class="sp" style="margin-top:6px"><span class="lab">出發</span><span class="lab">目的地</span></div>'
       +'<div class="rw"><span class="pl">'+pl(frm)+'</span><div class="road">'+(rt?'<i class="van"></i><i class="van R"></i>':'<i class="van R"></i>')+'</div><span class="pl">'+pl(to)+'</span></div>'
       +(b.memo?'<div class="lab" style="margin-top:6px">備註：'+he(b.memo)+'</div>':'')+(part?'<div class="lab" style="margin-top:4px">'+he(part)+'</div>':'')
-      +'<div class="ft">'+foot+(live?'<button class="cxb" onclick="cancelOpen(\''+b.id+'\')">取消預約</button>':'')+'</div></div>'
-      +(ex?stampSVG('exp',stDate(b.day),'已過期',-8):b.st==='ok'?stampSVG(true,stDate(b.upd),b.drv,-14):x?stampSVG(false,stDate(b.upd),'已取消',10):'')+'</div>';
-  }).join('');
+      +(b.reply?'<div class="lab" style="margin-top:6px;color:#2a5a8a;font-weight:700">💬 我的回覆：'+he(b.reply)+'</div>':'')
+      +'<div class="ft">'+foot+(canRp?'<button class="cxb rpb" onclick="replyOpen(\''+b.id+'\')">💬 回覆司機</button>':'')+(live&&!pop?'<button class="cxb" onclick="cancelOpen(\''+b.id+'\')">取消預約</button>':'')+'</div></div>'
+      +(rj?stampSVG('no',stDate(b.upd),'司機不接單',8):ex?stampSVG('exp',stDate(b.day),'已過期',-8):b.st==='ok'?stampSVG(true,stDate(b.upd),b.drv,-14):x?stampSVG(false,stDate(b.upd),'已取消',10):'')+'</div>';
 }
 var CX={id:'',leg:'all',why:''};
 function findB(id,list){return (list||[]).filter(function(x){return x.id===id;})[0];}
@@ -649,15 +734,18 @@ function drvHTML(){
   var l=DATA.drv;
   var h=M.me.isDriver?pushCard():'';
   if(!l)return h+LD();
-  var calls=l.filter(function(b){return b.kind==='call'&&(b.st==='w'||b.st==='ok');});
+  var calls=l.filter(function(b){return b.kind==='call'&&(((b.st==='w'||b.st==='ok')&&!expired(b))||redoOk(b));});   // 過期的臨時叫車移到「已結束」
+  var callsEnd=l.filter(function(b){return b.kind==='call'&&(b.st==='w'||b.st==='ok')&&expired(b);});
   if(calls.length)h+='<div style="background:#fff;border:2px solid #e5483b;border-radius:20px;padding:10px 12px;margin:8px 0 6px"><div style="font-weight:800;color:#c62f22;margin-bottom:4px">🚨 臨時叫車</div>'+calls.map(function(b){
-    return '<div style="border-top:1px solid var(--line);padding:8px 0">'+(b.st==='w'?'<span class="st w">待回覆</span>':'<span class="st ok">'+he(b.drv)+' 確認・約 '+he(b.eta)+' 分鐘</span>')
+    return '<div style="border-top:1px solid var(--line);padding:8px 0">'+(b.st==='no'?'<span class="st no">已拒絕</span>':b.st==='w'?'<span class="st w">待回覆</span>':'<span class="st ok">'+he(b.drv)+' 確認・約 '+he(b.eta)+' 分鐘</span> <b style="color:var(--ok);font-size:13px"'+(etaAt(b)?' data-cd="'+etaAt(b)+'"':'')+'></b>')
       +' <span class="hint">'+he(b.created.slice(11,16))+' 叫車</span>'
-      +'<div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br><b>'+route(b)+'</b>・'+(b.at==='asap'?'盡快':b.at)+'・'+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+'</div>'
-      +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="etaOpen(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')+'</div>';
+      +'<div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br><b>'+route(b)+'</b>・'+(b.at==='asap'?'盡快':b.at)+'・'+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+(b.reply?'<br><b style="color:#2a5a8a">💬 乘客回覆：'+he(b.reply)+'</b>':'')+'</div>'
+      +(redoOk(b)&&M.me.isDriver?'<div class="acts"><button class="y" onclick="etaOpen(\''+b.id+'\')">改為接單</button></div>':'')
+      +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="etaOpen(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')
+      +(b.st==='ok'&&M.me.isDriver?'<button class="btn" style="margin-top:8px;padding:10px" onclick="ccOpen(\''+b.id+'\')">📣 通知叫車人</button>':'')+'</div>';
   }).join('')+'</div>';
   var bus=l.filter(function(b){return b.kind==='bus';});
-  if(!bus.length)return h+'<div class="empty">目前沒有班次預約</div>';
+  if(!bus.length)return h+'<div class="empty">目前沒有班次預約</div>'+(callsEnd.length?'<details class="ended"><summary>已結束的臨時叫車（'+callsEnd.length+'）</summary>'+callsEnd.map(function(b){return '<div class="card"><span class="st ok">'+he(b.drv||'')+' 確認</span><div class="kv"><b>'+he(b.who)+'</b><br>'+route(b)+'・'+b.n+' 人</div></div>';}).join('')+'</details>':'');
   var groups={},keys=[];
   bus.forEach(function(b){var k=b.day+'|'+b.slot;if(!groups[k]){groups[k]=[];keys.push(k);}groups[k].push(b);});
   keys.sort();
@@ -671,21 +759,24 @@ function drvHTML(){
     return '<div class="grp">'+dlab(d)+' '+'<span style="white-space:nowrap">'+(at2!==s?'<s style="color:var(--tx3);text-decoration-color:#d2402c;font-weight:500">'+slotLab(s).replace(/^(上午|下午) /,'')+'</s> <b style="color:#c0442b">'+slotLab(at2)+'</b>':slotLab(s))+'</span><em>'+ppl+' 人</em>'
       +(actN&&!departed(d,s)?'<button class="chip s" style="margin-left:auto;white-space:nowrap;background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" onclick="castOpen(\''+d+'\',\''+s+'\')">📣 廣播／改時間</button>':'')
       +'</div>'+(DATA.sent&&DATA.sent[k]?'<div class="note" style="margin:-2px 0 8px">✓ '+DATA.sent[k]+' 已發廣播</div>':'')
-      +routeSum(g)
+      +'<div class="gb">'+routeSum(g)+'<div class="cards">'
       +g.map(function(b){
         var leg=b.trip==='back'?'回':b.trip==='rt'?'來回':'去';
         return '<div class="card"><span class="st" style="background:'+(leg==='去'?'#e3ecfb;color:#2a5aa8':leg==='來回'?'#fdeee4;color:#b4470e':'#efe4fb;color:#6a3aa8')+'">'
           +(leg==='去'?'去程　'+HOME+' → '+pl(b.dest):leg==='來回'?'來回　'+HOME+' ⇄ '+pl(b.dest):'回程　'+pl(b.dest)+' → '+HOME)+'</span> '
           +(b.st==='w'?'<span class="st w">待確認</span>':b.st==='ok'?'<span class="st ok">'+he(b.drv)+' 確認</span>':'<span class="st no">不接單</span>')+(b.trunk?' <span class="st" style="background:#ece7f6;color:#5b3c99">後車廂</span>':'')+(b.rep?' <span class="st" style="background:#e4eef8;color:#2a5a8a">🔁 固定</span>':'')
-          +'<div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br>'+(b.trip==='rt'?'來回（同趟送到後接回）・':'')+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+(b.st==='no'?'<br>原因：'+he(b.why):'')+(b.cx?'<br><span style="color:var(--tx3)">'+he(b.cx)+'</span>':'')+'</div>'
+          +'<div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br>'+(b.trip==='rt'?'來回（同趟送到後接回）・':'')+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+(b.st==='no'?'<br>原因：'+he(b.why):'')+(b.reply?'<br><b style="color:#2a5a8a">💬 乘客回覆：'+he(b.reply)+'</b>':'')+(b.cx?'<br><span style="color:var(--tx3)">'+he(b.cx)+'</span>':'')+'</div>'
+          +(redoOk(b)&&M.me.isDriver?'<div class="acts"><button class="y" onclick="acceptGo(\''+b.id+'\')">改為接單</button></div>':'')
           +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="acceptGo(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')+'</div>';
-      }).join('');
+      }).join('')+'</div></div>';
   };
   // 只展開最近的一班，其他的收合（記住司機自己點開的）；當天已結束的放最下面
   var mini=function(k){var g=groups[k],a=k.split('|'),act=g.filter(function(b){return b.st==='w'||b.st==='ok';}),w=g.filter(function(b){return b.st==='w';}).length,at2=eff(a[0],a[1]);
     return '<details class="gx"'+(GX[k]?' open':'')+' ontoggle="GX[\''+k+'\']=this.open"><summary><span>'+dlab(a[0])+' '+slotLab(at2)+'</span><em>'+act.reduce(function(s,b){return s+b.n;},0)+' 人</em>'+(w?'<b class="wq">'+w+' 待確認</b>':'')+'</summary>'+grp(k)+'</details>';};
   return h+(liveK.length?grp(liveK[0])+liveK.slice(1).map(mini).join(''):'<div class="empty">目前沒有要出發的班次</div>')
-    +(endK.length?'<details class="ended"'+(GX._end?' open':'')+' ontoggle="GX._end=this.open"><summary>已結束的班次（'+endK.length+'）</summary>'+endK.map(grp).join('')+'</details>':'');
+    +(endK.length||callsEnd.length?'<details class="ended"'+(GX._end?' open':'')+' ontoggle="GX._end=this.open"><summary>已結束的班次（'+(endK.length+callsEnd.length)+'）</summary>'
+      +callsEnd.map(function(b){return '<div class="card"><span class="st" style="background:#fde4e1;color:#c62f22">🚨 臨時叫車</span> <span class="st ok">'+he(b.drv||'')+' 確認</span><div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br>'+route(b)+'・'+(b.at==='asap'?'盡快':he(b.at))+'・'+b.n+' 人</div></div>';}).join('')
+      +endK.map(grp).join('')+'</details>':'');
 }
 function act(p,ok){return p.then(function(j){if(!j.ok){toast(j.error||'失敗',3000);load();return;}closeSheet();toast(ok);load();}).catch(function(e){toast(e.message);});}
 function accFx(id,eta){ORD_OPEN='';closeSheet();sfxStart('確認接單');
@@ -694,6 +785,25 @@ function accFx(id,eta){ORD_OPEN='';closeSheet();sfxStart('確認接單');
     sfxDone('已確認',eta?'約 '+eta+' 分鐘到，已通知預約人':'已通知預約人',function(){load();});
   }).catch(function(e){sfxFail();toast(e.message);});}
 function acceptGo(id){accFx(id,0);}
+/* 臨時叫車接單後：通知叫車的人（車輛已抵達…） */
+var CC_PRE=['🚐 車輛已抵達，請上車','司機已出發，馬上到','到了找不到您，請回電','路上塞車，會晚一點到'];
+function ccOpen(id){var b=findB(id,DATA.drv);if(!b)return;
+  sheet('<b style="font-size:17px">📣 通知叫車人</b><div class="kv" style="margin-top:4px">'+he(b.who)+(b.ext?' #'+he(b.ext):'')+'・'+route(b)+'</div>'
+    +'<div class="chips" style="margin:10px 0 8px">'+CC_PRE.map(function(t){return '<button class="chip s" onclick="$(\'cct\').value=this.textContent">'+t+'</button>';}).join('')+'</div>'
+    +'<textarea class="fld" id="cct" maxlength="120">'+CC_PRE[0]+'</textarea>'
+    +'<button class="btn" id="ccb" onclick="ccGo(\''+id+'\')">發送</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
+function ccGo(id){var t=$('cct').value.trim();if(!t){toast('請輸入內容');return;}closeSheet();sfxStart('發送通知');
+  gas('drvCallCast',TOKEN,id,t).then(function(j){if(!j.ok){sfxFail();toast(j.error,3000);return;}sfxDone('已通知叫車人',t,function(){load();});}).catch(function(e){sfxFail();toast(e.message);});}
+/* 被拒絕的乘客回覆司機 */
+var RP_PRE=['可以改其他時間嗎？','很急，拜託幫忙','我可以等，晚一點也沒關係','好的，我自己想辦法'];
+function replyOpen(id){var b=findB(id,DATA.mine)||(TKD&&TKD.id===id?TKD:null);if(!b)return;
+  sheet('<b style="font-size:17px">💬 回覆司機</b><div class="kv" style="margin-top:4px">'+dlab(b.day)+'　'+tripLab(b)+'・司機 '+he(b.drv||'')+'</div>'
+    +(b.why?'<div class="note" style="margin:8px 0">不接單原因：'+he(b.why)+'</div>':'')
+    +'<div class="chips" style="margin:8px 0">'+RP_PRE.map(function(t){return '<button class="chip s" onclick="$(\'rpt\').value=this.textContent">'+t+'</button>';}).join('')+'</div>'
+    +'<textarea class="fld" id="rpt" maxlength="120" placeholder="寫給司機的話"></textarea>'
+    +'<button class="btn" onclick="replyGo(\''+id+'\')">送出回覆</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
+function replyGo(id){var t=$('rpt').value.trim();if(!t){toast('請輸入內容');return;}closeSheet();sfxStart('送出回覆');
+  gas('riderReply',TOKEN,id,t).then(function(j){if(!j.ok){sfxFail();toast(j.error,3000);return;}sfxDone('已回覆司機','司機會收到通知',function(){load();});}).catch(function(e){sfxFail();toast(e.message);});}
 function etaOpen(id){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;
   sheet('<b style="font-size:17px">接這趟臨時叫車</b><div class="kv" style="margin-top:4px">'+he(b.who)+'・'+route(b)+'・'+(b.at==='asap'?'盡快':b.at)+'</div>'
     +'<div class="sec" style="margin-left:0">大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>'
@@ -849,7 +959,7 @@ function a2hsOpen(os){A2.os=os||A2.os||(/Android/i.test(navigator.userAgent)?'an
     +(A2.os==='ios'?ios:and)+'<button class="btn" onclick="closeSheet()">我知道了</button>');
 }
 /* 點通知打開：service worker 叫畫面重新整理 */
-if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.type==='open'){var o=ordParse(String(d.url||'').split('#')[1]);if(o){if(window.caches)caches.open('bus-open').then(function(c){c.delete('./__open');});ordGo(o);return;}}if(d.type==='push'||d.type==='open'){if(d.type==='open'&&d.url&&d.url.indexOf('#mine')>=0&&M)PAGE='mine';load();}});
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.type==='open'){var hs=String(d.url||'').split('#')[1];if(tkParse(hs)){if(window.caches)caches.open('bus-open').then(function(c){c.delete('./__open');});tkGo(tkParse(hs),tkData(hs));return;}var o=ordParse(hs);if(o){if(window.caches)caches.open('bus-open').then(function(c){c.delete('./__open');});ordGo(o);return;}}if(d.type==='push'||d.type==='open'){if(d.type==='open'&&d.url&&d.url.indexOf('#mine')>=0&&M)PAGE='mine';load();}});
 
 init();
 </script>
