@@ -1465,6 +1465,7 @@ function gas(fn){
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&'team' in j){lsS('espc_team',j.team||'');allowNav();}
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.perms){if(fn==='login'&&j.username)lsS('espc_user',j.username);permSet(j.perms);}
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.hideRg)hideRgSet(j.hideRg);
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&!j.view&&j.username)deffSet(j.username,j.defF);
       if((fn==='getMe'||fn==='login'||fn==='permLoad'||fn==='roleSave')&&j&&j.ok&&j.roles)rolesSet(j.roles);   // 角色清單（可自訂）   // 管理員隱藏的地區   // 功能權限   // 採樣津貼入口要看組別
       clearTimeout(timer);
       gasLog(fn,t0,!!(j&&j.ok),j);
@@ -3115,8 +3116,21 @@ function verifySelfName(n){
     if(changed)refetch();                      // 對不到人 → 顯示全部行程
   }).catch(function(){});
 }
+/* 管理員幫帳號設定的「預設篩選」（例如行政沒有自己的行程 → 預設看某些監測類別）：存在這支手機，開啟時自動套用 */
+function deffKey(u){return 'espc_deff_'+String(u||UNAME||'');}
+function deffSet(u,v){try{if(v&&typeof v==='object')lsS(deffKey(u),JSON.stringify(v));else lsS(deffKey(u),'');}catch(e){}}
+function deffGet(){var v=null;try{v=JSON.parse(ls(deffKey())||'null');}catch(e){}return v&&typeof v==='object'?v:null;}
+function deffTxt(d){
+  if(!d)return '未設定（PM、現場照舊先篩自己的行程）';
+  var p=[];if(d.rg)p.push(d.rg);if(d.en)p.push('PM：'+d.en);if(d.st)p.push('現場：'+d.st);
+  if(d.ty&&d.ty.length)p.push('類別：'+d.ty.join('、'));if(d.eq&&d.eq.length)p.push('儀器：'+d.eq.join('、'));if(d.q)p.push('關鍵字：'+d.q);
+  return p.join('；')||'未設定';
+}
 function autoFilterSelf(){
   if(!selfAuto())return;              // 使用者選擇每次都看全部
+  if(nF())return;                     // 已有條件就不動
+  var dd=VIEWAS?null:deffGet();
+  if(dd){F={rg:dd.rg||'',en:dd.en||'',ty:(dd.ty||[]).slice(),q:dd.q||'',st:dd.st||'',eq:(dd.eq||[]).slice()};return;}   // 管理員設的預設篩選優先
   var n=selfName();
   if(!n||F.en||F.st)return;           // 已有條件就不動
   if(hasRowsCached(n)===false)return; // 排程表裡沒有這個人 → 看全部
@@ -4993,7 +5007,28 @@ function loadTypes(){
     if(sh&&sh.classList.contains('open')&&$('f-q'))paintFilter();   // 面板開著就補上新選項
   }).catch(function(){});
 }
+var DEFU='';   // 正在幫哪個帳號設定「預設篩選」（空＝一般篩選）
+function defFOpen(name){
+  var u=null;USERS.forEach(function(x){if(x.username===name)u=x;});if(!u)return;
+  var d=u.defFilter||{};DEFU=name;loadTypes();
+  FT={rg:d.rg||'',en:d.en||'',ty:(d.ty||[]).slice(),q:d.q||'',st:d.st||'',eq:(d.eq||[]).slice()};
+  paintFilter();
+}
+function defFSave(clear){
+  var el=$('f-q');if(el)FT.q=el.value;
+  var name=DEFU,v=clear?null:{rg:FT.rg,en:FT.en,st:FT.st,ty:FT.ty.slice(),eq:FT.eq.slice(),q:(FT.q||'').trim()};
+  gas('updateUser',TOKEN,name,{defFilter:v}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'儲存失敗','no',3500);return;}
+    var clean=null;
+    if(v){clean={};['rg','en','st','q'].forEach(function(k){if(v[k])clean[k]=v[k];});['ty','eq'].forEach(function(k){if(v[k].length)clean[k]=v[k];});if(!Object.keys(clean).length)clean=null;}
+    USERS.forEach(function(x){if(x.username===name)x.defFilter=clean;});
+    if(name===UNAME)deffSet(name,clean);
+    DEFU='';toast(clean?'已設定預設篩選':'已清除預設篩選','ok');editUser(name);
+  }).catch(function(){toast('儲存失敗','no');});
+}
+function defFBack(){var n=DEFU;DEFU='';editUser(n);}
 function openFilter(){
+  DEFU='';
   loadTypes();
   FT={rg:F.rg,en:F.en,ty:F.ty.slice(),q:F.q||'',st:F.st||'',eq:F.eq.slice()};
   paintFilter();
@@ -5025,12 +5060,18 @@ function paintFilter(){
   // 依歸併規則的順序排（空品車固定第一），規則外的寫法排在該組最後
   tys.sort(function(a,b){return tyOrder(a)-tyOrder(b)||a.localeCompare(b,'zh-Hant');});
 
-  var h='<div class="shh" style="align-items:center">'
+  var dn='';if(DEFU)USERS.forEach(function(x){if(x.username===DEFU)dn=x.engineerName||x.username;});
+  var h=(DEFU
+    ?'<div class="shh" style="align-items:center"><button class="ib" onclick="defFBack()">‹</button>'
+      +'<div style="flex:1;min-width:0"><h3>預設篩選</h3><p class="hint" style="margin-top:2px">'+he(dn)+' 開啟行事曆時自動套用</p></div>'
+      +'<div style="display:flex;gap:7px"><button class="btn btn-sm" onclick="defFSave(true)">清除</button>'
+      +'<button class="btn btn-p btn-sm" onclick="defFSave(false)">儲存'+(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
+    :'<div class="shh" style="align-items:center">'
     +'<h3 style="flex-shrink:0">篩選</h3>'
     +'<div style="display:flex;gap:7px;flex:1;justify-content:flex-end">'
     +'<button class="btn btn-sm" onclick="clearFilter()">清除</button>'
     +'<button class="btn btn-p btn-sm" onclick="applyFilter()">完成'
-    +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>'
+    +(nFT()?'（'+nFT()+'）':'')+'</button></div></div>')
     +'<p class="lb">關鍵字　<span style="color:var(--tx2)">專案、點位、報告編號、備註</span></p>'
     +'<input class="fld" id="f-q" value="'+he(FT.q||'')+'" placeholder="輸入任意關鍵字" style="margin-bottom:16px">'
     +'<p class="lb">地區</p><select class="fld" id="f-rg" style="margin-bottom:16px">'
@@ -5060,7 +5101,7 @@ function paintFilter(){
   var q=$('f-q');
   if(q){
     q.oninput=function(){FT.q=this.value;liveFilter(350);};   // 打字時不重畫面板（避免失焦），停手 0.35 秒後背景套用
-    q.onkeydown=function(e){if(e.key==='Enter'){FT.q=this.value;applyFilter();}};
+    q.onkeydown=function(e){if(e.key==='Enter'){FT.q=this.value;if(DEFU)defFSave(false);else applyFilter();}};
   }
   liveFilter(0);                          // 面板上每改一個條件，背後的頁面就跟著篩
 }
@@ -5072,6 +5113,7 @@ function sameF(a,b){
 }
 function liveFilter(ms){
   clearTimeout(LIVE_T);
+  if(DEFU)return;                        // 幫別人設定預設篩選時，不動自己的畫面
   LIVE_T=setTimeout(function(){
     var el=$('f-q');if(el)FT.q=el.value;
     var nf={rg:FT.rg,en:FT.en,ty:FT.ty.slice(),q:(FT.q||'').trim(),st:FT.st||'',eq:FT.eq.slice()};
@@ -5617,7 +5659,7 @@ function openSheet(html){
   $('sheet').scrollTop=0;
 }
 function closeSheet(){
-  EV_D='';SHEET_FORM=false;
+  EV_D='';SHEET_FORM=false;DEFU='';
   if(!$('ov').classList.contains('open'))return;
   $('ov').classList.remove('open');
   document.body.classList.remove('locked');
@@ -8184,6 +8226,9 @@ function editUser(name){
     +'<datalist id="utl">'+userTeams().map(function(t){return '<option value="'+he(t)+'">';}).join('')+'</datalist>'
     +'<p class="lb">直屬主管　<span style="color:var(--tx3);font-weight:400">可收到證照到期通知</span></p>'
     +'<div id="mgbox" style="margin-bottom:18px">'+mgrBox(u.username)+'</div>'
+    +'<p class="lb">預設篩選　<span style="color:var(--tx3);font-weight:400">開啟行事曆時自動套用，例如行政只看某些監測類別</span></p>'
+    +'<button class="fld" style="text-align:left;margin-bottom:18px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="defFOpen(\''+esc(u.username)+'\')">'
+    +'<span style="flex:1;min-width:0;'+(u.defFilter?'':'color:var(--tx3)')+'">'+he(deffTxt(u.defFilter))+'</span>'+ic('right',15)+'</button>'
     +(can('hide')?'<div class="link" style="cursor:default;margin-bottom:16px"><div><div>隱藏此帳號</div><div class="hint" style="margin-top:2px">隱藏後只有管理員在帳號管理看得到，帳號照常可以登入</div></div><span style="flex:1"></span>'
       +'<button class="sw'+(u.hidden?' on':'')+'" id="e-h" onclick="this.classList.toggle(\'on\')"></button></div>':'')
     +((u.createdAt||u.createdBy)
