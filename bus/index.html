@@ -768,7 +768,7 @@ function drvHTML(){
     var okN=g.filter(function(b){return b.st==='ok';}).length,today=d===tw().day;
     var at2=eff(d,s),actN=g.filter(function(b){return b.st==='w'||b.st==='ok';}).length;
     return '<div class="grp">'+dlab(d)+' '+'<span style="white-space:nowrap">'+(at2!==s?'<s style="color:var(--tx3);text-decoration-color:#d2402c;font-weight:500">'+slotLab(s).replace(/^(上午|下午) /,'')+'</s> <b style="color:#c0442b">'+slotLab(at2)+'</b>':slotLab(s))+'</span><em>'+ppl+' 人</em>'
-      +(actN&&!departed(d,s)?'<button class="chip s" style="margin-left:auto;white-space:nowrap;background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" onclick="castOpen(\''+d+'\',\''+s+'\')">📣 廣播／改時間</button>':'')
+      +(actN&&!expired({kind:'bus',day:d,slot:s})?'<button class="chip s" style="margin-left:auto;white-space:nowrap;background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" onclick="castOpen(\''+d+'\',\''+s+'\')">📣 廣播／改時間</button>':'')
       +'</div>'+(DATA.sent&&DATA.sent[k]?'<div class="note" style="margin:-2px 0 8px">✓ '+DATA.sent[k]+' 已發廣播</div>':'')
       +'<div class="gb">'+routeSum(g)+'<div class="cards">'
       +g.slice().sort(function(a,b){return (a.st==='no')-(b.st==='no');}).map(function(b){return rjWrap(b,(function(){   // 已拒絕的排最下面、收合、灰色蓋章
