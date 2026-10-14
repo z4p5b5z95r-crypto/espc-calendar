@@ -16,9 +16,13 @@ html,body{overflow-x:hidden;overflow-x:clip;overscroll-behavior:none;max-width:1
 html,body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif}
 .app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative}
 .hd{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top)) 18px 10px;background:linear-gradient(90deg,#fafafa 55%,#fdeee4)}
-.hd .u{font-size:12px;color:var(--tx3);display:flex;align-items:center;gap:6px}.hd .u i{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center}
+.hd .h1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mep{flex:none;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 11px 3px 3px;font-size:12.5px;color:var(--tx2);cursor:pointer;max-width:55%;white-space:nowrap;overflow:hidden}
+.mep i{flex:none;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#f08a3e,#d5560e);color:#fff;font-style:normal;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.mep small{font-size:10.5px;background:var(--tint);color:var(--accT);border-radius:999px;padding:0 6px;font-weight:700}
+.hd .u{font-size:11.5px;color:var(--tx3);display:flex;align-items:center;gap:6px;white-space:nowrap}.hd .u i{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center}
 .hd .u a{margin-left:auto;color:var(--tx3);text-decoration:none}
-.hd b{display:block;font-size:21px;margin-top:6px}
+.hd b{display:block;font-size:25px;font-weight:900;line-height:1.25}
 .bd{padding:4px 14px calc(40px + env(safe-area-inset-bottom))}
 .sec{font-size:12px;color:var(--tx3);margin:14px 4px 6px}
 .fld{width:100%;border:1px solid var(--line);background:#fff;border-radius:999px;padding:11px 15px;font-size:16px;font-family:inherit;color:var(--tx);outline:none}
@@ -46,19 +50,25 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .acts .y{background:var(--acc);color:#fff}.acts .n{background:var(--card2);color:var(--err)}.acts .c{background:var(--card2);color:var(--tx2)}
 .grp{font-size:13px;font-weight:700;margin:16px 4px 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px;white-space:nowrap}.grp em{font-style:normal;font-size:11px;background:var(--tint);color:var(--accT);border-radius:999px;padding:1px 8px}
 .empty{text-align:center;color:var(--tx3);font-size:13.5px;padding:30px 0}
-.nav{display:flex;gap:18px;margin-top:8px;font-size:14.5px;color:var(--tx3);overflow-x:auto}
-.nav>span{position:relative;cursor:pointer;padding:6px 0 7px;white-space:nowrap}
-.nav>span.on{color:var(--tx);font-weight:800}
-.nav>span.on:after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:var(--acc)}
-.nav sup{position:absolute;top:-2px;right:-14px;background:#e1261a;color:#fff;border-radius:9px;font-size:10px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 4px}
-.nav .ic{display:none}
-.nav.two{gap:0}.nav.two>span{flex:1;text-align:center}.nav.two>span.on:after{left:28%;right:28%}
-.nav.two sup{position:static;display:inline-flex;margin-left:4px;vertical-align:2px}.nav.two .ic{display:inline;margin-right:4px}
+.nav{display:flex;margin:8px -18px 0;padding:0 18px;border-bottom:1px solid var(--line)}
+.nav>span{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 2px 10px;font-weight:700;font-size:15px;color:var(--tx3);cursor:pointer;white-space:nowrap;position:relative}
+.nav>span.on{color:var(--tx)}
+.nav>span.on:after{content:'';position:absolute;left:22%;right:22%;bottom:-1px;height:3px;border-radius:3px;background:var(--acc)}
+.nav .ic{display:inline-flex}.nav>span.on .ic{color:var(--acc)}
+.nav .ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nav sup{display:inline-flex;align-items:center;justify-content:center;background:#e1261a;color:#fff;border-radius:9px;font-size:10px;min-width:17px;height:17px;padding:0 4px;line-height:1}
+.nav.many>span{flex-direction:column;gap:1px;font-size:11.5px;padding:7px 1px 8px}
+.nav.many sup{position:absolute;top:3px;right:calc(50% - 22px)}
 .tk5.next{border:2px solid var(--acc);box-shadow:0 8px 22px rgba(224,95,18,.16)}
+.tke{opacity:1;margin-top:18px}.tke summary span{font-weight:500;margin-left:8px;color:var(--tx3);font-size:12px}
+.tkm{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:13.5px;color:var(--tx2);cursor:pointer}
+.tkm .d{font-weight:700;color:var(--tx);white-space:nowrap}.tkm .r{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkm .tg{flex:none;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px;border:1.5px solid}
+.tkm .tg.te{color:#8a8079;border-color:#cfc6bf}.tkm .tg.tn{color:#c0442b;border-color:#e9b3a8}.tkm .tg.tx{color:#8a8079;border-color:#cfc6bf;text-decoration:line-through}
 .tkend{grid-column:1/-1;text-align:center;font-size:12px;color:var(--tx3);margin:20px 0 -8px;border-top:1px dashed var(--line);padding-top:10px}
 .tkno{text-align:center;color:var(--tx2);font-size:13.5px;padding:44px 0 6px}.tkno i{display:block;font-style:normal;font-size:40px;opacity:.75}.tkno b{display:block;color:var(--tx);font-size:16px;margin:4px 0 2px}
 .tkno .btn{max-width:180px;margin:14px auto 0}
-@media(max-width:420px){.nav.many{font-size:12.5px}}
+
 .ov{position:fixed;inset:0;z-index:15;display:none}.ov.on{display:block}
 .dim{position:absolute;inset:0;background:rgba(20,16,12,.32)}
 .sheet{position:absolute;left:50%;transform:translateX(-50%);width:100%;max-width:520px;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.15);max-height:90%;overflow-y:auto;animation:up .25s}
@@ -75,7 +85,7 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .sw:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
 .sw.on{background:var(--acc)}.sw.on:after{left:21px}
 .li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line);font-size:14px}.li:first-child{border-top:0}
-.embed .hd .u,.embed .hd b{display:none}.embed .hd{padding:4px 16px 0}.embed .hd:not(.hasnav){display:none}.embed .nav{margin-top:0}
+.embed .hd .h1{display:none}.embed .hd{padding:0 14px;background:var(--bg)}.embed .nav{margin:0 -14px;padding:0 14px}.embed .hd:not(.hasnav){display:none}.embed .nav{margin-top:0}
 .hrow{display:flex;align-items:center;gap:8px;margin:14px 4px 0}
 .hrow .h2{flex:1;font-size:17px;font-weight:800;user-select:none;-webkit-user-select:none}
 .mybtn{border:1.5px solid #f0b48d;background:#fff;color:var(--accT);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px;font-family:inherit;cursor:pointer;white-space:nowrap}
@@ -183,6 +193,7 @@ button.hpp{cursor:pointer}.hpp.s{font-size:11px;padding:1px 7px}
 @media (min-width:900px){
   .app{max-width:1180px}
   .hd{padding-left:32px;padding-right:32px}
+  .nav{margin-left:-32px;margin-right:-32px;padding:0 32px;justify-content:flex-start}.nav>span{flex:0 0 auto;padding-left:18px;padding-right:18px}
   .bd{padding:10px 32px 48px}
   .sheet{max-width:520px;bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:24px;max-height:86vh;overflow:auto}
   .bk2{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:40px;align-items:start}
@@ -224,7 +235,7 @@ button.hpp{cursor:pointer}.hpp.s{font-size:11px;padding:1px 7px}
 @keyframes ldj{0%,60%,100%{transform:translateY(0) scale(1,1)}20%{transform:translateY(-26px) scale(.9,1.1)}40%{transform:translateY(0) scale(1.15,.85)}}
 </style></head><body>
 <div class="app">
- <div class="hd"><div class="u" id="hu"></div><b id="ht">娃娃車預約</b><div class="nav" id="nav" style="display:none"></div></div>
+ <div class="hd"><div class="h1"><b id="ht">娃娃車預約</b><span class="mep" id="hu" onclick="logoutAsk()"></span></div><div class="nav" id="nav" style="display:none"></div></div>
  <div class="bd" id="bd"><div class="ld"><svg class="spin" viewBox="52 22 96 64" aria-hidden="true"><g filter="url(#ldgoo)" fill="#F36F21"><rect x="58" y="70" width="84" height="12" rx="6"/><circle class="ldj" cx="74" cy="64" r="9"/><circle class="ldj ldj2" cx="100" cy="64" r="9"/><circle class="ldj ldj3" cx="126" cy="64" r="9"/></g></svg><span>載入中…</span></div></div>
  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="ink" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed="5" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.2 1.38" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in" result="c"/><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="9" result="t2"/><feDisplacementMap in="c" in2="t2" scale="2" xChannelSelector="R" yChannelSelector="G"/></filter><path id="arcT" d="M25,60 A35,35 0 0,1 95,60"/><path id="arcB" d="M26,60 A34,34 0 0,0 94,60"/><filter id="ldgoo" x="-40%" y="-60%" width="180%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation="5"/><feColorMatrix mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/><feColorMatrix in="goo" mode="matrix" values="0 0 0 0 .97  0 0 0 0 .55  0 0 0 0 .25  0 0 0 .26 0" result="body"/><feMorphology in="goo" operator="erode" radius="1.2" result="er"/><feComposite in="goo" in2="er" operator="out" result="edge"/><feColorMatrix in="edge" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .48  0 0 0 0 .18  0 0 0 .6 0" result="rim"/><feGaussianBlur in="goo" stdDeviation="4" result="gb"/><feOffset in="gb" dy="-4" result="gbo"/><feComposite in="goo" in2="gbo" operator="out" result="low"/><feColorMatrix in="low" mode="matrix" values="0 0 0 0 .95  0 0 0 0 .45  0 0 0 0 .15  0 0 0 .35 0" result="lowc"/><feMorphology in="goo" operator="erode" radius="3" result="e3"/><feOffset in="e3" dx="2.5" dy="3.5" result="e3o"/><feComposite in="e3" in2="e3o" operator="out" result="c"/><feGaussianBlur in="c" stdDeviation=".8" result="cb"/><feColorMatrix in="cb" mode="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .85 0" result="hi"/><feMerge><feMergeNode in="body"/><feMergeNode in="lowc"/><feMergeNode in="rim"/><feMergeNode in="hi"/></feMerge></filter></defs></svg>
 </div>
@@ -389,7 +400,13 @@ function init(){
 }
 /* 還沒搭的車票張數（已取消、不接單、已發車、過期的都不算）：分頁紅點、決定打開先看哪一頁 */
 function actCnt(){return (DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&!expired(b)&&(b.kind==='call'||!departed(b.day,b.slot));}).length;}
-var AUTOPG=0;   // 打開時自動選的頁：資料回來發現有車票，還沒動過就改看車票
+var AUTOPG=0;
+/* 分頁的線條圖示（跟行事曆下方一樣的風格） */
+var NI={tk:'<svg viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v2.2M14 11v2M14 15.8V18"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  van:'<svg viewBox="0 0 24 24"><path d="M3 15V8a2 2 0 0 1 2-2h11l4 4.5V15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 10.5h17M9 6v4.5M14.5 6v4.5"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/></svg>',
+  qr:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18v2M18 14h2"/></svg>',
+  gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'};   // 打開時自動選的頁：資料回來發現有車票，還沒動過就改看車票
 function uid(){return M&&M.me?(M.me.username||M.me.gid||''):'';}
 /* 上次的清單先顯示（今天存的才用），後台回來再更新 */
 function cacheLists(){['mine','drvList'].forEach(function(fn){var c=null;try{c=JSON.parse(ls('bus_d_'+fn+'_'+uid())||'null');}catch(e){}
@@ -414,15 +431,17 @@ function render(){setTimeout(cdTick,0);
   if(!TOKEN||!M){hd.style.display='none';$('nav').style.display='none';$('bd').innerHTML=loginHTML();return;}
   hd.style.display='';
   var me=M.me;
-  $('hu').innerHTML='<i>'+he(me.name.slice(0,1))+'</i>'+he(me.name)+(me.ext?' #'+he(me.ext):'')+(me.kind==='g'?'　'+he(me.gid):'')+(me.isDriver?'　（司機）':'')+(EMBED&&me.kind==='u'?'':'<a href="#" onclick="logoutAsk();return false">登出</a>');
+  // 右上角小膠囊：名字（點了可以登出；在行事曆裡由行事曆管登入）
+  $('hu').innerHTML='<i>'+he(me.name.slice(0,1))+'</i>'+he(me.name)+(me.isDriver?'<small>司機</small>':'');$('hu').title=me.name+(me.ext?' #'+me.ext:'')+(me.kind==='g'?' '+me.gid:'');
   if(!me.ext&&me.kind==='g'){$('ht').textContent='娃娃車預約';$('nav').style.display='none';$('bd').innerHTML=extHTML();return;}
   var act=actCnt();ACT=act;
+  if((PAGE==='drv'||PAGE==='qr')&&!(me.isDriver||me.isAdmin)||PAGE==='adm'&&!me.isAdmin||!PAGE)PAGE=act?'mine':'book';   // 上次存的頁不能看（例如已不是司機）：回到車票／預約
   // 上方分頁：車票（左）｜預約（右）；司機／管理員前面多「娃娃車」、後面多 QR code、管理
-  var tkN=['mine','🎫','車票',act],navs=[tkN,['book','➕','預約',0]];
-  if(me.isDriver||me.isAdmin)navs=[['drv','🚐','娃娃車',(DATA.drv||[]).filter(function(b){return b.st==='w'&&!expired(b);}).length],tkN,['book','➕','預約',0],['qr','▦','QR code',0]];
-  if(me.isAdmin)navs.push(['adm','⚙️','管理',0]);
+  var tkN=['mine',NI.tk,'車票',act],navs=[tkN,['book',NI.plus,'預約',0]];
+  if(me.isDriver||me.isAdmin)navs=[['drv',NI.van,'總覽',(DATA.drv||[]).filter(function(b){return b.st==='w'&&!expired(b);}).length],tkN,['book',NI.plus,'預約',0],['qr',NI.qr,'QR',0]];
+  if(me.isAdmin)navs.push(['adm',NI.gear,'管理',0]);
   hd.classList.add('hasnav');
-  $('nav').style.display='';$('nav').className='nav'+(navs.length===2?' two':navs.length>4?' many':'');
+  $('nav').style.display='';$('nav').className='nav'+(navs.length>2?' many':'');
   $('nav').innerHTML=navs.map(function(x){return '<span class="'+(PAGE===x[0]?'on':'')+'" onclick="go(\''+x[0]+'\')"><span class="ic">'+x[1]+'</span>'+x[2]+(x[3]?'<sup>'+x[3]+'</sup>':'')+'</span>';}).join('');
   $('ht').textContent='娃娃車預約';
   var y=window.scrollY;
@@ -724,7 +743,14 @@ function mineHTML(side){
   var nAct=l.filter(function(b){return key(b).charAt(0)==='0';}).length;
   NEXTID=nAct?l[0].id:'';   // 最近要搭的那班：加框
   if(!nAct)h+=none('沒有要搭的車');
-  return h+'<div class="tkg'+(side?' one':'')+'">'+l.map(function(b,i){return (i===nAct&&nAct?'<div class="tkend">已結束</div>':'')+(i===0&&!nAct?'<div class="tkend" style="margin-top:4px">已結束</div>':'')+tkHTML(b);}).join('')+'</div>';
+  var live=l.slice(0,nAct),end=l.slice(nAct);
+  h+=live.length?'<div class="tkg'+(side?' one':'')+'">'+live.map(function(b){return tkHTML(b);}).join('')+'</div>':'';
+  // 已過期、被拒絕、已取消：收成一行一行（點一下看完整車票）
+  if(end.length){var cnt={};end.forEach(function(b){var t=tkEndTag(b);cnt[t]=(cnt[t]||0)+1;});
+    h+='<details class="ended tke"'+(GX._tke?' open':'')+' ontoggle="GX._tke=this.open"><summary>已結束（'+end.length+'）<span>'+Object.keys(cnt).map(function(k){return k+' '+cnt[k];}).join('・')+'</span></summary>'
+      +end.map(function(b){var t=tkEndTag(b),c=b.kind==='call';
+        return '<div class="tkm" onclick="TKD=null;tkPop(\''+b.id+'\')"><span class="d">'+md(b.day)+' '+(c?'🚨 '+(b.at==='asap'?'臨時叫車':he(b.at)):slotLab(b.at2||b.slot))+'</span><span class="r">'+route(b)+'</span><span class="tg t'+(t==='已取消'?'x':t==='被拒絕'?'n':'e')+'">'+t+'</span></div>';}).join('')+'</details>';}
+  return h;
 }
 /** 一張車票（我的預約列表、點通知跳出的車票共用）；pop＝跳出視窗用：不放取消鈕、id 不重複 */
 function tkHTML(b,pop){
@@ -751,6 +777,7 @@ function tkHTML(b,pop){
       +(rj?stampSVG('no',stDate(b.upd),'司機不接單',8):ex?stampSVG('exp',stDate(b.day),'已過期',-8):b.st==='ok'?stampSVG(true,stDate(b.upd),b.drv,-14):x?stampSVG(false,stDate(b.upd),'已取消',10):'')+'</div>';
 }
 var NEXTID='';
+function tkEndTag(b){return b.st==='x'?'已取消':b.st==='no'?'被拒絕':expired(b)?'已過期':'已發車';}
 var CX={id:'',leg:'all',why:''};
 function findB(id,list){return (list||[]).filter(function(x){return x.id===id;})[0];}
 function cancelOpen(id){CX={id:id,leg:'all',why:''};cxPaint();}
