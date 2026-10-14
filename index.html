@@ -193,7 +193,9 @@ select.fld{appearance:none;padding-right:38px;cursor:pointer;
   background:rgba(24,16,12,.07);color:var(--tx);font-size:15px;font-weight:600;pointer-events:none}
 #page>.load .spin,#page>[id]>.load:only-child .spin{width:84px;height:56px;margin-top:0}
 @keyframes sp{to{transform:rotate(360deg)}}
-.load{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--tx3);font-size:13px;}
+/* 所有載入動畫都跟月曆「載入行程…」一樣大：水珠在上、字在下 */
+.load{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:56px 20px;color:var(--tx);font-size:15px;font-weight:600}
+.load .spin,.mgload .spin{width:84px;height:56px;margin-top:0}
 .empty{text-align:center;color:var(--tx3);font-size:14px;padding:36px 20px;}
 .sw{width:46px;height:27px;border-radius:999px;background:var(--line);position:relative;flex-shrink:0;transition:.18s;}
 .sw.on{background:var(--acc);}
@@ -1032,8 +1034,8 @@ html[data-theme="dark"] .shci.in{background:#22314a}html[data-theme="dark"] .shc
 .mgpj.on .mgpjc svg{transform:rotate(90deg)}
 .mgev{border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin:0 0 8px;background:var(--card)}
 /* 訊息頁上方「下載訊息中…」 */
-.mgload{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 4px;color:var(--tx2);font-size:13px;font-weight:500}
-.mgload .spin{margin-top:-14px}
+.mgload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:40px 0 20px;color:var(--tx);font-size:15px;font-weight:600}
+
 /* 從上面跳下來的提示（不擋住下方的送出按鈕） */
 #toastTop{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);
   z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 32px);max-width:420px;}
