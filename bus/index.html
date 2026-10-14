@@ -255,9 +255,8 @@ function md(d){var a=d.split('-');return (a[0]!==tw().day.slice(0,4)?a[0]+'/':''
 function dlab(d){var t=tw().day,tm=new Date(new Date(t+'T12:00:00Z').getTime()+864e5).toISOString().slice(0,10);
   return (d===t?'今天 ':d===tm?'明天 ':'')+md(d)+'（'+WK[dow(d)]+'）';}
 /* 預約頁：這班目前有幾位搭乘 */
-function seatTxt(d,s){var c=(M.cnt||{})[d+'|'+s]||0,S=M.seats||4;
-  if(!c)return '<small class="sc">目前沒有人搭</small>';
-  return '<small class="sc'+(c>=S?' full':'')+'">'+(c>=S?'已 '+c+' 人・已滿，可坐後車廂':'已 '+c+' 人搭乘／'+S+' 座')+'</small>';}
+function seatTxt(d,s){var c=(M.cnt||{})[d+'|'+s]||0;   // 只顯示目前搭乘人數（滿了還可以坐後車廂，不寫座位數）
+  return '<small class="sc">'+(c?'目前 '+c+' 人搭乘':'目前沒有人搭')+'</small>';}
 function slotLab(s){if(s==='10:00')return '上午 10:00';if(s==='14:00')return '下午 2:00';var m=hm(s);if(isNaN(m))return s;var H=Math.floor(m/60);return (m<720?'上午 ':'下午 ')+(H>12?H-12:H)+':'+('0'+m%60).slice(-2);}
 function eff(day,slot){return (M&&M.re&&M.re[day+'|'+slot])||slot;}   // 司機改過時間就用新的
 /* 所有娃娃車：發車後 1 小時就算過期（班次＝表定／改過的時間；臨時叫車＝指定時間，「盡快」＝司機接單時間＋預計幾分鐘到） */
