@@ -178,6 +178,7 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .card.rj .stamp{position:absolute;right:4px;top:-8px;width:54px;height:54px;pointer-events:none;opacity:.9}
 .card.rj .rjb{margin-top:8px;filter:grayscale(.5)}.card.rj .rjb>.card,.card.rj .rjb>div{border:0!important;background:none;padding:0!important;margin:0}
 .card.rj .rjb .acts{filter:none}
+.seg button small.sc{color:var(--ok);font-weight:700}.seg button small.sc.full{color:#c0442b}
 .ended{margin:22px 0 10px;opacity:.75}.ended summary{font-size:13px;font-weight:700;color:var(--tx3);cursor:pointer;padding:8px 4px;list-style:none}
 .ended summary::before{content:'▸ '}.ended[open] summary::before{content:'▾ '}
 .rs li[data-d]{touch-action:pan-y}.rs .hdl{flex:none;width:26px;height:26px;margin-left:2px;display:flex;align-items:center;justify-content:center;color:#b9a99b;font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -253,6 +254,10 @@ function dow(d){return new Date(d+'T12:00:00+08:00').getDay();}
 function md(d){var a=d.split('-');return (a[0]!==tw().day.slice(0,4)?a[0]+'/':'')+(+a[1])+'/'+(+a[2]);}
 function dlab(d){var t=tw().day,tm=new Date(new Date(t+'T12:00:00Z').getTime()+864e5).toISOString().slice(0,10);
   return (d===t?'今天 ':d===tm?'明天 ':'')+md(d)+'（'+WK[dow(d)]+'）';}
+/* 預約頁：這班目前有幾位搭乘 */
+function seatTxt(d,s){var c=(M.cnt||{})[d+'|'+s]||0,S=M.seats||4;
+  if(!c)return '<small class="sc">目前沒有人搭</small>';
+  return '<small class="sc'+(c>=S?' full':'')+'">'+(c>=S?'已 '+c+' 人・已滿，可坐後車廂':'已 '+c+' 人搭乘／'+S+' 座')+'</small>';}
 function slotLab(s){if(s==='10:00')return '上午 10:00';if(s==='14:00')return '下午 2:00';var m=hm(s);if(isNaN(m))return s;var H=Math.floor(m/60);return (m<720?'上午 ':'下午 ')+(H>12?H-12:H)+':'+('0'+m%60).slice(-2);}
 function eff(day,slot){return (M&&M.re&&M.re[day+'|'+slot])||slot;}   // 司機改過時間就用新的
 /* 所有娃娃車：發車後 1 小時就算過期（班次＝表定／改過的時間；臨時叫車＝指定時間，「盡快」＝司機接單時間＋預計幾分鐘到） */
@@ -286,7 +291,7 @@ var C={frm:'赤城',frmO:'',dest:'紅樓',destO:'',when:'asap',time:'',n:1,memo:
 var CALLON=false,TAPS=[],PEND='';
 var LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};
 
-function setMe(j){M=j;try{lsS('bus_m',JSON.stringify(j.me?{ok:true,me:j.me,days:j.days,today:j.today,runToday:j.runToday,offToday:j.offToday,off:j.off,re:j.re||{}}:j));}catch(e){}lsS('bus_me',JSON.stringify({name:j.me.name,kind:j.me.kind}));lsS('bus_u',j.me.kind==='u'?j.me.username:'');}
+function setMe(j){M=j;try{lsS('bus_m',JSON.stringify(j.me?{ok:true,me:j.me,days:j.days,today:j.today,runToday:j.runToday,offToday:j.offToday,off:j.off,re:j.re||{},cnt:j.cnt||{},seats:j.seats||4}:j));}catch(e){}lsS('bus_me',JSON.stringify({name:j.me.name,kind:j.me.kind}));lsS('bus_u',j.me.kind==='u'?j.me.username:'');}
 function logoutLocal(){TOKEN='';M=null;lsD('bus_token');lsD('bus_me');lsD('bus_m');DATA={};PAGE='';}
 function logout(){if(TOKEN)gas('logout',TOKEN).catch(function(){});logoutLocal();LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};render();}
 
@@ -530,7 +535,7 @@ function bookHTML(){
   if(offs.length)h+='<p class="hint">'+offs.map(function(o){return md(o.d)+' '+he(o.n);}).join('、')+' 停駛</p>';
   h+='<div class="sec">行程</div><div class="seg">'+[['rt','來回'],['go','去程'],['back','回程']].map(function(t){return '<button class="'+(F.trip===t[0]?'on':'')+'" onclick="F.trip=\''+t[0]+'\';render()">'+t[1]+'</button>';}).join('')+'</div>';
   h+='<div class="sec">'+(F.trip==='rt'?'班次':F.trip==='back'?'回程班次（從目的地接回）':'去程班次')+'</div><div class="seg">'+slots.map(function(s){var gone=!R&&departed(F.day,s);
-    return '<button class="'+(F.slot===s?'on':'')+'" '+(gone?'disabled':'')+' onclick="F.slot=\''+s+'\';render()">'+slotLab(eff(F.day,s))+(gone?'<small>已發車</small>':eff(F.day,s)!==s?'<small>原 '+slotLab(s)+'・司機改時間</small>':'')+'</button>';}).join('')+'</div>';
+    return '<button class="'+(F.slot===s?'on':'')+'" '+(gone?'disabled':'')+' onclick="F.slot=\''+s+'\';render()">'+slotLab(eff(F.day,s))+(gone?'<small>已發車</small>':(eff(F.day,s)!==s?'<small>原 '+slotLab(s)+'・司機改時間</small>':'')+(R?'':seatTxt(F.day,s)))+'</button>';}).join('')+'</div>';
   h+='<div class="sec">'+(F.trip==='back'?'從哪裡接回（回到'+HOME+'）':F.trip==='rt'?'目的地（從'+HOME+'出發，再接回'+HOME+'）':'目的地（從'+HOME+'出發）')+'</div><div class="chips">'+DESTS.map(function(t){return '<button class="chip'+(F.dest===t?' on':'')+'" onclick="F.dest=\''+t+'\';render()">'+t+'</button>';}).join('')+'</div>';
   if(F.dest==='其他')h+='<input class="fld" id="oth" style="margin-top:8px" maxlength="40" placeholder="例如：捷運新北產業園區站" value="'+he(F.other)+'" oninput="F.other=this.value;chk()">';
   h+='<div class="sec">人數</div><div class="seg" style="max-width:220px">'+[1,2,3,4].map(function(n){return '<button class="'+(F.n===n?'on':'')+'" onclick="F.n='+n+';render()">'+n+(n===4?'+':'')+'</button>';}).join('')+'</div>';
