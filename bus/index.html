@@ -60,6 +60,7 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .nav.many>span{flex-direction:column;gap:1px;font-size:11.5px;padding:7px 1px 8px}
 .nav.many sup{position:absolute;top:3px;right:calc(50% - 22px)}
 .tk5.next{border:2px solid var(--acc);box-shadow:0 8px 22px rgba(224,95,18,.16)}
+.note.warn{background:#fff3dc;color:#7a4b00}
 .tke{opacity:1;margin-top:18px}.tke summary span{font-weight:500;margin-left:8px;color:var(--tx3);font-size:12px}
 .tkm{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:13.5px;color:var(--tx2);cursor:pointer}
 .tkm .d{font-weight:700;color:var(--tx);white-space:nowrap}.tkm .r{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -399,6 +400,15 @@ function init(){
   render();
 }
 /* 還沒搭的車票張數（已取消、不接單、已發車、過期的都不算）：分頁紅點、決定打開先看哪一頁 */
+/* 司機下班時間（17:00～8:30、週末、停駛日）：新預約要等上班才會通知司機 */
+/* 下班時間送出的預約：跳出提醒，司機上班才會確認；看完再接著問要不要開通知 */
+function heldPop(){if($('ov').classList.contains('on')||SFX)return;
+  sheet('<div style="text-align:center"><div style="font-size:34px">⏰</div><b style="font-size:18px">司機已經下班了</b>'
+    +'<p class="hint" style="text-align:center;margin-top:6px">司機上班時間是 <b>8:30～17:00</b>。你的預約已經送出，'+drvNext()+'早上 8:30 司機才會收到通知並確認。</p></div>'
+    +'<button class="btn" onclick="closeSheet();obAfter()">知道了</button>');}
+/* 司機下一次上班是哪天（今天、明天、10/19（一）） */
+function drvNext(){var t=tw();if(M.runToday&&t.min<510)return '今天';var d=(M.days||[]).filter(function(x){return x>t.day;})[0];return d?dlab(d).split(' ')[0]:'下一個上班日';}
+function drvOff(){var m=tw().min;return m>=1020||m<510||!(M&&M.runToday);}
 function actCnt(){return (DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&!expired(b)&&(b.kind==='call'||!departed(b.day,b.slot));}).length;}
 var AUTOPG=0;
 /* 分頁的線條圖示（跟行事曆下方一樣的風格） */
@@ -644,6 +654,7 @@ function bookHTML(){
   if(M.me.isDriver||M.me.isAdmin){peopleLoad();   // 司機／管理員：可以幫別人預約
     h+='<div class="sec">'+(R?'乘客（不填就是自己）':'幫誰預約（選填，不填就是自己）')+'</div><div style="display:flex;gap:8px"><input class="fld" style="flex:1.4" list="ppl" maxlength="20" placeholder="名字" value="'+he(F.forName)+'" oninput="F.forName=this.value;forFill(this.value,\'fext\',\'forExt\')">'
       +'<input class="fld" style="flex:1" id="fext" inputmode="numeric" maxlength="10" placeholder="分機" value="'+he(F.forExt)+'" oninput="F.forExt=this.value"></div>'+pplList();}
+  if(!R&&drvOff())h+='<div class="note warn" style="margin-top:14px">⏰ 司機上班時間 8:30～17:00，現在送出的預約，<b>'+drvNext()+'早上 8:30</b> 司機才會收到通知並確認</div>';
   h+='<button class="btn" id="go" onclick="'+(R?'repGoF()':'bookGo()')+'">'+(BUSY?'送出中…':R?'🔁 設定固定搭車':'送出預約')+'</button>';
   if(R)h+='<p class="hint" style="text-align:center">會自動排進可以預約的日子（已確認、佔一個位子）；某天不搭，乘客取消那一天就好</p>';
   if(drv)h+=repList();
@@ -676,7 +687,7 @@ function bookGo(trunk){
     var fn=F.forName.trim();F.memo='';F.other='';F.forName='';F.forExt='';
     F.help='';F.helpNote='';
     if(!fn)TK=j.id;   // 車票頁：新的那張閃一下
-    sfxDone('送出完成',fn?'已幫 '+fn+' 預約':'等司機確認',function(){go(fn?(M.me.isDriver?'drv':'book'):'mine');if(!fn)obAfter();});
+    sfxDone('送出完成',fn?'已幫 '+fn+' 預約':j.held?'司機上班（8:30）後才會收到並確認':'等司機確認',function(){go(fn?(M.me.isDriver?'drv':'book'):'mine');if(j.held&&!fn)setTimeout(heldPop,1700);else if(!fn)obAfter();});
   }).catch(function(e){BUSY=false;sfxFail();toast(e.message,3000);render();});
 }
 /* 這班已登記超過座位：問要不要坐後車廂，同意才送出 */
