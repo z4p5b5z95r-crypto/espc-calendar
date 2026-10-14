@@ -423,7 +423,12 @@ html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(
 .mgt span{margin-left:auto;font-size:12px;color:var(--tx3);white-space:nowrap}
 .mgdot{width:8px;height:8px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,#ff8a80,#e1261a 70%);box-shadow:0 0 0 2px rgba(225,38,26,.12)}
 .mgp{font-size:13.5px;color:var(--tx2);margin-top:3px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
-.mgi .ct{font-size:13.5px;margin-top:3px}
+.mgi .ct{font-size:13.5px;margin-top:3px;white-space:pre-wrap}
+.crtt{font-weight:700;font-size:14px;margin-top:3px}
+.crt{margin-top:5px;border-top:1px dashed var(--line)}
+.crr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.crr b{white-space:nowrap}.crr .c{color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crr .e{font-size:12px;font-weight:700;white-space:nowrap}.crr .e.bad{color:#c0442b}
 .mgi.rd{opacity:.6}.mgi.rd .mgt b{font-weight:500}
 .mggo{align-self:center;color:var(--tx3);flex:none}
 /* ── 管理員檢視別人畫面時的提示條 ── */
@@ -1937,16 +1942,38 @@ function msgGroup(t){
   if(ds>=addDays(td,-6))return '這週';
   return parseInt(ds.slice(5,7))+' 月 '+parseInt(ds.slice(8,10))+' 日';
 }
+/* 證照到期通知（後台每天 8:30 存進訊息，保留 30 天）：第一行標題，下面一行一人「姓名　證照　到期日」 */
+/** 證照通知不用按「收到」：紅點先亮著，打開訊息頁看過（2 秒）就自動算已讀，下次就不會再亮 */
+var CERT_SEEN_T=null;
+function certSeen(all){
+  var ids=all.filter(function(m){return m.un&&m.x&&certCast(m.x);}).map(function(m){return String(m.x.id);});
+  if(!ids.length||VIEWAS)return;
+  clearTimeout(CERT_SEEN_T);
+  CERT_SEEN_T=setTimeout(function(){
+    if(tab!=='msg')return;
+    msgReadAdd(ids);
+    (INBOX.inbox||[]).forEach(function(x){if(ids.indexOf(String(x.id))>=0)x.acked=true;});
+    ids.forEach(function(id){gas('castAck',TOKEN,id).catch(function(){});});   // 其他裝置也同步成已讀
+    msgPaint();
+  },2000);
+}
+function certCast(x){return x&&x.groups==='證照到期'&&!x.project;}
+function certCastHTML(x){
+  var l=String(x.text||'').split('\n'),t=l.shift()||'';
+  return '<div class="crtt">'+he(t)+'</div><div class="crt">'+l.map(function(s){var a=s.split('　');
+    if(a.length<3)return '<div class="crr"><span class="c" style="grid-column:1/-1">'+he(s)+'</span></div>';
+    var bad=/逾期/.test(a[2]);return '<div class="crr"><b>'+he(a[0])+'</b><span class="c">'+he(a[1])+'</span><span class="e'+(bad?' bad':'')+'">'+he(a[2])+'</span></div>';}).join('')+'</div>';
+}
 function msgRow(m){
   var ic3={c:['c','mega'],s:['s','cal'],t:['t','check']}[m.k],h;
-  h='<div class="mgi'+(m.un?'':' rd')+'" style="cursor:default"><div class="mgic '+ic3[0]+'">'+ic(ic3[1],18)+'</div><div class="mgbd">';
+  h='<div class="mgi'+(m.un||(m.x&&certCast(m.x)&&m.keep)?'':' rd')+'" style="cursor:default"><div class="mgic '+ic3[0]+'">'+ic(ic3[1],18)+'</div><div class="mgbd">';
   if(m.x){
     // 個案廣播：標題跟「我發的」一樣寫「案名（10/14 行程）」，下面一行是誰發的；可展開看那天的完整行程
     h+='<div class="mgt"><b>'+he(m.x.project?msgPjTitle(m.x):(m.x.from||'廣播'))+'</b><span>'+msgTime(m.at)+'</span>'+(m.un?'<i class="mgdot"></i>':'')+'</div>'
       +(m.x.project?'<div class="mgfrom">'+he(m.x.from||'')+' 發送'+msgPjRel(m.x)+'</div>':'')
-      +castText(m.x)
-      +(m.x.project?msgPjHTML(m.x):'')+(m.old?'':rcptLine(m.x,'msg'))
-      +(m.un?'<div class="mgrb"><button onclick="msgTap(\''+m.key+'\')">'+ic('check',14)+'收到</button></div>':'');   // 每則自己按「收到」，發送者看得到
+      +(certCast(m.x)?certCastHTML(m.x):castText(m.x))
+      +(m.x.project?msgPjHTML(m.x):'')+(m.old||certCast(m.x)?'':rcptLine(m.x,'msg'))
+      +(m.un&&!certCast(m.x)?'<div class="mgrb"><button onclick="msgTap(\''+m.key+'\')">'+ic('check',14)+'收到</button></div>':'');   // 每則自己按「收到」，發送者看得到
     return h+'</div></div>';
   }
   var n=m.n,go=n.u&&n.u!=='./'&&!n.c;
@@ -1977,6 +2004,7 @@ function msgPageList(){
     +'<button class="'+(seg==='sent'?'on':'')+'" onclick="MSG_SEG=\'sent\';render()">我發的</button></div>';
   h+='<div class="mg7">'+ic('clock',14)+'<span>訊息只保留 <b>7 天</b>，到期連同回條自動刪除'+(can('ann')?'；需要長期保存的請改發公告':'')+'</span></div>';
   if(seg==='sent')return h+msgSentList(sent);
+  certSeen(all);
   if(!INBOX.at){inboxLoad(true);return h+loader('讀取訊息…');}
   h+='<div id="mgload">'+(INBOX.busy?mgLoadHTML():'')+'</div>';   // 2026-10-07z：跟伺服器要新訊息時，上方顯示「下載訊息中…」
   var un=all.filter(function(m){return m.un;}),td=all.filter(function(m){return !m.un&&m.keep;}),old=all.filter(function(m){return !m.keep;});
@@ -6270,7 +6298,7 @@ function inbox7(){var d7=addDays(twStr(),-6);return INBOX.inbox.filter(function(
 /** 今日頁最下方：7 天內已收到／已收回的廣播，預設收起來 */
 function histItem(x){
   return '<div class="ci"><div class="cm">'+he(x.from)+'　'+he(String(x.at).slice(5,16).replace('-','/'))
-    +(x.recalled?'　已收回':'　✓ 已收到')+'</div>'+(x.recalled?'':'<div class="ct">'+linkify(x.text)+'</div>')+'</div>';
+    +(x.recalled?'　已收回':certCast(x)?'':'　✓ 已收到')+'</div>'+(x.recalled?'':certCast(x)?certCastHTML(x):'<div class="ct">'+linkify(x.text)+'</div>')+'</div>';
 }
 /** 更多 → 歷史廣播：今天以前、7 天內已收到／已收回的廣播（超過 7 天自動刪除） */
 var HIST_TAB='in';
