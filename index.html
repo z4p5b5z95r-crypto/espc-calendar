@@ -1465,7 +1465,7 @@ function gas(fn){
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&'team' in j){lsS('espc_team',j.team||'');allowNav();}
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.perms){if(fn==='login'&&j.username)lsS('espc_user',j.username);permSet(j.perms);}
       if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.hideRg)hideRgSet(j.hideRg);
-      if((fn==='getMe'||fn==='login')&&j&&j.ok&&!j.view&&j.username)deffSet(j.username,j.defF);
+      if((fn==='getMe'||fn==='login')&&j&&j.ok&&j.username&&'defF' in j&&deffSet(j.username,j.defF))deffLive();   // 管理員剛改了預設篩選：這次開啟就套用
       if((fn==='getMe'||fn==='login'||fn==='permLoad'||fn==='roleSave')&&j&&j.ok&&j.roles)rolesSet(j.roles);   // 角色清單（可自訂）   // 管理員隱藏的地區   // 功能權限   // 採樣津貼入口要看組別
       clearTimeout(timer);
       gasLog(fn,t0,!!(j&&j.ok),j);
@@ -2312,6 +2312,7 @@ function viewGo(un){
     lsS('espc_token',r.token);lsS('espc_role',r.role);lsS('espc_user',r.username);lsS('espc_eng',r.engineerName||'');
     if(r.profileOk)lsS('espc_prof','1');else lsD('espc_prof');
     lsS('espc_team',r.team||'');lsS('espc_perm',JSON.stringify({u:r.username,p:r.perms||{}}));lsD('espc_tab');
+    var vu=null;USERS.forEach(function(x){if(x.username===r.username)vu=x;});deffSet(r.username,'defF' in r?r.defF:(vu&&vu.defFilter)||null);   // 切換視角：看到他開啟時的預設篩選
     try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf('espc_c_')===0)localStorage.removeItem(k);}}catch(e){}   // 清掉管理員的快取，避免看到管理員才看得到的資料
     location.reload();
   }).catch(function(){toast('連線失敗','no');});
@@ -3118,7 +3119,16 @@ function verifySelfName(n){
 }
 /* 管理員幫帳號設定的「預設篩選」（例如行政沒有自己的行程 → 預設看某些監測類別）：存在這支手機，開啟時自動套用 */
 function deffKey(u){return 'espc_deff_'+String(u||UNAME||'');}
-function deffSet(u,v){try{if(v&&typeof v==='object')lsS(deffKey(u),JSON.stringify(v));else lsS(deffKey(u),'');}catch(e){}}
+function deffSet(u,v){var nv=v&&typeof v==='object'?JSON.stringify(v):'',ov=ls(deffKey(u))||'';try{lsS(deffKey(u),nv);}catch(e){}return nv!==ov;}
+/** 預設篩選剛變更（或第一次拿到）：使用者自己還沒設條件就馬上套用 */
+function deffLive(){
+  if(typeof F==='undefined'||!selfAuto()||DEFU)return;
+  var d=deffGet(),cur=JSON.stringify(F);
+  if(d)F={rg:d.rg||'',en:d.en||'',ty:(d.ty||[]).slice(),q:d.q||'',st:d.st||'',eq:(d.eq||[]).slice()};
+  else if(nF())return;   // 被清掉預設篩選：使用者手上的條件不動
+  var app=$('app');if(!app||app.style.display==='none')return;   // 還在開機：等一下開機流程會照 F 去抓資料
+  if(JSON.stringify(F)!==cur&&typeof refetch==='function')try{refetch();}catch(e){}
+}
 function deffGet(){var v=null;try{v=JSON.parse(ls(deffKey())||'null');}catch(e){}return v&&typeof v==='object'?v:null;}
 function deffTxt(d){
   if(!d)return '未設定（PM、現場照舊先篩自己的行程）';
@@ -3129,7 +3139,7 @@ function deffTxt(d){
 function autoFilterSelf(){
   if(!selfAuto())return;              // 使用者選擇每次都看全部
   if(nF())return;                     // 已有條件就不動
-  var dd=VIEWAS?null:deffGet();
+  var dd=deffGet();
   if(dd){F={rg:dd.rg||'',en:dd.en||'',ty:(dd.ty||[]).slice(),q:dd.q||'',st:dd.st||'',eq:(dd.eq||[]).slice()};return;}   // 管理員設的預設篩選優先
   var n=selfName();
   if(!n||F.en||F.st)return;           // 已有條件就不動
