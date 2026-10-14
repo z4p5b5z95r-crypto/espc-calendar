@@ -63,6 +63,11 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .lvb{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--tint);color:var(--accT);white-space:nowrap}.lvb.on{background:#e3f3e8;color:#1d8148}.lvb.off{background:var(--card2);color:var(--tx3)}
 .lvr{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px}
 .note.warn{background:#fff3dc;color:#7a4b00}
+.tkbar{display:flex;justify-content:flex-end;margin:4px 0 -6px}
+.rfb{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;color:var(--tx2);border-radius:999px;padding:5px 12px 5px 9px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer}
+.rfb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rfb.on svg{animation:rfs .8s linear infinite}@keyframes rfs{to{transform:rotate(360deg)}}
+.hrow .rfb{margin-left:auto}
 .tke{opacity:1;margin-top:18px}.tke summary span{font-weight:500;margin-left:8px;color:var(--tx3);font-size:12px}
 .tkm{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:13.5px;color:var(--tx2);cursor:pointer}
 .tkm .d{font-weight:700;color:var(--tx);white-space:nowrap}.tkm .r{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -411,6 +416,13 @@ function heldPop(){if($('ov').classList.contains('on')||SFX)return;
 /* 司機下一次上班是哪天（今天、明天、10/19（一）） */
 function drvNext(){var t=tw();if(M.drvAway)return dlab(M.drvAway).split(' ')[0];if(M.runToday&&t.min<510)return '今天';var d=(M.days||[]).filter(function(x){return x>t.day;})[0];return d?dlab(d).split(' ')[0]:'下一個上班日';}
 function drvOff(){var m=tw().min;return !!(M&&M.drvAway)||m>=1020||m<510||!(M&&M.runToday);}
+/* 剛送出的車票先放進清單：車票頁馬上看得到，後台的最新資料回來再更新 */
+/* 車票頁的重新整理 */
+var RFB=false,MINE_AT='';
+var RFI='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>';
+function tkReload(){if(RFB)return;RFB=true;render();
+  var p=load();(p||Promise.resolve()).then(function(ok){RFB=false;if(ok!==false)toast('車票已更新');render();},function(){RFB=false;render();});}
+function tkAdd(b){if(!b||!b.id)return;DATA.mine=[b].concat((DATA.mine||[]).filter(function(x){return x.id!==b.id;}));}
 function actCnt(){return (DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&!expired(b)&&(b.kind==='call'||!departed(b.day,b.slot));}).length;}
 var AUTOPG=0;
 /* 分頁的線條圖示（跟行事曆下方一樣的風格） */
@@ -543,17 +555,17 @@ function load(){
   var fn=PAGE==='drv'||PAGE==='set'?'drvList':PAGE==='adm'?'admLoad':(PAGE==='mine'||PAGE==='book')?'mine':'';
   if(!fn)return;
   var p=PAGE;
-  gas(fn,TOKEN).then(function(j){
-    if(!j.ok){toast(j.error||'讀取失敗');return;}
+  return gas(fn,TOKEN).then(function(j){
+    if(!j.ok){toast(j.error||'讀取失敗');return false;}
     if(j.me)setMe(j);
     if(fn==='drvList'){DATA.drv=j.list;DATA.sent=j.sent;DATA.push=j.push;DATA.reps=j.reps||[];DATA.leaves=j.leaves||[];ordRefresh();}
     try{if(fn==='drvList'||fn==='mine')lsS('bus_d_'+fn+'_'+uid(),JSON.stringify({d:tw().day,l:j.list,s:j.sent||null}));}catch(e){}
-    if(fn==='mine'){DATA.mine=j.list;DATA.push=j.push;DATA.helps=j.helps||[];if(j.reps)DATA.reps=j.reps;tkPopRefresh();
+    if(fn==='mine'){DATA.mine=j.list;MINE_AT=new Date(Date.now()+8*3600e3).toISOString().slice(11,16);DATA.push=j.push;DATA.helps=j.helps||[];if(j.reps)DATA.reps=j.reps;tkPopRefresh();
       if(AUTOPG&&Date.now()-AUTOPG<10000&&PAGE==='book'&&p==='book'&&actCnt()&&!typing()&&!$('ov').classList.contains('on')){PAGE=p='mine';window.scrollTo(0,0);}
       AUTOPG=0;}
     if(fn==='admLoad')DATA.adm=j;
     if(PAGE===p&&!$('ov').classList.contains('on')&&!typing()&&!DRAG)render();
-  }).catch(function(e){toast(e.message);});
+  }).catch(function(e){toast(e.message);return false;});
 }
 function typing(){var a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');}
 setInterval(function(){if(document.visibilityState==='visible')load();},30000);
@@ -687,7 +699,9 @@ function bookGo(trunk){
     BUSY=false;
     if(j&&j.full){render();sfxFail(function(){fullAsk(j);});return;}
     if(!j.ok){sfxFail();toast(j.error||'送出失敗',3000);render();return;}
-    var fn=F.forName.trim();F.memo='';F.other='';F.forName='';F.forExt='';
+    var fn=F.forName.trim();
+    if(!fn)tkAdd(j.b||{id:j.id,kind:'bus',day:F.day,trip:F.trip,slot:F.slot,frm:HOME,dest:F.dest==='其他'?F.other.trim():F.dest,n:F.n,memo:F.memo.trim(),st:'w',help:F.help,helpNote:F.help?F.helpNote.trim():'',at2:eff(F.day,F.slot)!==F.slot?eff(F.day,F.slot):''});
+    F.memo='';F.other='';F.forName='';F.forExt='';
     F.help='';F.helpNote='';
     if(!fn)TK=j.id;   // 車票頁：新的那張閃一下
     sfxDone('送出完成',fn?'已幫 '+fn+' 預約':j.held?'司機上班（8:30）後才會收到並確認':'等司機確認',function(){go(fn?(M.me.isDriver?'drv':'book'):'mine');if(j.held&&!fn)setTimeout(heldPop,1700);else if(!fn)obAfter();});
@@ -725,6 +739,7 @@ function callGo(){
   gas('call',TOKEN,{frm:v.frm,dest:v.dest,at:C.when==='asap'?'asap':C.time,n:C.n,memo:C.memo.trim()}).then(function(j){
     BUSY=false;
     if(!j.ok){sfxFail();toast(j.error||'送出失敗',3000);render();return;}
+    if(!M.me.isDriver)tkAdd(j.b||{id:j.id,kind:'call',day:tw().day,frm:v.frm,dest:v.dest,at:C.when==='asap'?'asap':C.time,n:C.n,memo:C.memo.trim(),st:'w'});
     C.memo='';if(!M.me.isDriver)TK=j.id;sfxDone('叫車已送出','等司機回覆',function(){go(M.me.isDriver?'drv':'mine');if(!M.me.isDriver)obAfter();});
   }).catch(function(e){BUSY=false;sfxFail();toast(e.message,3000);render();});
 }
@@ -745,7 +760,8 @@ function stampSVG(ok,date,who,rot){
 function stDate(s){var d=String(s||'').slice(0,10);return d?d.replace(/-/g,'.'):'';}
 function mineHTML(side){
   setTimeout(tkShow,0);
-  var h=side?'<div class="hrow"><div class="h2">我的車票</div></div>':unlockCard()+pushCard();
+  var rf='<button class="rfb'+(RFB?' on':'')+'" onclick="tkReload()" aria-label="重新整理">'+RFI+'<span>'+(RFB?'更新中…':MINE_AT?'更新於 '+MINE_AT:'重新整理')+'</span></button>';
+  var h=side?'<div class="hrow"><div class="h2">我的車票</div>'+rf+'</div>':unlockCard()+pushCard()+'<div class="tkbar">'+rf+'</div>';
   var l=DATA.mine;
   if(!l)return h+LD();
   var none=function(t){return side?'<div class="empty">'+t+'</div>':'<div class="tkno"><b>'+t+'</b>預約之後，車票會放在這裡<button class="btn" onclick="go(\'book\')">去預約</button></div>';};
