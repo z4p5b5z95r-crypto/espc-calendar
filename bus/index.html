@@ -788,7 +788,7 @@ function mineHTML(side){
   if(!l.length)return h+none('目前尚無車票');
   // 排序：還沒搭的照日期時間（最近的在上）→ 已取消／不接單／已過的放後面
   // 排序：還沒搭的 → 已取消／不接單 → 已過期（發車後 1 小時）放最後
-  var key=function(b){var ex=expired(b),act=!ex&&(b.st==='w'||b.st==='ok');   // 發車後一小時（過期）才移到「已結束」return (act?'0':ex?'2':'1')+b.day+(b.kind==='call'?(b.at==='asap'?'00:00':b.at):b.slot);};
+  var key=function(b){var ex=expired(b),act=!ex&&(b.st==='w'||b.st==='ok');/* 發車後一小時（過期）才移到「已結束」 */return (act?'0':ex?'2':'1')+b.day+(b.kind==='call'?(b.at==='asap'?'00:00':b.at):b.slot);};
   l=l.slice().sort(function(a,b){var x=key(a),y=key(b);return x<y?-1:x>y?1:0;});
   var nAct=l.filter(function(b){return key(b).charAt(0)==='0';}).length;
   NEXTID=nAct?l[0].id:'';   // 最近要搭的那班：加框
