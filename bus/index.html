@@ -443,7 +443,7 @@ var RFI='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2
 function tkReload(){if(RFB)return;RFB=true;render();
   var p=load();(p||Promise.resolve()).then(function(ok){RFB=false;if(ok!==false)toast('車票已更新');render();},function(){RFB=false;render();});}
 function tkAdd(b){if(!b||!b.id)return;DATA.mine=[b].concat((DATA.mine||[]).filter(function(x){return x.id!==b.id;}));}
-function actCnt(){return (DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&!expired(b)&&(b.kind==='call'||!departed(b.day,b.slot));}).length;}
+function actCnt(){return (DATA.mine||[]).filter(function(b){return (b.st==='w'||b.st==='ok')&&!expired(b);}).length;}
 var AUTOPG=0;
 /* 分頁的線條圖示（跟行事曆下方一樣的風格） */
 var NI={tk:'<svg viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 6v2.2M14 11v2M14 15.8V18"/></svg>',
@@ -788,7 +788,7 @@ function mineHTML(side){
   if(!l.length)return h+none('目前尚無車票');
   // 排序：還沒搭的照日期時間（最近的在上）→ 已取消／不接單／已過的放後面
   // 排序：還沒搭的 → 已取消／不接單 → 已過期（發車後 1 小時）放最後
-  var key=function(b){var ex=expired(b),act=!ex&&(b.st==='w'||b.st==='ok')&&(b.kind==='call'||!departed(b.day,b.slot));return (act?'0':ex?'2':'1')+b.day+(b.kind==='call'?(b.at==='asap'?'00:00':b.at):b.slot);};
+  var key=function(b){var ex=expired(b),act=!ex&&(b.st==='w'||b.st==='ok');   // 發車後一小時（過期）才移到「已結束」return (act?'0':ex?'2':'1')+b.day+(b.kind==='call'?(b.at==='asap'?'00:00':b.at):b.slot);};
   l=l.slice().sort(function(a,b){var x=key(a),y=key(b);return x<y?-1:x>y?1:0;});
   var nAct=l.filter(function(b){return key(b).charAt(0)==='0';}).length;
   NEXTID=nAct?l[0].id:'';   // 最近要搭的那班：加框
