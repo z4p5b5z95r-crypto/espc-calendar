@@ -414,10 +414,9 @@ html[data-theme="dark"] .navshine::after{background:linear-gradient(180deg,rgba(
 .mgsec .mgn{background:#e1261a;color:#fff;border-radius:9px;padding:0 7px;font-size:11.5px;line-height:18px;margin-left:6px}
 .mgsec .mgall{display:inline-flex;align-items:center;gap:4px;background:var(--tint);color:var(--accT);font-weight:700;border-radius:999px;padding:4px 11px;font-size:12.5px}
 .mgl{background:var(--card);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.duebar{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;margin:0 0 12px;padding:11px 14px;border-radius:16px;border:1.5px solid #f1d9a6;background:#fff4de;color:#9a5c00;font:inherit;text-align:left;cursor:pointer}
+.duebar{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;height:30px;margin:0 0 10px;padding:0 12px;border-radius:10px;border:1px solid #f1d9a6;background:#fff4de;color:#9a5c00;font:inherit;text-align:left;cursor:pointer}   /* 高度約新增人員按鈕的 2/3 */
 .duebar.bad{border-color:#f3c2bc;background:#fdecea;color:#c0392b}
-.duebar .dbi{flex:none;width:36px;height:36px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center}
-.duebar .dbt{flex:1;min-width:0;font-size:15px;font-weight:800}
+.duebar .dbt{flex:1;min-width:0;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mgi{display:flex;gap:11px;padding:12px 13px;border-top:1px solid var(--line);align-items:flex-start;cursor:pointer;transition:opacity .3s}
 .mgi:first-child{border-top:0}
 .mgic{width:34px;height:34px;border-radius:11px;flex:none;display:grid;place-items:center;color:#fff}
@@ -4430,19 +4429,23 @@ function bookPage(){
   // 新增人員放最上方，和帳號管理的「新增帳號」一致
   if(can('staff'))
     h+='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="editStaff()">新增人員</button>';
-  // 回訓提醒：只有可維護通訊錄的人看得到
-  if(can('staff')){
-    var due=safetyDue();
-    if(due.length){
-      // 2026-10-15（使用者選 A）：淡色提示條，只寫「證照 X 人逾期；Y 人快到期」（以人數計）
-      var pp=function(st){var m={};due.forEach(function(x){if(x.o.state===st)m[x.name]=1;});return Object.keys(m).length;};
-      var bad=pp('expired'),soon=pp('warn');
-      h+='<button class="duebar'+(bad?' bad':'')+'" onclick="openDue()">'
-        +'<span class="dbi">'+ic('shield',20)+'</span>'
-        +'<b class="dbt">證照'+(bad?' '+bad+' 人逾期':'')+(bad&&soon?'；':'')+(soon?' '+soon+' 人快到期':'')+'</b>'
-        +ic('right',18)+'</button>';
+  // 證照提醒條：能維護通訊錄的人看全部人；其他人只看自己的
+  //   只有自己的證照有狀況 →「您的證照 1 張逾期」；還有別人 →「證照 X 人逾期；Y 人快到期」
+  (function(){
+    var me=String(ENGNAME||'').trim(),all=safetyDue();
+    var list=can('staff')?all:all.filter(function(x){return x.name===me;});
+    if(!list.length)return;
+    var others=list.filter(function(x){return x.name!==me;}),txt,bad;
+    if(!others.length){
+      bad=list.filter(function(x){return x.o.state==='expired';}).length;var sn=list.length-bad;
+      txt='您的證照'+(bad?' '+bad+' 張逾期':'')+(bad&&sn?'；':'')+(sn?' '+sn+' 張快到期':'');
+    }else{
+      var pp=function(st){var m={};list.forEach(function(x){if(x.o.state===st)m[x.name]=1;});return Object.keys(m).length;};
+      bad=pp('expired');var soon=pp('warn');
+      txt='證照'+(bad?' '+bad+' 人逾期':'')+(bad&&soon?'；':'')+(soon?' '+soon+' 人快到期':'');
     }
-  }
+    h+='<button class="duebar'+(bad?' bad':'')+'" onclick="openDue('+(others.length?'':'false,\''+esc(me)+'\'')+')">'+ic('shield',16)+'<b class="dbt">'+txt+'</b>'+ic('right',15)+'</button>';
+  })();
   h+='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
     +'<div style="display:flex;gap:6px;margin-bottom:12px">'
     +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1;min-width:0">'
