@@ -4429,23 +4429,7 @@ function bookPage(){
   // 新增人員放最上方，和帳號管理的「新增帳號」一致
   if(can('staff'))
     h+='<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="editStaff()">新增人員</button>';
-  // 證照提醒條：能維護通訊錄的人看全部人；其他人只看自己的
-  //   只有自己的證照有狀況 →「您的證照 1 張逾期」；還有別人 →「證照 X 人逾期；Y 人快到期」
-  (function(){
-    var me=String(ENGNAME||'').trim(),all=safetyDue();
-    var list=can('staff')?all:all.filter(function(x){return x.name===me;});
-    if(!list.length)return;
-    var others=list.filter(function(x){return x.name!==me;}),txt,bad;
-    if(!others.length){
-      bad=list.filter(function(x){return x.o.state==='expired';}).length;var sn=list.length-bad;
-      txt='您的證照'+(bad?' '+bad+' 張逾期':'')+(bad&&sn?'；':'')+(sn?' '+sn+' 張快到期':'');
-    }else{
-      var pp=function(st){var m={};list.forEach(function(x){if(x.o.state===st)m[x.name]=1;});return Object.keys(m).length;};
-      bad=pp('expired');var soon=pp('warn');
-      txt='證照'+(bad?' '+bad+' 人逾期':'')+(bad&&soon?'；':'')+(soon?' '+soon+' 人快到期':'');
-    }
-    h+='<button class="duebar'+(bad?' bad':'')+'" onclick="openDue('+(others.length?'':'false,\''+esc(me)+'\'')+')">'+ic('shield',16)+'<b class="dbt">'+txt+'</b>'+ic('right',15)+'</button>';
-  })();
+  // 2026-10-15：通訊錄不再顯示證照提醒條（改由每天 8:30 的證照到期通知＋「訊息」提醒）
   h+='<input class="fld" placeholder="搜尋姓名、電話或組別" value="'+he(bookQ)+'" oninput="bookQ=this.value;paintBook()" style="margin-bottom:9px">'
     +'<div style="display:flex;gap:6px;margin-bottom:12px">'
     +'<select class="fld" onchange="bookRg=this.value;paintBook()" style="flex:1;min-width:0">'
