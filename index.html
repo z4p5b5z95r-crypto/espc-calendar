@@ -5882,7 +5882,7 @@ function shareRpt(nums){   // 報告編號 → 純文字行；結尾 BK 另外�
   var out=[];
   (nums||[]).forEach(function(s){
     s=String(s||'').replace(/<br\s*\/?>/gi,' ').trim();if(!s)return;
-    var re=/([A-Z]{3}\d{2}[A-Z]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*([A-Z]?BK)?/gi,m,n=0,last=0;
+    var re=/([A-Z]{3}\d{2}[A-Z0-9]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*([A-Z]?BK)?/gi,m,n=0,last=0;
     while((m=re.exec(s))){var pre=s.slice(last,m.index).replace(/^[\s,，、;；]+|[\s,，、;；]+$/g,'');
       out.push({t:(pre?pre+' ':'')+m[1].toUpperCase()+(m[2]?' '+m[2].replace(/\s/g,''):''),bk:m[3]?m[3].toUpperCase():''});last=re.lastIndex;n++;}
     if(!n)out.push({t:s,bk:''});
@@ -6956,7 +6956,7 @@ function rptHTML(nums){
   var out=[];
   (nums||[]).forEach(function(s){
     s=String(s||'').replace(/<br\s*\/?>/gi,' ').trim();if(!s)return;
-    var re=/([A-Z]{3}\d{2}[A-Z]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*([A-Z]?BK)?/gi,m,last=0,n=0;   // BK、EBK、TBK、FBK…都用標籤
+    var re=/([A-Z]{3}\d{2}[A-Z0-9]\d{5})\s*(\d{3}(?:\s*[-~～]\s*\d{3})?)?\s*([A-Z]?BK)?/gi,m,last=0,n=0;   // BK、EBK、TBK、FBK…都用標籤
     var clean=function(t){return t.replace(/^[\s,，、;；]+|[\s,，、;；]+$/g,'');};
     while((m=re.exec(s))){
       var pre=clean(s.slice(last,m.index));     // 編號前面的文字（例如「氨氣」）當成這一筆的標題
