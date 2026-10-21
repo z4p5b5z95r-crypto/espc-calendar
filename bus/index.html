@@ -1202,10 +1202,10 @@ function offSecHTML(){
     +'<div class="card" style="margin-top:10px"><div class="sec" style="margin:0 0 6px">停駛日期（含頭尾，週末自動略過）</div>'
     +'<div style="display:flex;gap:8px;align-items:center"><input class="fld" type="date" id="off1" min="'+t+'" style="flex:1;min-width:0" onchange="offPick(this.value)"><span style="color:var(--tx3)">～</span><input class="fld" type="date" id="off2" min="'+t+'" style="flex:1;min-width:0" onchange="offCnt()"></div>'
     +'<div class="seg" id="offsg" style="margin-top:8px">'+[['','全天'],['10:00','只停上午'],['14:00','只停下午']].map(function(x){return '<button class="'+(OFFS===x[0]?'on':'')+'" onclick="offSlot(\''+x[0]+'\')">'+x[1]+'</button>';}).join('')+'</div>'
-    +'<input class="fld" id="offn" maxlength="20" placeholder="原因（例：車輛保養、颱風）" style="margin-top:8px">'
+    +'<input class="fld" id="offn" maxlength="20" placeholder="原因（例：員工旅遊、車輛保養）" style="margin-top:8px">'
     +'<div id="offc" class="hint" style="margin-top:6px;min-height:18px"></div>'
     +'<button class="btn" id="offb" onclick="offGo()">設定停駛</button>'
-    +'<p class="hint" style="margin-top:10px">停駛的日子乘客不能預約；已經約好的會自動取消，並通知乘客改約其他班次。</p></div>';
+    +'<p class="hint" style="margin-top:10px">國定假日會跟著行事曆的紅字自動停駛，這裡只要設定特殊活動。停駛的日子乘客不能預約；已經約好的會自動取消，並通知乘客改約其他班次。</p></div>';
   h+='<div class="sec">接下來的停駛日</div>';
   if(!g.length)return h+'<div class="hint" style="padding:4px 2px">目前沒有（週六日本來就停駛）</div>';
   var row=function(x){var i=g.indexOf(x);
@@ -1279,7 +1279,7 @@ function admHTML(){
   var h='<div class="sec">帳號功能：🚐 司機（收預約推播、可以接單）・🚨 臨時叫車（預約頁直接有臨時叫車按鈕）</div><div class="card">'
     +'<input class="fld" placeholder="搜尋姓名或帳號" value="'+he(ADQ)+'" oninput="ADQ=this.value;admPaint()" style="margin-bottom:6px">'
     +'<div id="adl">'+admList(l)+'</div></div>';
-  h+='<div class="sec">停駛日（週六日本來就停駛，不用加）</div><div class="card">'
+  h+='<div class="sec">特殊活動停駛（週六日、國定假日會跟著行事曆的紅字自動停駛，不用加）</div><div class="card">'
     +'<div style="display:flex;gap:8px"><input class="fld" type="date" id="ofd" style="flex:1.2;min-width:0"><input class="fld" id="ofn" placeholder="名稱" style="flex:1;min-width:0"></div>'
     +'<button class="btn" style="margin-top:8px" onclick="offAdd()">加入停駛日</button>'
     +'<div style="margin-top:8px">'+(a.off.length?a.off.map(function(o){return '<div class="li"><b style="font-weight:600;width:130px">'+md(o.d)+'（'+WK[dow(o.d)]+'）</b><span style="flex:1;color:var(--tx2)">'+(o.s?halfLab(o.s)+'・':'')+he(o.n)+'</span><a href="#" style="color:var(--err);font-size:13px" onclick="offDel(\''+o.d+'\',\''+(o.s||'')+'\');return false">刪除</a></div>';}).join(''):'<div class="hint">沒有設定</div>')+'</div></div>';
@@ -1289,10 +1289,16 @@ function admList(l){return '<div class="li" style="font-size:12px;color:var(--tx
   +(l.slice(0,60).map(function(x){return '<div class="li"><span style="flex:1;min-width:0">'+he(x.n)+' <span class="hint">'+he(x.u)+'</span></span>'
     +'<span style="width:56px;text-align:center"><button class="sw'+(x.drv?' on':'')+'" onclick="drvSet(\''+he(x.u)+'\','+(!x.drv)+')"></button></span>'
     +'<span style="width:56px;text-align:center"><button class="sw'+(x.call?' on':'')+'" onclick="callSet(\''+he(x.u)+'\','+(!x.call)+')"></button></span></div>';}).join('')||'<div class="hint">找不到</div>');}
-function callSet(u,on){admDone(gas('admCall',TOKEN,u,on),on?'已開啟臨時叫車':'已關閉臨時叫車');}
+/* 開關：畫面馬上切換，背景送出；失敗才切回去並提示 */
+function admFlip(u,key,on,fn,okMsg){var a=DATA.adm,x=a&&a.accts.filter(function(y){return y.u===u;})[0];if(!x)return;
+  var was=x[key];x[key]=on;admPaint();
+  gas(fn,TOKEN,u,on).then(function(j){if(!j||!j.ok){x[key]=was;admPaint();toast((j&&j.error)||'沒有存到，請再試一次',3000);return;}
+    var n=j.accts.filter(function(y){return y.u===u;})[0];if(n&&n[key]!==x[key]){x[key]=n[key];admPaint();}
+  }).catch(function(){x[key]=was;admPaint();toast('連線失敗，沒有存到',3000);});}
+function callSet(u,on){admFlip(u,'call',on,'admCall');}
 function admPaint(){var a=DATA.adm,q=ADQ.trim();$('adl').innerHTML=admList(a.accts.filter(function(x){return x.drv||x.call||!q||x.n.indexOf(q)>=0||x.u.indexOf(q)>=0;}));}
 function admDone(p,msg){p.then(function(j){if(!j.ok){toast(j.error,3000);return;}DATA.adm=j;toast(msg);render();}).catch(function(e){toast(e.message);});}
-function drvSet(u,on){admDone(gas('admDriver',TOKEN,u,on),on?'已設為司機':'已取消司機');}
+function drvSet(u,on){admFlip(u,'drv',on,'admDriver');}
 function offAdd(){var d=$('ofd').value,n=$('ofn').value.trim();if(!d){toast('請選日期');return;}admDone(gas('admOff',TOKEN,d,n||'停駛',true),'已加入停駛日');}
 function offDel(d,s){admDone(gas('admOff',TOKEN,d,'',false,s||''),'已刪除');}
 
