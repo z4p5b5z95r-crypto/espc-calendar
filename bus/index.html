@@ -207,6 +207,9 @@ button.hpp{cursor:pointer}.hpp.s{font-size:11px;padding:1px 7px}
 .hqs{color:var(--tx3);font-weight:700;margin-top:4px}.hqs.ok{color:var(--ok)}
 .tk5.void .hpadd,.tk5.void .hpt{display:none}
 .tk5.hl{animation:tkhl 1.1s ease-out 3}
+.tk5.pend .bar{background:#a9a19a}
+.tk5.pend .wm{position:absolute;left:0;right:0;top:34px;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;border-radius:0 0 18px 18px;z-index:1}
+.tk5.pend .wm span{transform:rotate(-16deg);font-size:42px;font-weight:900;letter-spacing:6px;color:rgba(196,78,6,.12);border:4px solid rgba(196,78,6,.12);border-radius:12px;padding:2px 18px;white-space:nowrap}
 .tkf{margin:22px 4px 14px 0;perspective:1200px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .tkf .tkfi{position:relative;transition:transform .5s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d}
 .tkf.on .tkfi{transform:rotateY(180deg)}
@@ -861,7 +864,7 @@ function tkFlip(id){FLIPPED[id]=!FLIPPED[id];var bb=findB(id,DATA.mine);if(FLIPP
 function tkTap(ev,id){if(ev.target.closest('button,a,input,textarea,select,summary,details,label,.hp,.hpp'))return;tkFlip(id);}
 function tkBack(b){var m=b.mates||[],wait=!b.mates,ppl=m.reduce(function(a,x){return a+x.n;},0);
   var leg=function(t){return t==='back'?'回':t==='rt'?'來回':'去';};
-  return '<div class="tk5 tkb"><div class="bar"><span>'+dlab(b.day)+' '+slotLab(b.at2||b.slot)+'</span><small>'+(wait?'':'這班 '+ppl+' 人')+'</small></div>'
+  return '<div class="tk5 tkb'+(b.st==='w'?' pend':'')+'"><div class="bar"><span>'+dlab(b.day)+' '+slotLab(b.at2||b.slot)+'</span><small>'+(wait?'':'這班 '+ppl+' 人')+'</small></div>'
     +'<div class="tbi"><div class="mates"><span class="mtl">乘車者：</span>'+(wait?'<span class="hint" style="align-self:center">共乘者確認中…</span>':m.length?m.map(function(x){return '<span class="mt'+(x.me?' me':'')+'"><b>'+(x.me?(b.proxy?he(x.name):'我'):he(x.name))+(x.n>1?' ×'+x.n:'')+'</b></span>';}).join(''):'<span class="hint">只有你</span>')+'</div>'
     +'<div class="tba"><button class="a1" onclick="chgOpen(\''+b.id+'\')">更改車票</button><button class="a2" onclick="cancelOpen(\''+b.id+'\')">取消車票</button></div>'
     +'<div class="tbh">'+FLIP_IC+'點一下翻回正面</div></div></div>';}
@@ -883,7 +886,8 @@ function tkHTML0(b,pop){
       :b.st==='no'?'<span style="color:var(--err)">司機不接單・'+he(b.why)+'</span>':'<span></span>';
     var canRp=b.st==='no'&&!expired(b)&&(call||!departed(b.day,b.slot));
     var rj=b.st==='no';
-    return '<div class="tk5'+(x||ex||rj?' void':'')+(!pop&&NEXTID===b.id?' next':'')+'"'+(pop?'':' id="tk-'+b.id+'"')+'><div class="bar"><span>'+dlab(b.day)+'</span><small>'+(b.proxy?'幫 <b>'+he(b.who)+'</b> 約・':'')+(b.rep?'🔁 固定・':'')+trip+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</small></div><div class="in">'
+    var pend=b.st==='w'&&!ex;   // 等司機確認：灰色票頭＋「待確認」浮水印，跟正式車票分得出來
+    return '<div class="tk5'+(x||ex||rj?' void':'')+(pend?' pend':'')+(!pop&&NEXTID===b.id?' next':'')+'"'+(pop?'':' id="tk-'+b.id+'"')+'>'+(pend?'<div class="wm" aria-hidden="true"><span>待確認</span></div>':'')+'<div class="bar"><span>'+dlab(b.day)+'</span><small>'+(b.proxy?'幫 <b>'+he(b.who)+'</b> 約・':'')+(b.rep?'🔁 固定・':'')+trip+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</small></div><div class="in">'
       +(b.last&&!x?'<div class="bc">📣 '+he(b.last)+' <span style="font-weight:400;opacity:.85">'+he(b.lastAt||'')+'</span></div>':'')
       +'<div class="sp"><span class="tm">'+(old?'<s class="old">'+he(old)+'</s>':'')+(cd?'<span class="cdb" data-cd="'+ea+'" data-big>'+(ea>Date.now()?cdTxt(ea-Date.now()):'已抵達')+'</span><em class="cdl">預計 '+new Date(ea+8*3600e3).toISOString().slice(11,16)+' 抵達</em>':'<span'+(b.at2&&!x?' class="nw"':'')+'>'+he(tm)+'</span>')+(old?'<em class="chg">時間更改</em>':'')+'</span>'+(b.st==='w'&&!ex?'<span class="st w">等待司機確認</span>':'')+'</div>'
       +'<div class="sp" style="margin-top:6px"><span class="lab">出發</span><span class="lab">目的地</span></div>'
