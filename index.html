@@ -7981,9 +7981,10 @@ function xlsxStruck(u8,sheetName){
 function readXlsx(file){
   return new Promise(function(res,rej){
     var fr=new FileReader();
-    fr.onload=function(e){
-      try{
-        var u8=new Uint8Array(e.target.result);
+    // 有些非 Excel 軟體存出的 xlsx，zip 內部記錄的大小前後不一致（Bad compressed size），
+    // SheetJS 會直接拒絕；這時用 JSZip 依中央目錄重新打包一次再解析
+    var ZIPBAD=/Bad (un)?compressed size|Bad CRC|Corrupted zip|End of data/i;
+    function go(u8){
         var wb=XLSX.read(u8,{type:'array',raw:true});
         var name=null;
         if(wb.SheetNames.indexOf('採樣行程')>=0)name='採樣行程';
@@ -7994,7 +7995,17 @@ function readXlsx(file){
           {header:1,raw:true,defval:null,range:{s:{r:0,c:0},e:{r:9999,c:21}}});
         var struck=xlsxStruck(u8,name);          // 被畫刪除線的行程＝已取消，不匯入
         res(parseSheet(raw,name,file.name,struck));
-      }catch(ex){rej(ex);}
+    }
+    fr.onload=function(e){
+      var u8=new Uint8Array(e.target.result);
+      try{go(u8);}catch(ex){
+        if(!ZIPBAD.test(String(ex&&ex.message||ex))){rej(ex);return;}
+        loadJS('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+          .then(function(){return JSZip.loadAsync(u8);})
+          .then(function(z){return z.generateAsync({type:'uint8array',compression:'DEFLATE'});})
+          .then(function(fix){try{go(fix);}catch(ex2){rej(ex2);}})
+          .catch(function(){rej(new Error('Excel 檔案結構損毀，請用 Excel 開啟後「另存新檔」成 .xlsx 再上傳'));});
+      }
     };
     fr.onerror=function(){rej(new Error('檔案讀取失敗'));};
     fr.readAsArrayBuffer(file);
@@ -8620,6 +8631,16 @@ function isMobileDev(){
   var u=navigator.userAgent||'';
   return /iPhone|iPad|iPod|Android/i.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1);
 }
+/* 三星內建瀏覽器（Samsung Internet）：加入主畫面會被 Android 14 以後的手機擋（「為舊版 Android 打造」），請改用 Chrome */
+function isSam(){return /SamsungBrowser/i.test(navigator.userAgent||'')&&!isStandalone();}
+function chromeUrl(){var u=location.href.split('#')[0];return 'intent://'+u.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;end';}
+function copyUrl(){var u=location.href.split('#')[0];
+  var ok=function(){toast('已複製網址，打開 Chrome 貼上就好','ok',3000);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(ok,function(){prompt('複製這個網址，貼到 Chrome',u);});else prompt('複製這個網址，貼到 Chrome',u);}
+function samHTML(){return '<p class="onbs">三星手機內建的瀏覽器加入主畫面時，會跳出「為舊版 Android 打造」被擋下來，這是三星瀏覽器的問題，不是你的手機。請改用 <b>Chrome</b> 開啟行事曆，再加入主畫面。</p>'
+  +'<a class="btn btn-p btn-full" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="'+chromeUrl()+'">用 Chrome 開啟行事曆</a>'
+  +'<button class="btn btn-full" style="margin-top:8px" onclick="copyUrl()">複製網址（自己貼到 Chrome）</button>'
+  +'<p class="onbs" style="font-size:12.5px;opacity:.8;margin-top:10px">在 Chrome 裡：登入 → 右上角「⋮」→「加到主畫面」或「安裝應用程式」→ 從主畫面打開，App 會請你開啟通知。</p>';}
 function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 }
@@ -8631,6 +8652,8 @@ function pushHTML(){
     return h+'<div class="note">iPhone 要先把本站「加入主畫面」才能收推播：Safari 下方「分享」→「加入主畫面」，'
       +'之後從主畫面的圖示開啟，再回到這裡開啟推播。（需 iOS 16.4 以上）</div>';
   if(!pushSupported())return h+'<div class="note bad">這個瀏覽器不支援推播通知。</div>';
+  if(isSam())h+='<div class="note">三星瀏覽器沒辦法加入主畫面，建議改用 <b>Chrome</b> 開啟行事曆再加入主畫面，通知會比較穩定。'
+    +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><a class="btn btn-p" style="text-decoration:none" href="'+chromeUrl()+'">用 Chrome 開啟</a><button class="btn" onclick="copyUrl()">複製網址</button></div></div>';
   var on=pushIsOn();
   if(Notification.permission==='denied')
     h+='<div class="note bad">通知權限已被封鎖，請到手機「設定 → 通知」找到本 App 允許通知後再試。</div>';
@@ -8702,11 +8725,14 @@ function openPushOnb(){
   var body;
   if(isIOS&&!isStandalone())body='<p class="onbs">iPhone 要先把本站「加入主畫面」才能收通知：Safari 下方「分享」→「加入主畫面」，之後從主畫面的圖示開啟，App 會再請你開啟通知。</p>'
     +'<button class="btn btn-p btn-full" onclick="pushOnbClose()">我知道了</button>';
+  else if(isSam())body=samHTML()
+    +'<button class="btn btn-full" style="margin-top:8px" onclick="pushOnbClose();pushOn()">先在這裡開啟通知</button>'
+    +'<button class="btn btn-full" style="margin-top:8px" onclick="pushOnbClose()">稍後再說</button>';
   else if(!pushSupported()||Notification.permission==='denied')body='<p class="onbs">這個瀏覽器目前不能收通知'+(Notification&&Notification.permission==='denied'?'（通知權限被封鎖，請到手機設定允許）':'')+'，之後可在「更多 → 行程提醒」開啟。</p>'
     +'<button class="btn btn-p btn-full" onclick="pushOnbClose()">我知道了</button>';
   else body='<button class="btn btn-p btn-full" style="margin-top:16px" onclick="pushOnbClose();pushOn()">允許通知</button>'
     +'<button class="btn btn-full" style="margin-top:8px" onclick="pushOnbClose()">稍後再說</button>';
-  $('onb').innerHTML='<div class="onbw"><div class="onbh">開啟通知</div>'+body+'</div>';
+  $('onb').innerHTML='<div class="onbw"><div class="onbh">'+(isSam()&&!(isIOS&&!isStandalone())?'請改用 Chrome':'開啟通知')+'</div>'+body+'</div>';
   $('onb').classList.add('open');
 }
 function pushOnbClose(){lsS(PUSH_ASK_KEY,String(Date.now()));$('onb').classList.remove('open');$('onb').innerHTML='';}

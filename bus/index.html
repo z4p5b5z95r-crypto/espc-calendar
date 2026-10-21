@@ -1292,6 +1292,19 @@ function offDel(d,s){admDone(gas('admOff',TOKEN,d,'',false,s||''),'已刪除');}
 
 /* ── 通知（推播） ── */
 function standalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;}
+/* 三星內建瀏覽器（Samsung Internet）：加入主畫面會被 Android 14 以後的手機擋（「為舊版 Android 打造」），請改用 Chrome */
+function isSam(){return /SamsungBrowser/i.test(navigator.userAgent)&&!standalone();}
+function chromeUrl(){var u=location.href.split('#')[0];return 'intent://'+u.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;end';}
+function copyUrl(){var u=location.href.split('#')[0];
+  var ok=function(){toast('已複製網址，打開 Chrome 貼上就好',3000);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(ok,function(){prompt('複製這個網址，貼到 Chrome',u);});else prompt('複製這個網址，貼到 Chrome',u);}
+function samSheet(ob){
+  sheet('<div style="text-align:center"><div style="font-size:34px">📱</div><b style="font-size:18px">請改用 Chrome 加入主畫面</b>'
+    +'<p class="hint" style="text-align:center;margin-top:6px">'+(ob?'預約已送出。':'')+'三星手機內建的瀏覽器加入主畫面時，會跳出「為舊版 Android 打造」被擋下來，這是三星瀏覽器的問題，不是你的手機。改用 Chrome 就可以正常加入、收到司機通知。</p></div>'
+    +'<a class="btn" style="display:block;text-align:center;text-decoration:none" href="'+chromeUrl()+'">用 Chrome 開啟娃娃車</a>'
+    +'<button class="btn g" style="margin-top:8px" onclick="copyUrl()">複製網址（自己貼到 Chrome）</button>'
+    +'<div class="hint" style="margin-top:12px;line-height:1.7">在 Chrome 裡：登入 → 右上角「⋮」→「加到主畫面」或「安裝應用程式」→ 從主畫面打開，按「開啟通知」</div>'
+    +(ob?'<button class="btn g" style="margin-top:10px" onclick="obLater()">之後再說</button>':'<button class="btn g" style="margin-top:10px" onclick="closeSheet()">關閉</button>'));}
 function isIOS(){return /iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);}
 function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
 function pushReady(){return !!FB_CFG.appId;}
@@ -1301,6 +1314,7 @@ function pushNeed(){
   if(M.me.kind==='u'&&(EMBED||M.me.calPush||ls('espc_push')))return '';   // 有行事曆帳號、行事曆已開通知：從行事曆跳
   if(!pushReady())return '';
   if(pushSupported()&&Notification.permission==='granted'&&ls('bus_push'))return '';
+  if(isSam())return 'home';
   if(isIOS()&&!standalone())return 'home';
   if(!pushSupported())return 'home';
   return Notification.permission==='denied'?'denied':'ask';
@@ -1310,7 +1324,7 @@ function obAfter(){var k=pushNeed();if(k!=='home'&&k!=='ask')return;if(+(ls('bus
   setTimeout(function(){if(!$('ov').classList.contains('on')&&!SFX)obOpen(k);},1800);}
 function obLater(){lsS('bus_ob_snz',String(Date.now()+3*86400000));closeSheet();}
 function obOpen(k){
-  if(k==='home'){a2hsOpen('',true);return;}
+  if(k==='home'){if(isSam())samSheet(true);else a2hsOpen('',true);return;}
   sheet('<div style="text-align:center"><div style="font-size:34px">🔔</div><b style="font-size:18px">開啟通知，才收得到司機的通知喔！</b>'
     +'<p class="hint" style="text-align:center;margin-top:6px">司機接單或不接單、出發前 3 分鐘提醒、發車廣播、同事請你順便幫忙，都會直接跳通知給你</p></div>'
     +'<button class="btn" onclick="closeSheet();pushOn()">開啟通知</button><button class="btn g" style="margin-top:8px" onclick="obLater()">之後再說</button>');
@@ -1318,6 +1332,7 @@ function obOpen(k){
 function pushCard(){
   var k=pushNeed();
   if(!k)return '';
+  if(isSam())return '<div class="note" style="margin:10px 0;display:flex;align-items:center;gap:10px"><span style="flex:1">🔔 三星瀏覽器沒辦法加入主畫面，請改用 <b>Chrome</b> 開啟，才收得到司機的通知</span><button class="chip s" style="background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700;white-space:nowrap" onclick="samSheet()">怎麼做</button></div>';
   if(isIOS()&&!standalone())return '<div class="note" style="margin:10px 0;display:flex;align-items:center;gap:10px"><span style="flex:1">🔔 <b>加入主畫面</b>，才收得到司機的通知喔</span><button class="chip s" style="background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700" onclick="a2hsOpen()">看怎麼加</button></div>';
   if(!pushSupported())return '<div class="note" style="margin:10px 0">這個瀏覽器不支援通知。<a href="#" style="color:var(--accT);font-weight:700" onclick="a2hsOpen();return false">加入主畫面</a>後再打開試試</div>';
   if(Notification.permission==='denied')return '<div class="note red" style="margin:10px 0">通知被封鎖了，請到手機「設定」裡允許娃娃車通知</div>';
@@ -1357,7 +1372,7 @@ function pushRefresh(){
 }
 /* 加入主畫面教學（第一次用工號登入會自動跳出） */
 var A2={os:'',ob:false};
-function a2hsOpen(os,ob){A2.os=os||A2.os||(/Android/i.test(navigator.userAgent)?'and':'ios');if(ob!==undefined)A2.ob=!!ob;
+function a2hsOpen(os,ob){if(isSam()&&os!=='ios'){samSheet(ob);return;}A2.os=os||A2.os||(/Android/i.test(navigator.userAgent)?'and':'ios');if(ob!==undefined)A2.ob=!!ob;
   var step=function(n,t,ic){return '<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)"><span style="width:26px;height:26px;border-radius:50%;background:var(--tint);color:var(--accT);font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+n+'</span><span style="flex:1;font-size:14px;line-height:1.5">'+t+'</span>'+(ic?'<span style="font-size:20px">'+ic+'</span>':'')+'</div>';};
   var ios=step(1,'按 Safari 下方的<b>「分享」</b>按鈕','⬆️')+step(2,'往下滑，點<b>「加入主畫面」</b>','➕')+step(3,'右上角按<b>「新增」</b>','✅')+step(4,'從主畫面打開<b>娃娃車預約</b>，按<b>「開啟通知」</b>','🔔');
   var and=step(1,'按 Chrome 右上角的<b>「⋮」</b>','⋮')+step(2,'點<b>「加到主畫面」</b>或<b>「安裝應用程式」</b>','➕')+step(3,'按<b>「新增／安裝」</b>','✅')+step(4,'打開後按<b>「開啟通知」</b>','🔔');
@@ -1369,6 +1384,20 @@ function a2hsOpen(os,ob){A2.os=os||A2.os||(/Android/i.test(navigator.userAgent)?
 /* 點通知打開：service worker 叫畫面重新整理 */
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.type==='open'){var hs=String(d.url||'').split('#')[1];if(tkParse(hs)){if(window.caches)caches.open('bus-open').then(function(c){c.delete('./__open');});tkGo(tkParse(hs),tkData(hs));return;}var o=ordParse(hs);if(o){if(window.caches)caches.open('bus-open').then(function(c){c.delete('./__open');});ordGo(o);return;}}if(d.type==='push'||d.type==='open'){if(d.type==='open'&&d.url&&d.url.indexOf('#mine')>=0&&M)PAGE='mine';load();}});
 
+/* 三星瀏覽器打開（例如掃 QR code）：自動改用 Chrome 開啟。
+   ・手機沒有 Chrome → Android 會帶回這一頁（網址加 ?stay=1），就留在三星瀏覽器，不再跳
+   ・通知連結（網址有 #）不跳，免得打不開那張車票
+   ・同一個分頁只試一次 */
+function samGo(){
+  try{
+    if(!isSam()||location.hash||/[?&]stay=1/.test(location.search)||sessionStorage.getItem('sam_tried'))return false;
+    sessionStorage.setItem('sam_tried','1');
+  }catch(e){return false;}
+  var u=location.href.split('#')[0],back=u+(u.indexOf('?')<0?'?':'&')+'stay=1';
+  location.href='intent://'+u.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(back)+';end';
+  return true;
+}
+samGo();
 init();
 </script>
 </body></html>
