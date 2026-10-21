@@ -208,6 +208,8 @@ button.hpp{cursor:pointer}.hpp.s{font-size:11px;padding:1px 7px}
 .tk5.void .hpadd,.tk5.void .hpt{display:none}
 .tk5.hl{animation:tkhl 1.1s ease-out 3}
 .tk5.pend .bar{background:#a9a19a}
+.tk5.pend .in>*:not(.ft){opacity:.5}   /* 確認中：時間、地點都淡一點；下面的改票按鈕維持清楚 */
+.tk5.pend .in>.ft{color:var(--tx3)}
 .tk5.pend .wm{position:absolute;left:0;right:0;top:34px;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;border-radius:0 0 18px 18px;z-index:1}
 .tk5.pend .wm span{transform:rotate(-16deg);font-size:42px;font-weight:900;letter-spacing:6px;color:rgba(196,78,6,.12);border:4px solid rgba(196,78,6,.12);border-radius:12px;padding:2px 18px;white-space:nowrap}
 .tkf{margin:22px 4px 14px 0;perspective:1200px;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -887,9 +889,9 @@ function tkHTML0(b,pop){
     var canRp=b.st==='no'&&!expired(b)&&(call||!departed(b.day,b.slot));
     var rj=b.st==='no';
     var pend=b.st==='w'&&!ex;   // 等司機確認：灰色票頭＋「待確認」浮水印，跟正式車票分得出來
-    return '<div class="tk5'+(x||ex||rj?' void':'')+(pend?' pend':'')+(!pop&&NEXTID===b.id?' next':'')+'"'+(pop?'':' id="tk-'+b.id+'"')+'>'+(pend?'<div class="wm" aria-hidden="true"><span>待確認</span></div>':'')+'<div class="bar"><span>'+dlab(b.day)+'</span><small>'+(b.proxy?'幫 <b>'+he(b.who)+'</b> 約・':'')+(b.rep?'🔁 固定・':'')+trip+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</small></div><div class="in">'
+    return '<div class="tk5'+(x||ex||rj?' void':'')+(pend?' pend':'')+(!pop&&NEXTID===b.id?' next':'')+'"'+(pop?'':' id="tk-'+b.id+'"')+'>'+(pend?'<div class="wm" aria-hidden="true"><span>確認中</span></div>':'')+'<div class="bar"><span>'+dlab(b.day)+'</span><small>'+(b.proxy?'幫 <b>'+he(b.who)+'</b> 約・':'')+(b.rep?'🔁 固定・':'')+trip+'・'+b.n+' 人'+(b.trunk?'・後車廂':'')+'</small></div><div class="in">'
       +(b.last&&!x?'<div class="bc">📣 '+he(b.last)+' <span style="font-weight:400;opacity:.85">'+he(b.lastAt||'')+'</span></div>':'')
-      +'<div class="sp"><span class="tm">'+(old?'<s class="old">'+he(old)+'</s>':'')+(cd?'<span class="cdb" data-cd="'+ea+'" data-big>'+(ea>Date.now()?cdTxt(ea-Date.now()):'已抵達')+'</span><em class="cdl">預計 '+new Date(ea+8*3600e3).toISOString().slice(11,16)+' 抵達</em>':'<span'+(b.at2&&!x?' class="nw"':'')+'>'+he(tm)+'</span>')+(old?'<em class="chg">時間更改</em>':'')+'</span>'+(b.st==='w'&&!ex?'<span class="st w">等待司機確認</span>':'')+'</div>'
+      +'<div class="sp"><span class="tm">'+(old?'<s class="old">'+he(old)+'</s>':'')+(cd?'<span class="cdb" data-cd="'+ea+'" data-big>'+(ea>Date.now()?cdTxt(ea-Date.now()):'已抵達')+'</span><em class="cdl">預計 '+new Date(ea+8*3600e3).toISOString().slice(11,16)+' 抵達</em>':'<span'+(b.at2&&!x?' class="nw"':'')+'>'+he(tm)+'</span>')+(old?'<em class="chg">時間更改</em>':'')+'</span>'+'</div>'
       +'<div class="sp" style="margin-top:6px"><span class="lab">出發</span><span class="lab">目的地</span></div>'
       +'<div class="rw"><span class="pl">'+pl(frm)+'</span><div class="road">'+(rt?'<i class="van"></i><i class="van R"></i>':'<i class="van R"></i>')+'</div><span class="pl">'+pl(to)+'</span></div>'
       +(b.memo?'<div class="lab" style="margin-top:6px">備註：'+he(b.memo)+'</div>':'')+(part?'<div class="lab" style="margin-top:4px">'+he(part)+'</div>':'')
