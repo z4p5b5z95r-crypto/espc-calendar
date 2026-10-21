@@ -61,6 +61,7 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .nav.many sup{position:absolute;top:3px;right:calc(50% - 22px)}
 
 .lvb{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--tint);color:var(--accT);white-space:nowrap}.lvb.on{background:#e3f3e8;color:#1d8148}.lvb.off{background:var(--card2);color:var(--tx3)}
+.dcx{color:var(--err);font-size:13px;font-weight:600;text-decoration:none}
 .lvr{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px}
 .note.warn{background:#fff3dc;color:#7a4b00}
 .tkbar{display:flex;justify-content:flex-end;margin:4px 0 -6px}
@@ -826,13 +827,37 @@ function tkHTML(b,pop){
       +(b.memo?'<div class="lab" style="margin-top:6px">備註：'+he(b.memo)+'</div>':'')+(part?'<div class="lab" style="margin-top:4px">'+he(part)+'</div>':'')
       +(b.reply?'<div class="lab" style="margin-top:6px;color:#2a5a8a;font-weight:700">💬 我的回覆：'+he(b.reply)+'</div>':'')
       +(b.proxy?'':helpBox(b,pop,live))
-      +'<div class="ft">'+foot+(canRp?'<button class="cxb rpb" onclick="replyOpen(\''+b.id+'\')">💬 回覆司機</button>':'')+(live&&!pop?'<button class="cxb" onclick="cancelOpen(\''+b.id+'\')">取消預約</button>':'')+'</div></div>'
+      +'<div class="ft">'+foot+(canRp?'<button class="cxb rpb" onclick="replyOpen(\''+b.id+'\')">💬 回覆司機</button>':'')+(live&&!pop?(call?'<button class="cxb" onclick="cancelOpen(\''+b.id+'\')">取消預約</button>':'<button class="cxb" onclick="chgOpen(\''+b.id+'\')">更改車票</button>'):'')+'</div></div>'
       +(rj?stampSVG('no',stDate(b.upd),'司機不接單',8):ex?stampSVG('exp',stDate(b.day),'已過期',-8):b.st==='ok'?stampSVG(true,stDate(b.upd),b.drv,-14):x?stampSVG(false,stDate(b.upd),b.off?'停駛':'已取消',10):'')+'</div>';
 }
 var NEXTID='';
 function tkEndTag(b){return b.st==='x'?(b.off?'停駛':'已取消'):b.st==='no'?'被拒絕':expired(b)?'已過期':'已發車';}
 var CX={id:'',leg:'all',why:''};
 function findB(id,list){return (list||[]).filter(function(x){return x.id===id;})[0];}
+/* 更改車票：改日期／班次，或取消。改好的車票當作新的一張（不顯示舊時間），回到「等司機確認」 */
+var CH={id:'',day:'',slot:''};
+function chgOpen(id){var b=findB(id,DATA.mine);if(!b)return;CH={id:id,day:b.day,slot:b.slot};chgPaint();}
+function chgPaint(){var b=findB(CH.id,DATA.mine);if(!b)return;
+  var days=(M.days||[]).filter(function(d){return ['10:00','14:00'].some(function(s){return !departed(d,s)&&!slotOff(d,s);});});
+  if(days.indexOf(b.day)<0&&!departed(b.day,b.slot))days=[b.day].concat(days).sort();
+  var same=CH.day===b.day&&CH.slot===b.slot;
+  var h='<b style="font-size:17px">更改車票</b>'
+    +'<div class="kv" style="margin-top:4px">目前：'+dlab(b.day)+'　'+slotLab(b.at2||b.slot)+'　'+route(b)+'・'+b.n+' 人</div>'
+    +'<div class="sec" style="margin-left:0">改到哪一天</div><div class="seg">'+days.map(function(d){var l=dlab(d).split(' ');return '<button class="'+(CH.day===d?'on':'')+'" onclick="CH.day=\''+d+'\';chgFix();chgPaint()">'+(l.length>1?l[0]+'<small>'+l[1]+'</small>':l[0])+'</button>';}).join('')+'</div>'
+    +'<div class="sec" style="margin-left:0">班次</div><div class="seg">'+['10:00','14:00'].map(function(s){var so=slotOff(CH.day,s),gone=departed(CH.day,s)||!!so,cur=CH.day===b.day&&s===b.slot;
+      return '<button class="'+(CH.slot===s?'on':'')+'" '+(gone?'disabled':'')+' onclick="CH.slot=\''+s+'\';chgPaint()">'+slotLab(eff(CH.day,s))+'<small>'+(so?'停駛・'+he(so):gone?'已發車':cur?'目前的班次':((M.cnt||{})[CH.day+'|'+s]?'目前 '+M.cnt[CH.day+'|'+s]+' 人搭乘':'目前沒有人搭'))+'</small></button>';}).join('')+'</div>'
+    +(b.st==='ok'?'<p class="hint" style="margin:8px 2px 0">改時間後要等司機重新確認</p>':'')
+    +'<button class="btn" id="chb" '+(same?'disabled':'')+' onclick="chgGo()">確定改時間</button>'
+    +'<button class="btn g" style="margin-top:8px" onclick="closeSheet()">不改了</button>'
+    +'<div style="text-align:center;margin-top:14px"><a href="#" style="color:var(--err);font-size:14px;font-weight:600;text-decoration:none" onclick="cancelOpen(\''+b.id+'\');return false">取消這筆預約</a></div>';
+  sheet(h);}
+function chgFix(){if(departed(CH.day,CH.slot)||slotOff(CH.day,CH.slot))CH.slot=['10:00','14:00'].filter(function(s){return !departed(CH.day,s)&&!slotOff(CH.day,s);})[0]||CH.slot;}
+function chgGo(trunk){var bt=$('chb');if(bt){bt.disabled=true;bt.textContent='處理中…';}
+  gas('riderRetime',TOKEN,CH.id,CH.day,CH.slot,!!trunk).then(function(j){
+    if(j&&j.full){sheet('<b style="font-size:17px">這班座位已滿</b><p style="color:var(--tx2)">'+dlab(CH.day)+' '+slotLab(CH.slot)+' 已經有 '+j.used+' 人（座位 '+j.seats+' 個），要坐後車廂嗎？</p><button class="btn" onclick="chgGo(true)">可以，坐後車廂</button><button class="btn g" style="margin-top:8px" onclick="chgPaint()">換別班</button>');return;}
+    if(!j.ok){toast(j.error||'改時間失敗',3000);chgPaint();return;}
+    closeSheet();tkAdd(j.b);TK=j.b.id;toast(j.held?'已改時間，司機上班（8:30）後會確認':'已改為 '+dlab(CH.day)+' '+slotLab(CH.slot)+'，等司機確認',3000);render();
+  }).catch(function(e){toast(e.message);chgPaint();});}
 function cancelOpen(id){CX={id:id,leg:'all',why:''};cxPaint();}
 function cxPaint(){var b=findB(CX.id,DATA.mine);if(!b)return;
   var legs=b.trip==='rt'?[['all','整趟來回'],['go','只取消去程'],['back','只取消回程']]:[];
@@ -949,7 +974,8 @@ function drvHTML(){
           +(b.st==='w'?'<span class="st w">待確認</span>':b.st==='ok'?'<span class="st ok">'+he(b.drv)+' 確認</span>':'<span class="st no">不接單</span>')+(b.trunk?' <span class="st" style="background:#ece7f6;color:#5b3c99">後車廂</span>':'')+(b.rep?' <span class="st" style="background:#e4eef8;color:#2a5a8a">🔁 固定</span>':'')
           +'<div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br>'+(b.trip==='rt'?'來回（同趟送到後接回）・':'')+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+(b.st==='no'?'<br>原因：'+he(b.why):'')+(b.reply?'<br><b style="color:#2a5a8a">💬 乘客回覆：'+he(b.reply)+'</b>':'')+(b.cx?'<br><span style="color:var(--tx3)">'+he(b.cx)+'</span>':'')+'</div>'
           +(redoOk(b)&&M.me.isDriver?'<div class="acts"><button class="y" onclick="acceptGo(\''+b.id+'\')">改為接單</button></div>':'')
-          +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="acceptGo(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')+'</div>';
+          +(b.st==='w'&&M.me.isDriver?'<div class="acts"><button class="y" onclick="acceptGo(\''+b.id+'\')">接單</button><button class="n" onclick="rejectOpen(\''+b.id+'\')">不接單</button></div>':'')
+          +((b.st==='w'||b.st==='ok')&&!expired(b)?'<div style="text-align:right;margin-top:6px"><a href="#" class="dcx" onclick="dcxOpen(\''+b.id+'\');return false">取消這筆預約</a></div>':'')+'</div>';
       })());}).join('')+'</div></div></div>';
   };
   // 只展開最近的一班，其他的收合（記住司機自己點開的）；當天已結束的放最下面
@@ -1002,6 +1028,14 @@ function rejectOpen(id){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;ORD_OPEN
     +'<div class="sec" style="margin-left:0">原因（必填）</div><div class="chips" style="margin-bottom:8px">'+REASONS.map(function(r){return '<button class="chip s" onclick="rjPick(\''+r+'\')">'+r+'</button>';}).join('')+'</div>'
     +'<textarea class="fld" id="rjt" maxlength="100" placeholder="寫給預約的人看，例如：車輛送保養，請改搭計程車" oninput="$(\'rjb\').disabled=!this.value.trim()"></textarea>'
     +'<button class="btn r" id="rjb" disabled onclick="this.disabled=true;act(gas(\'drvReject\',TOKEN,\''+id+'\',$(\'rjt\').value.trim()),\'已回覆不接單\')">確定不接單</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
+/* 司機在總覽取消（刪除）單筆預約：乘客會收到通知 */
+var DCX_PRE=['乘客說不搭了','重複預約','車輛臨時有狀況'];
+function dcxOpen(id){var b=findB(id,DATA.drv);if(!b)return;
+  sheet('<b style="font-size:17px">取消這筆預約</b><div class="kv" style="margin-top:4px">'+he(b.who)+(b.ext?' #'+he(b.ext):'')+'・'+dlab(b.day)+' '+tripLab(b)+' '+route(b)+'</div>'
+    +'<div class="sec" style="margin-left:0">原因（選填，乘客會看到）</div><div class="chips" style="margin-bottom:8px">'+DCX_PRE.map(function(r){return '<button class="chip s" onclick="$(\'dcxt\').value=this.textContent">'+r+'</button>';}).join('')+'</div>'
+    +'<textarea class="fld" id="dcxt" maxlength="100" placeholder="例如：已改搭計程車"></textarea>'
+    +'<p class="hint" style="margin:8px 0 0">'+he(b.who)+' 會收到取消通知</p>'
+    +'<button class="btn r" id="dcxb" onclick="this.disabled=true;act(gas(\'drvCancel\',TOKEN,\''+id+'\',$(\'dcxt\').value.trim()),\'已取消，已通知 '+he(b.who).replace(/'/g,'')+'\')">確定取消並通知乘客</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">不要取消</button>');}
 function rjPick(r){var t=$('rjt');t.value=t.value.trim()?t.value+'，'+r:r;$('rjb').disabled=false;}
 var CS={day:'',slot:'',mode:'cast',sel:{},txt:''};
 var CASTS=['⚠️最後搭車通知⚠️，娃娃車將於3分鐘後發車','娃娃車已發車👋👋','娃娃車暫時離開，馬上回來'];
