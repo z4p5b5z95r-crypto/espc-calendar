@@ -231,9 +231,9 @@ button.hpp{cursor:pointer}.hpp.s{font-size:11px;padding:1px 7px}
 .tkb .tbh{font-size:11.5px;color:var(--tx3);font-weight:600}
 .tkb .tbh svg,.cxb.fhb svg{width:13px;height:13px;flex:none}
 /* 蓋章：翻到背面時藏起來（iPhone Safari 會把它透到背面），翻回正面轉完再出現 */
-.tkf .stamp{backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:opacity .2s ease .4s}
-.tkf.on .stamp{opacity:0;visibility:hidden;transition:opacity .08s,visibility 0s .08s}
-@media (prefers-reduced-motion: reduce){.tkf .tkfi{transition:none}.tkf .stamp{transition:none}}
+.tkf .stamp,.tkf .wm{backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:opacity .2s ease .4s}
+.tkf.on .stamp,.tkf.on .wm{opacity:0;visibility:hidden;transition:opacity .08s,visibility 0s .08s}
+@media (prefers-reduced-motion: reduce){.tkf .tkfi{transition:none}.tkf .stamp,.tkf .wm{transition:none}}
 @keyframes tkhl{0%{box-shadow:0 0 0 0 rgba(243,111,33,.75)}100%{box-shadow:0 0 0 16px rgba(243,111,33,0)}}
 @media (min-width:900px){
   /* 電腦版（使用者選 A）：分頁直排在左側欄，右邊內容；司機總覽一班一張卡（左路線、右乘客） */
