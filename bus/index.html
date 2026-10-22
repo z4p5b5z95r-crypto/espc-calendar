@@ -74,6 +74,7 @@ textarea.fld{border-radius:14px;height:84px;resize:none}
 .rfb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .rfb.on svg{animation:rfs .8s linear infinite}@keyframes rfs{to{transform:rotate(360deg)}}
 .hrow .rfb{margin-left:auto}
+.why{text-align:center;color:var(--err);font-size:12.5px;min-height:18px;margin:6px 0 0}.why:empty{min-height:0;margin:0}
 #ptr{position:fixed;left:50%;z-index:20;width:38px;height:38px;border-radius:50%;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;color:var(--tx3);opacity:0;pointer-events:none;transform:translate(-50%,-44px)}
 #ptr svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 #ptr.rd{color:var(--acc)}
@@ -651,20 +652,20 @@ function loginHTML(){
   var err=LG.err?'<p class="hint" style="color:var(--err)">'+he(LG.err)+'</p>':'';
   if(LG.step===1){
     h+='<div class="card" style="margin-top:18px"><div class="sec" style="margin-top:0">工號</div>'
-      +'<input class="fld" id="lgid" placeholder="例如 T30001" autocapitalize="characters" value="'+he(LG.gid)+'" style="font-size:18px;letter-spacing:1px;text-align:center" oninput="LG.gid=this.value.toUpperCase().replace(/\\s/g,\'\');this.value=LG.gid;$(\'lgb\').disabled=LG.gid.length<3" onkeydown="if(event.key===\'Enter\'&&LG.gid.length>=3)gidGo()">'+err
-      +'<button class="btn" id="lgb" '+(LG.gid.length<3||LG.busy?'disabled':'')+' onclick="gidGo()">'+(LG.busy?'請稍候…':'下一步')+'</button></div>'
+      +'<input class="fld" id="lgid" placeholder="例如 T30001" autocapitalize="characters" value="'+he(LG.gid)+'" style="font-size:18px;letter-spacing:1px;text-align:center" oninput="LG.gid=this.value.toUpperCase().replace(/\\s/g,\'\');this.value=LG.gid;$(\'lgb\').disabled=LG.gid.length<3;why(\'lgw\',LG.gid&&LG.gid.length<3?\'工號至少 3 碼\':\'\')" onkeydown="if(event.key===\'Enter\'&&LG.gid.length>=3)gidGo()">'+err
+      +'<button class="btn" id="lgb" '+(LG.gid.length<3||LG.busy?'disabled':'')+' onclick="gidGo()">'+(LG.busy?'請稍候…':'下一步')+'</button><p class="why" id="lgw"></p></div>'
       +'<p class="hint" style="text-align:center;margin-top:12px">不用密碼，輸入工號就能預約<br>有行事曆帳號的同事，姓名、分機會自動帶入</p>';
   }else{
     h+='<div class="card" style="margin-top:12px"><div style="font-weight:700">第一次使用</div><div class="hint" style="margin:2px 0 0">工號 '+he(LG.gid)+'，請輸入姓名和分機</div>'
       +'<div class="sec">姓名</div><input class="fld" id="lgn" placeholder="王小明" value="'+he(LG.name)+'" oninput="LG.name=this.value;lgChk()">'
       +'<div class="sec">分機</div><input class="fld" id="lge" placeholder="2538" inputmode="numeric" value="'+he(LG.ext)+'" oninput="LG.ext=this.value.replace(/[^0-9#-]/g,\'\');this.value=LG.ext;lgChk()">'+err
-      +'<button class="btn" id="lgb" disabled onclick="regGo()">'+(LG.busy?'請稍候…':'完成，開始預約')+'</button>'
+      +'<button class="btn" id="lgb" disabled onclick="regGo()">'+(LG.busy?'請稍候…':'完成，開始預約')+'</button><p class="why" id="lgw2"></p>'
       +'<button class="btn g" style="margin-top:8px" onclick="LG.step=1;LG.err=\'\';render()">返回</button></div>';
     setTimeout(lgChk,0);
   }
   return h;
 }
-function lgChk(){var b=$('lgb');if(b)b.disabled=LG.busy||!(LG.name.trim()&&LG.ext.trim());}
+function lgChk(){var b=$('lgb'),w=!LG.name.trim()?'請輸入姓名':!LG.ext.trim()?'請輸入分機':'';if(b)b.disabled=LG.busy||!!w;why('lgw2',LG.busy?'':w);}
 function loginOk(j,first){TOKEN=j.token;lsS('bus_token',TOKEN);setMe(j);LG={step:1,gid:'',name:'',ext:'',u:'',p:'',err:'',busy:false};PAGE='';toast('歡迎，'+j.me.name);afterLogin(first,true);}
 function gidGo(){
   if(LG.busy)return;LG.busy=true;LG.err='';render();
@@ -746,14 +747,16 @@ function bookHTML(){
     h+='<div class="sec">'+(R?'乘客（不填就是自己）':'幫誰預約（選填，不填就是自己）')+'</div><div style="display:flex;gap:8px"><input class="fld" style="flex:1.4" list="ppl" maxlength="20" placeholder="名字" value="'+he(F.forName)+'" oninput="F.forName=this.value;forFill(this.value,\'fext\',\'forExt\')">'
       +'<input class="fld" style="flex:1" id="fext" inputmode="numeric" maxlength="10" placeholder="分機" value="'+he(F.forExt)+'" oninput="F.forExt=this.value"></div>'+pplList();}
   if(!R&&drvOff())h+='<div class="note warn" style="margin-top:14px">'+(M.drvAway?'🌴 司機休假中，':'⏰ 司機上班時間 8:30～17:00，')+'現在送出的預約，<b>'+drvNext()+'早上 8:30</b> 司機才會收到通知並確認</div>';
-  h+='<button class="btn" id="go" onclick="'+(R?'repGoF()':'bookGo()')+'">'+(BUSY?'送出中…':R?'🔁 設定固定搭車':'送出預約')+'</button>';
+  h+='<button class="btn" id="go" onclick="'+(R?'repGoF()':'bookGo()')+'">'+(BUSY?'送出中…':R?'🔁 設定固定搭車':'送出預約')+'</button><p class="why" id="bwhy"></p>';
   if(R)h+='<p class="hint" style="text-align:center">會自動排進可以預約的日子（已確認、佔一個位子）；某天不搭，乘客取消那一天就好</p>';
   if(drv)h+=repList();
   if(!R)h+='<p class="hint" style="text-align:center">不限人數，發車前都可以約；送出後司機會確認</p>';
   setTimeout(chk,0);
   return h;
 }
-function chk(){var b=$('go');if(b)b.disabled=BUSY||!F.slot||(F.dest==='其他'&&!F.other.trim());}
+function chk(){var b=$('go'),R=F.rep&&M&&(M.me.isDriver||M.me.isAdmin);
+  var w=!F.slot?'這天的班次都已發車或停駛，請選其他日期':(F.dest==='其他'&&!F.other.trim())?'請輸入目的地':(R&&!F.dows)?'請選每週哪幾天':'';
+  if(b)b.disabled=BUSY||!!w;why('bwhy',BUSY?'':w);}
 function tap3(){var t=Date.now();TAPS=TAPS.filter(function(x){return t-x<800;});TAPS.push(t);if(TAPS.length>=3){TAPS=[];CALLON=true;toast('🚨 已開啟臨時叫車');render();}}
 /* 送出動畫：畫面變暗、車子發動 → 成功後車子開出畫面、顯示送出完成 */
 var SFX=null;
@@ -793,25 +796,35 @@ function fullAsk(j){
 /* 臨時叫車（隱藏）：不用等固定班次 */
 function callHTML(){
   if(!M.runToday)return '<div class="note red" style="margin-top:12px">今天停駛'+(M.offToday?'（'+he(M.offToday)+'）':'（週末）')+'，不能叫車</div>';
-  var h='<div class="note red" style="margin-top:10px">不在 10:00／2:00 班次的臨時用車。送出後司機會回覆「接單＋大約幾分鐘到」或不接單。</div>';
+  var h='';
   var pick=function(lab,key,okey,opts,ph){var v=C[key];
-    return '<div class="sec">'+lab+'</div><div class="chips">'+opts.map(function(t){return '<button class="chip'+(v===t?' on':'')+'" onclick="C.'+key+'=\''+t+'\';render()">'+t+'</button>';}).join('')+'</div>'
-      +(v==='其他'?'<input class="fld" style="margin-top:8px" maxlength="40" placeholder="'+ph+'" value="'+he(C[okey])+'" oninput="C.'+okey+'=this.value;cchk()">':'');};
+    return '<div class="sec">'+lab+'</div><div class="chips">'+opts.map(function(t){
+      return '<button class="chip'+(v===t?' on':'')+'" onclick="cPick(\''+key+'\',\''+t+'\')">'+t+'</button>';}).join('')+'</div>'
+      +(v==='其他'?'<input class="fld" style="margin-top:8px" maxlength="40" placeholder="'+ph+'" value="'+he(C[okey])+'" oninput="C.'+okey+'=this.value;cchk()" onchange="C.'+okey+'=this.value;cchk()">':'');};
   h+=pick('上車地點','frm','frmO',CALL_PL,'例如：捷運新北產業園區站');
   h+=pick('目的地','dest','destO',['紅樓','紫軒','赤城','其他'],'例如：捷運新北產業園區站');
   h+='<div class="sec">時間</div><div class="seg">'+[['asap','盡快'],['at','指定時間']].map(function(t){return '<button class="'+(C.when===t[0]?'on':'')+'" onclick="C.when=\''+t[0]+'\';render()">'+t[1]+'</button>';}).join('')+'</div>'
-    +(C.when==='at'?'<input class="fld" type="time" style="margin-top:8px" value="'+he(C.time)+'" oninput="C.time=this.value;cchk()">':'');
+    +(C.when==='at'?'<input class="fld" type="time" id="ctime" style="margin-top:8px;display:block;width:100%;max-width:100%;min-width:0;min-height:46px;-webkit-appearance:none;appearance:none;text-align:left" value="'+he(C.time)+'" oninput="C.time=this.value;cchk()" onchange="C.time=this.value;cchk()" onblur="C.time=this.value;cchk()">':'');
   h+='<div class="sec">人數</div><div class="seg" style="max-width:220px">'+[1,2,3,4].map(function(n){return '<button class="'+(C.n===n?'on':'')+'" onclick="C.n='+n+';render()">'+n+(n===4?'+':'')+'</button>';}).join('')+'</div>';
   h+='<div class="sec">備註（選填）</div><input class="fld" maxlength="100" placeholder="例如：在 1 樓大門口" value="'+he(C.memo)+'" oninput="C.memo=this.value">';
-  h+='<button class="btn r" id="cgo" onclick="callGo()">'+(BUSY?'送出中…':'🚨 送出叫車')+'</button>';
+  h+='<button class="btn r" id="cgo" onclick="callGo()">'+(BUSY?'送出中…':'🚨 送出叫車')+'</button><p class="why" id="cwhy"></p>';
   setTimeout(cchk,0);
   return h;
 }
+function cPick(k,t){C[k]=t;render();}
+/* 送出鈕不能按的時候，按鈕下面寫原因（所有表單共用） */
+function why(id,t){var e=$(id);if(e)e.textContent=t||'';}
 function cval(){return{frm:C.frm==='其他'?C.frmO.trim():C.frm,dest:C.dest==='其他'?C.destO.trim():C.dest};}
-function cchk(){var b=$('cgo');if(!b)return;var v=cval();
-  b.disabled=BUSY||!(v.frm&&v.dest&&v.frm!==v.dest&&(C.when==='asap'||(C.time&&hm(C.time)>=tw().min)));}
+/* 為什麼還不能送出（空字串＝可以送出）：直接寫在按鈕下面，不讓人猜 */
+function cwhy(){var v=cval(),t=$('ctime');if(t&&C.when==='at'&&t.value)C.time=t.value;
+  if(!v.frm)return C.frm==='其他'?'請輸入上車地點':'請選上車地點';
+  if(!v.dest)return C.dest==='其他'?'請輸入目的地':'請選目的地';
+  if(v.frm===v.dest)return '上車地點和目的地不能是同一個地方';
+  if(C.when==='at'){if(!C.time)return '請選指定時間';if(hm(C.time)<tw().min)return '預約時間已經過了，請選現在之後的時間';}
+  return '';}
+function cchk(){var b=$('cgo');if(!b)return;var w=cwhy();b.disabled=BUSY||!!w;var e=$('cwhy');if(e)e.textContent=BUSY?'':w;}
 function callGo(){
-  if(BUSY)return;var v=cval();BUSY=true;render();sfxStart('送出叫車');
+  if(BUSY)return;var w=cwhy();if(w){toast(w,2500);cchk();return;}var v=cval();BUSY=true;render();sfxStart('送出叫車');
   gas('call',TOKEN,{frm:v.frm,dest:v.dest,at:C.when==='asap'?'asap':C.time,n:C.n,memo:C.memo.trim()}).then(function(j){
     BUSY=false;
     if(!j.ok){sfxFail();toast(j.error||'送出失敗',3000);render();return;}
@@ -932,12 +945,13 @@ function chgPaint(){var b=findB(CH.id,DATA.mine);if(!b)return;
       +(CH.help?'<input class="fld" id="chhn" style="margin-top:8px" maxlength="40" placeholder="'+HELP_PH[CH.help]+'" value="'+he(CH.helpNote)+'" oninput="CH.helpNote=this.value;chgBtn()">':''))
     +'<div class="sec" style="margin-left:0">備註（選填）</div><input class="fld" id="chm" maxlength="100" placeholder="例如：有大件行李" value="'+he(CH.memo)+'" oninput="CH.memo=this.value;chgBtn()">'
     +'<p class="hint" id="chh" style="margin:10px 2px 0">'+(hard?'改了時間、行程、目的地或人數，要等司機重新確認':'只改備註或順便幫忙，不用重新確認')+'</p>'
-    +'<button class="btn" id="chb" onclick="chgGo()">確定更改</button>'
+    +'<button class="btn" id="chb" onclick="chgGo()">確定更改</button><p class="why" id="chw"></p>'
     +'<button class="btn g" style="margin-top:8px" onclick="closeSheet()">不改了</button>'
     +'<div style="text-align:center;margin-top:14px"><a href="#" style="color:var(--err);font-size:14px;font-weight:600;text-decoration:none" onclick="cancelOpen(\''+b.id+'\');return false">取消車票</a></div>';
   sheet(h);var sc2=$('ov').querySelector('.sheet');if(sc2)sc2.scrollTop=top;chgBtn();}
 function chgHelp(t){chgSet('help',CH.help===t?'':t);}
-function chgBtn(){var b=findB(CH.id,DATA.mine),bt=$('chb');if(!b||!bt)return;bt.disabled=chgSame(b)||(CH.dest==='其他'&&!String(CH.other||'').trim());
+function chgBtn(){var b=findB(CH.id,DATA.mine),bt=$('chb');if(!b||!bt)return;
+  var w=(CH.dest==='其他'&&!String(CH.other||'').trim())?'請輸入目的地':chgSame(b)?'還沒有改任何內容':'';bt.disabled=!!w;why('chw',w);
   var hard=CH.day!==b.day||CH.slot!==b.slot||CH.trip!==b.trip||chgDest()!==b.dest||(+CH.n)!==(+b.n||1),hh=$('chh');if(hh)hh.textContent=hard?'改了時間、行程、目的地或人數，要等司機重新確認':'只改備註或順便幫忙，不用重新確認';}
 function chgFix(){if(departed(CH.day,CH.slot)||slotOff(CH.day,CH.slot))CH.slot=['10:00','14:00'].filter(function(s){return !departed(CH.day,s)&&!slotOff(CH.day,s);})[0]||CH.slot;}
 function chgGo(trunk){chgKeep();var bt=$('chb');if(bt){bt.disabled=true;bt.textContent='處理中…';}
@@ -1116,8 +1130,8 @@ function etaOpen(id){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;
 function rejectOpen(id){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;ORD_OPEN='';
   sheet('<b style="font-size:17px">不接這筆預約</b><div class="kv" style="margin-top:4px">'+he(b.who)+'・'+dlab(b.day)+' '+tripLab(b)+' '+route(b)+'</div>'
     +'<div class="sec" style="margin-left:0">原因（必填）</div><div class="chips" style="margin-bottom:8px">'+REASONS.map(function(r){return '<button class="chip s" onclick="rjPick(\''+r+'\')">'+r+'</button>';}).join('')+'</div>'
-    +'<textarea class="fld" id="rjt" maxlength="100" placeholder="寫給預約的人看，例如：車輛送保養，請改搭計程車" oninput="$(\'rjb\').disabled=!this.value.trim()"></textarea>'
-    +'<button class="btn r" id="rjb" disabled onclick="this.disabled=true;act(gas(\'drvReject\',TOKEN,\''+id+'\',$(\'rjt\').value.trim()),\'已回覆不接單\')">確定不接單</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
+    +'<textarea class="fld" id="rjt" maxlength="100" placeholder="寫給預約的人看，例如：車輛送保養，請改搭計程車" oninput="$(\'rjb\').disabled=!this.value.trim();why(\'rjw\',this.value.trim()?\'\':\'請寫不接單的原因\')"></textarea>'
+    +'<button class="btn r" id="rjb" disabled onclick="this.disabled=true;act(gas(\'drvReject\',TOKEN,\''+id+'\',$(\'rjt\').value.trim()),\'已回覆不接單\')">確定不接單</button><p class="why" id="rjw">請寫不接單的原因</p><button class="btn g" style="margin-top:8px" onclick="closeSheet()">取消</button>');}
 /* 司機在總覽取消（刪除）單筆預約：乘客會收到通知 */
 var DCX_PRE=['乘客說不搭了','重複預約','車輛臨時有狀況'];
 function dcxOpen(id){var b=findB(id,DATA.drv);if(!b)return;
@@ -1126,7 +1140,7 @@ function dcxOpen(id){var b=findB(id,DATA.drv);if(!b)return;
     +'<textarea class="fld" id="dcxt" maxlength="100" placeholder="例如：已改搭計程車"></textarea>'
     +'<p class="hint" style="margin:8px 0 0">'+he(b.who)+' 會收到取消通知</p>'
     +'<button class="btn r" id="dcxb" onclick="this.disabled=true;act(gas(\'drvCancel\',TOKEN,\''+id+'\',$(\'dcxt\').value.trim()),\'已取消，已通知 '+he(b.who).replace(/'/g,'')+'\')">確定取消並通知乘客</button><button class="btn g" style="margin-top:8px" onclick="closeSheet()">不要取消</button>');}
-function rjPick(r){var t=$('rjt');t.value=t.value.trim()?t.value+'，'+r:r;$('rjb').disabled=false;}
+function rjPick(r){var t=$('rjt');t.value=t.value.trim()?t.value+'，'+r:r;$('rjb').disabled=false;why('rjw','');}
 var CS={day:'',slot:'',mode:'cast',sel:{},txt:''};
 var CASTS=['⚠️最後搭車通知⚠️，娃娃車將於3分鐘後發車','娃娃車已發車👋👋','娃娃車暫時離開，馬上回來'];
 function castOpen(d,s){CS={day:d,slot:s,mode:'cast',sel:{},txt:CASTS[0]};
