@@ -594,10 +594,11 @@ function ordSheet(id,quiet){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;ORD_
     +(b.memo?'<div class="om">備註：'+he(b.memo)+'</div>':'')
     +(b.st==='no'&&b.why?'<div class="om">不接單原因：'+he(b.why)+'</div>':'')
     +(b.reply?'<div class="om" style="color:#2a5a8a;font-weight:700">💬 乘客回覆：'+he(b.reply)+'</div>':'')+'</div>';
-  if(redoOk(b)&&M.me.isDriver)h+=call?'<div class="sec" style="margin-left:0">改為接單：大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>'
+  var asap=call&&b.at==='asap';   // 預約叫車（指定時間）只要接不接單；「盡快」才要選幾分鐘到
+  if(redoOk(b)&&M.me.isDriver)h+=asap?'<div class="sec" style="margin-left:0">改為接單：大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>'
     :'<button class="btn" onclick="accFx(\''+id+'\',0)">改為接單</button>';
   if(b.st==='w'&&M.me.isDriver){
-    if(call)h+='<div class="sec" style="margin-left:0">接單：大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>';
+    if(asap)h+='<div class="sec" style="margin-left:0">接單：大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>';
     else h+='<button class="btn" onclick="accFx(\''+id+'\',0)">接單</button>';
     h+='<button class="btn g" style="margin-top:8px" onclick="rejectOpen(\''+id+'\')">不接單</button>';
   }
@@ -1124,6 +1125,7 @@ function replyOpen(id){var b=findB(id,DATA.mine)||(TKD&&TKD.id===id?TKD:null);if
 function replyGo(id){var t=$('rpt').value.trim();if(!t){toast('請輸入內容');return;}closeSheet();sfxStart('送出回覆');
   gas('riderReply',TOKEN,id,t).then(function(j){if(!j.ok){sfxFail();toast(j.error,3000);return;}sfxDone('已回覆司機','司機會收到通知',function(){load();});}).catch(function(e){sfxFail();toast(e.message);});}
 function etaOpen(id){var b=findB(id,DATA.drv)||ordB(id);if(!b)return;
+  if(b.kind==='call'&&b.at!=='asap'){accFx(id,0);return;}   // 預約叫車：直接接單
   sheet('<b style="font-size:17px">接這趟臨時叫車</b><div class="kv" style="margin-top:4px">'+he(b.who)+'・'+route(b)+'・'+(b.at==='asap'?'盡快':b.at)+'</div>'
     +'<div class="sec" style="margin-left:0">大約多久到上車地點</div><div class="chips">'+[5,10,15,20,30].map(function(m){return '<button class="chip" onclick="this.disabled=true;accFx(\''+id+'\','+m+')">'+m+' 分鐘</button>';}).join('')+'</div>'
     +'<button class="btn g" style="margin-top:14px" onclick="closeSheet()">取消</button>');}
