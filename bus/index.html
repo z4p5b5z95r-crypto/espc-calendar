@@ -416,7 +416,7 @@ function eff(day,slot){return (M&&M.re&&M.re[day+'|'+slot])||slot;}   // 司機�
 /* 臨時叫車：司機回覆「約幾分鐘到」→ 從接單那一刻開始倒數 */
 /** 司機不接單的單：當天、還沒發車前可以改回接單 */
 function redoOk(b){return b.st==='no'&&String(b.upd||'').slice(0,10)===tw().day&&(b.kind==='call'?!expired(b):!departed(b.day,b.slot));}
-function etaAt(b){if(b.kind!=='call'||b.st!=='ok'||!b.eta||!b.upd)return 0;var t=Date.parse(String(b.upd).replace(' ','T')+'+08:00');return isNaN(t)?0:t+(+b.eta)*60000;}
+function etaAt(b){if(b.kind!=='call'||b.st!=='ok'||!b.eta||!b.upd||(b.at&&b.at!=='asap'))return 0;/* 預約叫車（指定時間）不倒數 */var t=Date.parse(String(b.upd).replace(' ','T')+'+08:00');return isNaN(t)?0:t+(+b.eta)*60000;}
 function cdTxt(ms){var s=Math.max(0,Math.round(ms/1000));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
 function cdTick(){var now=Date.now();[].forEach.call(document.querySelectorAll('[data-cd]'),function(e){var left=+e.getAttribute('data-cd')-now;
   if(left>0)e.textContent=e.hasAttribute('data-big')?cdTxt(left):'還有 '+cdTxt(left)+' 抵達';else{e.textContent=e.hasAttribute('data-big')?'已抵達':'司機應該已經到了';e.classList.add('cdz');}});}
@@ -898,7 +898,7 @@ function tkHTML0(b,pop){
     var tm=call?(arr?'已抵達':b.at==='asap'?'盡快':b.at):(b.at2||b.slot),old=!call&&b.at2&&b.strike&&!x?b.slot:'';   // 改時間：已確認的票像機票一樣劃掉原時間
     var part=b.cx&&!x?String(b.cx).split('：')[0]:'';   // 來回只取消一趟：只寫「已取消回程」，不寫原因
     var foot=x?'<span'+(b.off?' style="color:var(--err)"':'')+'>'+(b.off?he(b.cx||'停駛，預約已取消'):'已取消')+'</span>'
-      :b.st==='ok'?'<span>司機 <b>'+he(b.drv)+'</b>'+(b.drvExt?' #'+he(b.drvExt):'')+(call&&b.eta&&!arr?'・<b style="color:var(--ok)"'+(ea?' data-cd="'+ea+'"':'')+'>約 '+he(b.eta)+' 分鐘到</b>':'')+'</span>'
+      :b.st==='ok'?'<span>司機 <b>'+he(b.drv)+'</b>'+(b.drvExt?' #'+he(b.drvExt):'')+(call&&b.eta&&b.at==='asap'&&!arr?'・<b style="color:var(--ok)"'+(ea?' data-cd="'+ea+'"':'')+'>約 '+he(b.eta)+' 分鐘到</b>':'')+'</span>'
       :b.st==='no'?'<span style="color:var(--err)">司機不接單・'+he(b.why)+'</span>':'<span></span>';
     var canRp=b.st==='no'&&!expired(b)&&(call||!departed(b.day,b.slot));
     var rj=b.st==='no';
@@ -1049,7 +1049,7 @@ function drvHTML(){
   var calls=l.filter(function(b){return b.kind==='call'&&(((b.st==='w'||b.st==='ok')&&!expired(b))||redoOk(b));});   // 過期的臨時叫車移到「已結束」
   var callsEnd=l.filter(function(b){return b.kind==='call'&&(b.st==='w'||b.st==='ok')&&expired(b);});
   if(calls.length)h+='<div style="background:#fff;border:2px solid #e5483b;border-radius:20px;padding:10px 12px;margin:8px 0 6px"><div style="font-weight:800;color:#c62f22;margin-bottom:4px">🚨 臨時叫車</div>'+calls.slice().sort(function(a,b){return (a.st==='no')-(b.st==='no');}).map(function(b){return rjWrap(b,(function(){
-    return '<div style="border-top:1px solid var(--line);padding:8px 0">'+(b.st==='no'?'<span class="st no">已拒絕</span>':b.st==='w'?'<span class="st w">待回覆</span>':'<span class="st ok">'+he(b.drv)+' 確認・約 '+he(b.eta)+' 分鐘</span> <b style="color:var(--ok);font-size:13px"'+(etaAt(b)?' data-cd="'+etaAt(b)+'"':'')+'></b>')
+    return '<div style="border-top:1px solid var(--line);padding:8px 0">'+(b.st==='no'?'<span class="st no">已拒絕</span>':b.st==='w'?'<span class="st w">待回覆</span>':(b.at&&b.at!=='asap'?'<span class="st ok">'+he(b.drv)+' 確認・'+he(b.at)+' 接</span>':'<span class="st ok">'+he(b.drv)+' 確認・約 '+he(b.eta)+' 分鐘</span> <b style="color:var(--ok);font-size:13px"'+(etaAt(b)?' data-cd="'+etaAt(b)+'"':'')+'></b>'))
       +' <span class="hint">'+he(b.created.slice(11,16))+' 叫車</span>'
       +'<div class="kv"><b>'+he(b.who)+'</b>'+(b.ext?'　分機 '+he(b.ext):'')+'<br><b>'+route(b)+'</b>・'+(b.at==='asap'?'盡快':b.at)+'・'+b.n+' 人'+(b.memo?'<br>備註：'+he(b.memo):'')+(b.reply?'<br><b style="color:#2a5a8a">💬 乘客回覆：'+he(b.reply)+'</b>':'')+'</div>'
       +(redoOk(b)&&M.me.isDriver?'<div class="acts"><button class="y" onclick="etaOpen(\''+b.id+'\')">改為接單</button></div>':'')
