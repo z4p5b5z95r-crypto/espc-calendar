@@ -2963,7 +2963,7 @@ function boot(u,r,eng){
   $('app').style.display='flex';
   $('u-av').textContent=((eng&&eng!==u?eng:u)||'?').slice(0,1);
   $('u-nm').innerHTML=he((eng&&eng!==u?eng+'　':'')+u+'（'+roleLabel(r)+'）')
-    +(r==='sampler'?'<span class="beta">BETA</span>':'');   // 現場角色的自動篩選還在試用
+    +'';
   navPerm();   // 上傳、帳號、廣播、下載、統計、津貼：依功能權限（管理員可在「更多 › 功能權限」調整）
   notesEdit(null);   // 通知鈴鐺＋App 圖示紅點
   setTimeout(swVer,1500);
@@ -8342,7 +8342,7 @@ function saveUser(name){
     if(rename&&r.self){                       // 改到自己的工號就要更新本機記錄
       saveSession(TOKEN,ROLE,nu,ENGNAME);
       $('u-nm').innerHTML=he((ENGNAME&&ENGNAME!==nu?ENGNAME+'　':'')+nu+'（'+roleLabel(ROLE)+'）')
-        +(ROLE==='sampler'?'<span class="beta">BETA</span>':'');
+        +'';
     }
     return any?gas('updateUser',TOKEN,target,f):{ok:true};
   }).then(function(r2){
