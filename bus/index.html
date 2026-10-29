@@ -319,6 +319,7 @@ var FB_CFG={apiKey:"AIzaSyB3L9n5DicCQG1dSr0xQoMhL_b9TsjtdJ4",authDomain:"espc-ca
   projectId:"espc-calendar",storageBucket:"espc-calendar.firebasestorage.app",
   messagingSenderId:"265740284159",appId:"1:265740284159:web:c61f15fdebdc9920151cca"};   // ← 填娃娃車的 appId
 var FCM_VAPID='BIz2nfyWMRth_bkPmkz-zdKvhVU39Y7RLmM29RxvFP-1Eu2r8pE0A8YV4Z_GvHHDZDppae83aMTsLi3-0MiUYIE';
+var APP_VER='2026-10-29a';   // 每次更新就改這裡（登入頁、設定頁會顯示）
 var HOME='赤城',DESTS=['紅樓','紫軒','其他'],CALL_PL=['赤城','紅樓','紫軒','其他'],REASONS=['車輛保養','已經出車','路線太遠'];
 
 function $(i){return document.getElementById(i);}
@@ -655,7 +656,7 @@ function loginHTML(){
     h+='<div class="card" style="margin-top:18px"><div class="sec" style="margin-top:0">工號</div>'
       +'<input class="fld" id="lgid" placeholder="例如 T30001" autocapitalize="characters" value="'+he(LG.gid)+'" style="font-size:18px;letter-spacing:1px;text-align:center" oninput="LG.gid=this.value.toUpperCase().replace(/\\s/g,\'\');this.value=LG.gid;$(\'lgb\').disabled=LG.gid.length<3;why(\'lgw\',LG.gid&&LG.gid.length<3?\'工號至少 3 碼\':\'\')" onkeydown="if(event.key===\'Enter\'&&LG.gid.length>=3)gidGo()">'+err
       +'<button class="btn" id="lgb" '+(LG.gid.length<3||LG.busy?'disabled':'')+' onclick="gidGo()">'+(LG.busy?'請稍候…':'下一步')+'</button><p class="why" id="lgw"></p></div>'
-      +'<p class="hint" style="text-align:center;margin-top:12px">不用密碼，輸入工號就能預約<br>有行事曆帳號的同事，姓名、分機會自動帶入</p>';
+      +'<p class="hint" style="text-align:center;margin-top:12px">不用密碼，輸入工號就能預約<br>有行事曆帳號的同事，姓名、分機會自動帶入</p><p class="hint" style="text-align:center;opacity:.6;margin-top:10px">版本 '+APP_VER+'</p>';
   }else{
     h+='<div class="card" style="margin-top:12px"><div style="font-weight:700">第一次使用</div><div class="hint" style="margin:2px 0 0">工號 '+he(LG.gid)+'，請輸入姓名和分機</div>'
       +'<div class="sec">姓名</div><input class="fld" id="lgn" placeholder="王小明" value="'+he(LG.name)+'" oninput="LG.name=this.value;lgChk()">'
@@ -752,6 +753,7 @@ function bookHTML(){
   if(R)h+='<p class="hint" style="text-align:center">會自動排進可以預約的日子（已確認、佔一個位子）；某天不搭，乘客取消那一天就好</p>';
   if(drv)h+=repList();
   if(!R)h+='<p class="hint" style="text-align:center">不限人數，發車前都可以約；送出後司機會確認</p>';
+  h+='<p class="hint" style="text-align:center;opacity:.5;margin-top:18px">版本 '+APP_VER+'</p>';
   setTimeout(chk,0);
   return h;
 }
