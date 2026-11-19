@@ -1311,7 +1311,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-11-03a';   // 每次更新就改這裡（登入頁、更多頁會顯示）
+var APP_VER='2026-11-19a';   // 每次更新就改這裡（登入頁、更多頁會顯示）
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -4269,21 +4269,22 @@ function calPage(){
 }
 
 /* ── 各地區排程檔的最後修改時間 ── */
-var RUPD=null;
+var RUPD=null,RUPDM={};   // RUPDM：地區 → 月份 → 那個月檔案的時間
 var RUPD_COLOR={'台北':'#3f7fb8','台中':'#2eaa5e','高雄':'#F36F21'};
 function regionUpdatesHTML(){
   if(!RUPD)return '<div class="rupd" id="rupd"><span class="ru">檔案更新時間載入中…</span></div>';
   var keys=['台北','台中','高雄'];
   Object.keys(RUPD).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});
   keys=keys.filter(function(k){return HIDE_RG.indexOf(k)<0;});   // 管理員隱藏的地區不顯示
+  var mk=curY+'-'+p2(curM+1);   // 顯示目前看的這個月，那個月 Excel 的更新時間
   var h='<div class="rupd" id="rupd">'
-    +'<span class="ru" style="flex-basis:100%;color:var(--tx3)">檔案更新時間</span>';
+    +'<span class="ru" style="flex-basis:100%;color:var(--tx3)">'+(curM+1)+' 月排程檔更新時間</span>';
   keys.forEach(function(k){
-    var v=RUPD[k];
+    var v=(RUPDM[k]||{})[mk];
     h+='<span class="ru" title="'+(v?he(v.filename+(v.uploadTime?'　上傳 '+shortStamp(v.uploadTime):'')):'')+'">'
       +'<span class="rud" style="background:'+(RUPD_COLOR[k]||'var(--tx3)')+'"></span>'
       +'<b>'+he(k)+'</b>'
-      +(v?he(shortStamp(v.mtime)):'尚無資料')+'</span>';
+      +(v?he(shortStamp(v.mtime)):'尚未上傳')+'</span>';
   });
   return h+'</div>';
 }
@@ -4297,7 +4298,7 @@ function shortStamp(v){
 function loadRegionUpdates(force){
   if(RUPD&&!force){paintRegionUpdates();return;}
   gas('getRegionUpdates',TOKEN).then(function(r){
-    RUPD=(r&&r.ok)?(r.regions||{}):{};
+    RUPD=(r&&r.ok)?(r.regions||{}):{};RUPDM=(r&&r.ok&&r.byMonth)||{};
     paintRegionUpdates();
   }).catch(function(){RUPD=RUPD||{};paintRegionUpdates();});
 }
@@ -7795,12 +7796,21 @@ function doUpload(force){
       return;
     }
     var msg='已儲存 '+r.saved+' 筆';
+    var ign=(r.ignoredDates||[]).length?'<div class="note" style="margin-top:10px">這份是 <b>'+he(String(r.month||'').replace('-','/'))+'</b> 的排程，只更新這個月。檔案裡另外排到的 '
+      +r.ignoredDates.map(function(d){return he(String(d).slice(5).replace('-','/'));}).join('、')+' 共 '+r.ignored+' 筆沒有匯入，請用那個月的檔案上傳。</div>':'';
     if(r.skipped)msg+='；另有 '+r.skipped+' 天因現有資料較新而保留';
     toast(msg,'ok',r.skipped?5000:3000);
     $('parse').innerHTML='<div class="card" style="margin-top:12px;border:1px solid var(--acc)">'
       +'<div style="font-size:15px;font-weight:600;color:var(--accT)">✓ 已儲存</div>'
-      +'<p class="hint" style="margin-top:5px;word-break:break-all">'+he(fn)+'<br>寫入 '+r.saved+' 筆排程</p></div>';
-    pRows=[];pName='';pMtime='';
+      +'<p class="hint" style="margin-top:5px;word-break:break-all">'+he(fn)+'<br>寫入 '+r.saved+' 筆排程</p>'+ign
+      // 有日期沒蓋過去：直接列出來，不要只閃一下提示
+      +((r.skippedDates||[]).length?'<div class="note" style="margin-top:10px">以下 '+r.skippedDates.length+' 天保留原本的資料（同月份的另一份檔案比較新）：<br>'
+        +r.skippedDates.map(function(x){return '<b>'+he(String(x.date).slice(5).replace('-','/'))+'</b>'+(x.keptFile?'（'+he(x.keptFile)+'）':'');}).join('、')
+        +'<div style="margin-top:8px"><button class="btn btn-d btn-sm" onclick="forceUp()">用這份檔案強制覆蓋</button></div></div>':'')
+      +'</div>';
+    if((r.skippedDates||[]).length){pRows=snap;pName=fn;pMtime=mt;}   // 留著，按「強制覆蓋」才能重送
+    else{
+    pRows=[];pName='';pMtime='';}
     todayFor='';allRows=[];
     cPrune(true);cVer('up-'+Date.now());
     RUPD=null;
