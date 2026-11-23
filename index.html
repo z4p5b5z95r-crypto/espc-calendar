@@ -1311,7 +1311,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-11-19a';   // 每次更新就改這裡（登入頁、更多頁會顯示）
+var APP_VER='2026-11-23b';   // 每次更新就改這裡（登入頁、更多頁會顯示）
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -3376,6 +3376,7 @@ function titleText(){
   if(sub==='perm')return '功能權限';
   if(sub==='roles')return '角色設定';
   if(sub==='navcfg')return '下方頁籤';
+  if(sub==='certdl')return '證照資料下載';
   if(sub==='annNew')return ANNF.edit?'修改公告':'發布公告';
   if(sub==='cast')return '發送訊息';
   if(tab==='msg')return '訊息';
@@ -3479,6 +3480,7 @@ function pageHTML(){
   if(sub==='perm')return permPage();
   if(sub==='roles')return rolesPage();
   if(sub==='navcfg')return navCfgPage();
+  if(sub==='certdl')return certDlPage();
   if(sub==='annNew')return annNewPage();
   if(sub==='cast')return gcastPage();
   if(tab==='msg')return msgPage();
@@ -4318,7 +4320,7 @@ function groupBy(list){
     var g=m[k];g.rows.push(r);
 
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,normName(r.engineer));
-    add(g.notes,r.notes);add(g.reps,normName(r.applicant));add(g.eqs,r.equipment);add(g.nums,r.reportNum);
+    add(g.notes,r.notes);if(r.decl!=='N')add(g.reps,normName(r.applicant));add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
     // 同一組報告編號被拆成兩組人跑時，數量只算一次
@@ -4335,7 +4337,7 @@ function groupBy(list){
     if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:'',qseen:{}};g.tlist.push(t);}
     var tg=g.tmap[t];
     add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);
-    add(tg.reps,normName(r.applicant));
+    if(r.decl!=='N')add(tg.reps,normName(r.applicant));   // 沒打＊（不用申報）就不列申報人員
     if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
     var tqk=String(r.reportNum||'')+'｜'+String(r.qty==null?'':r.qty).trim();
     if(!(r.reportNum&&tg.qseen[tqk]))tg.qtys.push(String(r.qty==null?'':r.qty).trim());
@@ -4344,7 +4346,7 @@ function groupBy(list){
     tg.smap=tg.smap||{};tg.slist=tg.slist||[];
     if(!tg.smap[sk]){tg.smap[sk]={locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};tg.slist.push(sk);}
     var sg=tg.smap[sk];
-    add(sg.locs,r.location);add(sg.eqs,r.equipment);add(sg.nums,r.reportNum);add(sg.reps,normName(r.applicant));
+    add(sg.locs,r.location);add(sg.eqs,r.equipment);add(sg.nums,r.reportNum);if(r.decl!=='N')add(sg.reps,normName(r.applicant));
     if(!sg.samp&&r.sampTime)sg.samp=r.sampTime;
     if(!(r.reportNum&&tg.qseen[tqk]))sg.qtys.push(String(r.qty==null?'':r.qty).trim());
     tg.qseen[tqk]=1;
@@ -4546,6 +4548,77 @@ function paintBook(){
   el.outerHTML=bookList();
 }
 
+/* ══ 證照資料下載（2026-11-23）：只在電腦版「更多」；要有「證照資料下載」權限
+   Excel：第一頁「總覽」（每人一列），之後每種證照一個頁籤。含被隱藏的人，不含電話；後台每次下載都記一筆 ══ */
+var CD={rg:'',tm:'',ty:null,only:'all',busy:false,err:''};   // ty：null＝全部種類
+function cdTypes(){
+  var m={};SAFETY_TYPES.forEach(function(t){m[t]=1;});
+  Object.keys(SAFETY).forEach(function(n){(SAFETY[n]||[]).forEach(function(c){if(c.type)m[c.type]=1;});});
+  return Object.keys(m);
+}
+function cdOn(t){return CD.ty===null||CD.ty.indexOf(t)>=0;}
+function cdTog(t){var all=cdTypes();if(CD.ty===null)CD.ty=all.slice();var i=CD.ty.indexOf(t);if(i>=0)CD.ty.splice(i,1);else CD.ty.push(t);if(CD.ty.length===all.length)CD.ty=null;render();}
+function cdAll(){CD.ty=CD.ty===null?[]:null;render();}
+function certDlPage(){
+  if(!can('certDl'))return '<div class="empty">沒有證照資料下載的權限</div>';
+  if(!isDesk())return '<div class="empty">證照資料下載只能在電腦版使用，請用電腦打開行事曆</div>';
+  var tys=cdTypes(),none=CD.ty!==null&&!CD.ty.length;
+  var sel=function(id,val,opts,all){return '<select class="fld" style="flex:1;min-width:0" onchange="CD.'+id+'=this.value">'
+    +'<option value="">'+all+'</option>'+opts.map(function(o){return '<option'+(val===o?' selected':'')+'>'+he(o)+'</option>';}).join('')+'</select>';};
+  return '<div class="card" style="max-width:720px">'
+    +'<p class="hint" style="margin:0 0 12px">下載成 Excel：第一頁「總覽」每人一列，之後每種證照一個頁籤（姓名、地區、組別、分機、證書字號、訓練日期、有效期限、剩餘天數、狀態）。</p>'
+    +'<div class="sec" style="margin-left:0">範圍</div><div style="display:flex;gap:8px">'+sel('rg',CD.rg,RG_ALL,'全部地區')+sel('tm',CD.tm,TEAMS,'全部組別')+'</div>'
+    +'<div class="sec" style="margin-left:0;display:flex">證照種類<span style="flex:1"></span><a href="#" style="color:var(--accT)" onclick="cdAll();return false">'+(CD.ty===null?'全部取消':'全選')+'</a></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+tys.map(function(t){return '<button class="cchip'+(cdOn(t)?' on':'')+'" onclick="cdTog(\''+esc(t)+'\')">'+he(t)+'</button>';}).join('')+'</div>'
+    +'<div class="sec" style="margin-left:0">要下載哪些</div><div class="segw">'
+    +[['all','全部證照'],['due','只有逾期、3 個月內到期']].map(function(o){return '<button class="segb'+(CD.only===o[0]?' on':'')+'" style="padding:0 16px" onclick="CD.only=\''+o[0]+'\';render()">'+o[1]+'</button>';}).join('')+'</div>'
+    +'<button class="btn btn-p" style="margin-top:16px;min-width:200px"'+(none||CD.busy?' disabled':'')+' onclick="cdGo()">'+(CD.busy?'準備中…':'下載 Excel')+'</button>'
+    +(none?'<p class="hint" style="color:var(--err);margin-top:6px">請至少選一種證照</p>':'')
+    +(CD.err?'<p class="hint" style="color:var(--err);margin-top:6px">'+he(CD.err)+'</p>':'')
+    +'<p class="hint" style="margin-top:14px">檔案不含電話；被隱藏的人也會列出（備註欄標「通訊錄隱藏」）。每次下載都會記錄下載人與時間。</p></div>';
+}
+var CD_ST={expired:'逾期',warn:'3個月內到期',ok:'有效',nodate:'未填訓練日',forever:'無期限'};
+function cdGo(){
+  if(CD.busy)return;CD.busy=true;CD.err='';render();
+  var note=[CD.rg||'全部地區',CD.tm||'全部組別',CD.ty===null?'全部種類':CD.ty.join('、'),CD.only==='due'?'只有逾期／快到期':'全部'].join('｜');
+  gas('certExport',TOKEN,note).then(function(r){
+    CD.busy=false;
+    if(!r||!r.ok){CD.err=(r&&r.error)||'下載失敗，請再試一次';render();return;}
+    var ppl=(r.people||[]).filter(function(p){return (!CD.rg||p.region===CD.rg)&&(!CD.tm||p.team===CD.tm);});
+    var keepT=function(t){return CD.ty===null||CD.ty.indexOf(t)>=0;};
+    var byType={},order=[],ov=[];
+    ppl.forEach(function(p){
+      var cs=(p.certs||[]).map(function(c){return certOf({type:String(c.t||'').trim(),cert:String(c.c||'').trim(),train:String(c.d||'').trim(),years:c.y});})
+        .filter(function(o){return (o.type||o.cert)&&keepT(o.type||'（未填種類）')&&(CD.only==='all'||o.state==='expired'||o.state==='warn');});
+      if(!cs.length)return;
+      var memo=p.hidden?'通訊錄隱藏':'';
+      cs.forEach(function(o){var t=o.type||'（未填種類）';if(!byType[t]){byType[t]=[];order.push(t);}
+        byType[t].push([p.name,p.region,p.team,p.ext,o.cert,o.train,o.expire||(o.state==='forever'?'無期限':''),o.days==null?'':o.days,CD_ST[o.state]||'',memo]);});
+      var dated=cs.filter(function(o){return o.expire;}).sort(function(a,b){return a.days-b.days;});
+      ov.push([p.name,p.region,p.team,p.ext,cs.length,cs.filter(function(o){return o.state==='expired';}).length||'',cs.filter(function(o){return o.state==='warn';}).length||'',
+        dated[0]?dated[0].expire:'',dated[0]?dated[0].type:'',memo]);
+    });
+    if(!ov.length){CD.err='沒有符合條件的證照';render();return;}
+    var wb=XLSX.utils.book_new(),used={};
+    var add=function(name,head,rows,w){
+      var nm=String(name).replace(/[\[\]\:\*\?\/\\]/g,'').slice(0,31)||'工作表',k=nm,i=2;while(used[k])k=nm.slice(0,28)+'('+(i++)+')';used[k]=1;
+      var ws=XLSX.utils.aoa_to_sheet([head].concat(rows));
+      ws['!cols']=w.map(function(x){return {wch:x};});
+      ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:head.length-1}})};
+      XLSX.utils.book_append_sheet(wb,ws,k);
+    };
+    ov.sort(function(a,b){return (a[7]||'9999')<(b[7]||'9999')?-1:(a[7]||'9999')>(b[7]||'9999')?1:0;});
+    add('總覽',['姓名','地區','組別','分機','證照張數','逾期','3個月內到期','最近到期日','最近到期的證照','備註'],ov,[10,6,8,7,9,6,11,12,22,12]);
+    var pos=function(t){var i=SAFETY_TYPES.indexOf(t);return i<0?999:i;};
+    order.sort(function(a,b){return pos(a)-pos(b)||a.localeCompare(b,'zh-Hant');}).forEach(function(t){
+      var rows=byType[t].sort(function(a,b){return (a[7]===''?1e9:a[7])-(b[7]===''?1e9:b[7]);});
+      add(t,['姓名','地區','組別','分機','證書字號','訓練日期','有效期限','剩餘天數','狀態','備註'],rows,[10,6,8,7,22,12,12,9,12,12]);
+    });
+    XLSX.writeFile(wb,'證照資料_'+twStr()+'.xlsx');
+    toast('已下載（'+ov.length+' 人、'+order.length+' 種證照）','ok',3000);render();
+  }).catch(function(e){CD.busy=false;CD.err=(e&&e.message)||'下載失敗，請再試一次';render();});
+}
+
 /* ── 更多 ── */
 /* ══ 隱藏工具：產生 App 圖示（連點「版本」5 下開啟）══
    用 canvas 重畫登入頁的玻璃日曆標記，輸出 PNG 供上傳 GitHub。
@@ -4678,6 +4751,8 @@ function morePage(){
       +RG_ALL.map(function(k){return '<button class="segb'+(HIDE_RG.indexOf(k)<0?' on':'')+'" style="white-space:nowrap;padding:0 16px" onclick="rgHideToggle(\''+k+'\')">'+k+'</button>';}).join('')+'</div></div>':'')
     +(!isAdmin()?'':'<button class="link" onclick="go(\'more\',\'roles\')"><div><div>角色設定</div><div class="hint" style="margin-top:2px">新增、改名角色，設定哪些角色直接看全部行程</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>')
     +(!isAdmin()?'':'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>');   // 功能權限設定本身只給管理員
+  if(!VIEWAS&&can('certDl')&&isDesk())h+='<div class="sec">資料</div>'   // 證照資料下載：只在電腦版
+    +'<button class="link" onclick="go(\'more\',\'certdl\')"><div><div>證照資料下載</div><div class="hint" style="margin-top:2px">下載所有人的證照資料（Excel，每種證照一個頁籤）</div></div><span style="flex:1"></span>'+ic('file',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<button class="link mobonly" onclick="go(\'more\',\'navcfg\')"><div><div>下方頁籤</div><div class="hint" style="margin-top:2px">自己選下面那排要放哪些，其他放在「更多」</div></div><span style="flex:1"></span>'+ic('menu',19)+'</button>'
     +'<div class="link" onclick="go(\'more\',\'ics\')"><div>'
@@ -8074,6 +8149,8 @@ function parseSheet(raw,sheet,fname,struck){
   }else{
     // 日期是合併儲存格，需往下延續；工程師空白＝休假／註記列，整列略過
     var last=null,lp='',lr='',lsm='',lc='',ln='',lst=[];
+    // A 欄是「申報」：有打＊＝這筆要申報，才顯示申報人員；沒打＝只顯示現場人員
+    var hasDecl=/申報/.test(sv(raw[0]&&raw[0][0])||'');
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
       // 換日期時所有延續值歸零，人員不會跨日沿用
@@ -8097,6 +8174,7 @@ function parseSheet(raw,sheet,fname,struck){
         sampTime:samp,equipment:sv(row[10]),applicant:sv(row[11]),
         reportNum:rpt,notes:sv(row[13]),car:car,
         staff:st.slice(),
+        decl:hasDecl?/^[\s]*[*＊]/.test(String(row[0]==null?'':row[0])):undefined,
         region:region});
     }
   }
