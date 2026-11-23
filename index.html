@@ -1311,7 +1311,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-11-23b';   // 每次更新就改這裡（登入頁、更多頁會顯示）
+var APP_VER='2026-11-23c';   // 每次更新就改這裡（登入頁、更多頁會顯示）
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -4572,8 +4572,8 @@ function certDlPage(){
     +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+tys.map(function(t){return '<button class="cchip'+(cdOn(t)?' on':'')+'" onclick="cdTog(\''+esc(t)+'\')">'+he(t)+'</button>';}).join('')+'</div>'
     +'<div class="sec" style="margin-left:0">要下載哪些</div><div class="segw">'
     +[['all','全部證照'],['due','只有逾期、3 個月內到期']].map(function(o){return '<button class="segb'+(CD.only===o[0]?' on':'')+'" style="padding:0 16px" onclick="CD.only=\''+o[0]+'\';render()">'+o[1]+'</button>';}).join('')+'</div>'
-    +'<button class="btn btn-p" style="margin-top:16px;min-width:200px"'+(none||CD.busy?' disabled':'')+' onclick="cdGo()">'+(CD.busy?'準備中…':'下載 Excel')+'</button>'
-    +(none?'<p class="hint" style="color:var(--err);margin-top:6px">請至少選一種證照</p>':'')
+    +'<button class="btn btn-p" style="margin-top:16px;min-width:200px"'+(none||CD.busy||VIEWAS?' disabled':'')+' onclick="cdGo()">'+(CD.busy?'準備中…':'下載 Excel')+'</button>'
+    +(VIEWAS?'<p class="hint" style="color:var(--err);margin-top:6px">切換視角時不能下載；他本人登入後就能下載</p>':none?'<p class="hint" style="color:var(--err);margin-top:6px">請至少選一種證照</p>':'')
     +(CD.err?'<p class="hint" style="color:var(--err);margin-top:6px">'+he(CD.err)+'</p>':'')
     +'<p class="hint" style="margin-top:14px">檔案不含電話；被隱藏的人也會列出（備註欄標「通訊錄隱藏」）。每次下載都會記錄下載人與時間。</p></div>';
 }
@@ -4751,7 +4751,7 @@ function morePage(){
       +RG_ALL.map(function(k){return '<button class="segb'+(HIDE_RG.indexOf(k)<0?' on':'')+'" style="white-space:nowrap;padding:0 16px" onclick="rgHideToggle(\''+k+'\')">'+k+'</button>';}).join('')+'</div></div>':'')
     +(!isAdmin()?'':'<button class="link" onclick="go(\'more\',\'roles\')"><div><div>角色設定</div><div class="hint" style="margin-top:2px">新增、改名角色，設定哪些角色直接看全部行程</div></div><span style="flex:1"></span>'+ic('user',19)+'</button>')
     +(!isAdmin()?'':'<button class="link" onclick="go(\'more\',\'perm\')"><div><div>功能權限</div><div class="hint" style="margin-top:2px">設定角色、組別或個人可以用哪些功能</div></div><span style="flex:1"></span>'+ic('users',19)+'</button>');   // 功能權限設定本身只給管理員
-  if(!VIEWAS&&can('certDl')&&isDesk())h+='<div class="sec">資料</div>'   // 證照資料下載：只在電腦版
+  if(can('certDl')&&isDesk())h+='<div class="sec">資料</div>'   // 證照資料下載：只在電腦版（切換視角時也照那個人的權限顯示，但不能下載）
     +'<button class="link" onclick="go(\'more\',\'certdl\')"><div><div>證照資料下載</div><div class="hint" style="margin-top:2px">下載所有人的證照資料（Excel，每種證照一個頁籤）</div></div><span style="flex:1"></span>'+ic('file',19)+'</button>';
   h+='<div class="sec">偏好</div>'
     +'<button class="link mobonly" onclick="go(\'more\',\'navcfg\')"><div><div>下方頁籤</div><div class="hint" style="margin-top:2px">自己選下面那排要放哪些，其他放在「更多」</div></div><span style="flex:1"></span>'+ic('menu',19)+'</button>'
