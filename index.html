@@ -1311,7 +1311,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-11-23c';   // 每次更新就改這裡（登入頁、更多頁會顯示）
+var APP_VER='2026-11-24a';   // 每次更新就改這裡（登入頁、更多頁會顯示）
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -4316,11 +4316,11 @@ function groupBy(list){
   list.forEach(function(r){
     var k=r.project||'（未分類）';
     if(!m[k]){m[k]={project:k,rows:[],types:[],locs:[],engs:[],cars:[],staff:[],
-      notes:[],reps:[],eqs:[],nums:[],qtys:[],no:'',samp:'',tmap:{},tlist:[],qseen:{}};order.push(k);}
+      notes:[],reps:[],sets:[],eqs:[],nums:[],qtys:[],no:'',samp:'',tmap:{},tlist:[],qseen:{}};order.push(k);}
     var g=m[k];g.rows.push(r);
 
     add(g.types,r.type);add(g.locs,r.location);add(g.engs,normName(r.engineer));
-    add(g.notes,r.notes);if(r.decl!=='N')add(g.reps,normName(r.applicant));add(g.eqs,r.equipment);add(g.nums,r.reportNum);
+    add(g.notes,r.notes);if(r.decl!=='N')add(g.reps,normName(r.applicant));else add(g.sets,normName(r.applicant));add(g.eqs,r.equipment);add(g.nums,r.reportNum);
     if(!g.no&&okNo(r.projectNo))g.no=okNo(r.projectNo);
     if(!g.samp&&r.sampTime)g.samp=r.sampTime;
     // 同一組報告編號被拆成兩組人跑時，數量只算一次
@@ -4334,19 +4334,19 @@ function groupBy(list){
 
     // 依類別再分一層，數量／點位／儀器／報告編號各自歸屬
     var t=r.type||'（未分類）';
-    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:'',qseen:{}};g.tlist.push(t);}
+    if(!g.tmap[t]){g.tmap[t]={type:t,locs:[],eqs:[],nums:[],reps:[],sets:[],qtys:[],samp:'',qseen:{}};g.tlist.push(t);}
     var tg=g.tmap[t];
     add(tg.locs,r.location);add(tg.eqs,r.equipment);add(tg.nums,r.reportNum);
-    if(r.decl!=='N')add(tg.reps,normName(r.applicant));   // 沒打＊（不用申報）就不列申報人員
+    if(r.decl!=='N')add(tg.reps,normName(r.applicant));else add(tg.sets,normName(r.applicant));   // A 欄有＊＝申報人員；沒打＊＝架設人員
     if(!tg.samp&&r.sampTime)tg.samp=r.sampTime;
     var tqk=String(r.reportNum||'')+'｜'+String(r.qty==null?'':r.qty).trim();
     if(!(r.reportNum&&tg.qseen[tqk]))tg.qtys.push(String(r.qty==null?'':r.qty).trim());
     // 2026-10-07z：同類別再依報告編號分開（例：放流水質三組報告各自一張小卡）；沒有報告編號就依點位
     var sk=String(r.reportNum||'').trim()||('@'+String(r.location||'').trim());
     tg.smap=tg.smap||{};tg.slist=tg.slist||[];
-    if(!tg.smap[sk]){tg.smap[sk]={locs:[],eqs:[],nums:[],reps:[],qtys:[],samp:''};tg.slist.push(sk);}
+    if(!tg.smap[sk]){tg.smap[sk]={locs:[],eqs:[],nums:[],reps:[],sets:[],qtys:[],samp:''};tg.slist.push(sk);}
     var sg=tg.smap[sk];
-    add(sg.locs,r.location);add(sg.eqs,r.equipment);add(sg.nums,r.reportNum);if(r.decl!=='N')add(sg.reps,normName(r.applicant));
+    add(sg.locs,r.location);add(sg.eqs,r.equipment);add(sg.nums,r.reportNum);if(r.decl!=='N')add(sg.reps,normName(r.applicant));else add(sg.sets,normName(r.applicant));
     if(!sg.samp&&r.sampTime)sg.samp=r.sampTime;
     if(!(r.reportNum&&tg.qseen[tqk]))sg.qtys.push(String(r.qty==null?'':r.qty).trim());
     tg.qseen[tqk]=1;
@@ -5971,6 +5971,7 @@ function shareModel(g,d,who,o){
       if(o.eq){var eq=[];(e.eqs||[]).forEach(function(v){String(v).split(/[\s、,，]+/).forEach(function(x){x=x.trim();if(x&&eq.indexOf(x)<0)eq.push(x);});});
         if(eq.length)rows.push(['儀器',[eq.join('、')]]);}
       var reps=o.rep?(e.reps||[]).filter(String):[];if(reps.length)rows.push(['申報人員',reps.map(function(n){return sharePh(n,o.repPh);})]);
+      var sets=o.rep?(e.sets||[]).filter(String):[];if(sets.length)rows.push(['架設人員',sets.map(function(n){return sharePh(n,o.repPh);})]);
       if(o.rpt){var rp=shareRpt(e.nums);if(rp.length)rows.push(['報告編號',rp]);}
       secs.push({t:t,q:qtyText(e.qtys||[]),rows:rows});
     });
@@ -6069,7 +6070,7 @@ function shareOpen(p,d0){
 function shareBack(){if(SHR.url){try{URL.revokeObjectURL(SHR.url);}catch(e){}}SHR.url='';openDay(SHR.d||EV_D,SHR.p);}
 /* ── 2026-10-09：直接在卡片上編輯（拿掉子卡片／拿掉某一列／改文字），不用上方的勾選 ── */
 var SHARE_ALL={loc:1,samp:1,eq:1,rep:1,repPh:1,rpt:1,pm:1,pmPh:1,car:1,st:1,stPh:1,nt:1,est:1};
-var SH_ROWKEY={'點位':'loc','採樣時間':'samp','儀器':'eq','申報人員':'rep','報告編號':'rpt','PM':'pm','公務車':'car','現場人員':'st','備註':'nt'};
+var SH_ROWKEY={'點位':'loc','採樣時間':'samp','儀器':'eq','申報人員':'rep','架設人員':'rep','報告編號':'rpt','PM':'pm','公務車':'car','現場人員':'st','備註':'nt'};
 function shareMake(who){
   var g=shareGroup(SHR.p,SHR.d);if(!g)return;
   SHR.who=who;SHR.full=shareModel(g,SHR.d,who,SHARE_ALL);SHR.hide={};SHR.ed={};
@@ -7052,8 +7053,8 @@ function evDetail(g){
   var ents=[];
   g.tlist.forEach(function(t){
     var tg=g.tmap[t],sl=tg.slist||[];
-    if(sl.length>1)sl.forEach(function(k){var x=tg.smap[k];ents.push({t:t,locs:x.locs,eqs:x.eqs,reps:x.reps,nums:x.nums,qtys:x.qtys,samp:x.samp});});
-    else ents.push({t:t,locs:tg.locs,eqs:tg.eqs,reps:tg.reps,nums:tg.nums,qtys:tg.qtys,samp:tg.samp});
+    if(sl.length>1)sl.forEach(function(k){var x=tg.smap[k];ents.push({t:t,locs:x.locs,eqs:x.eqs,reps:x.reps,sets:x.sets,nums:x.nums,qtys:x.qtys,samp:x.samp});});
+    else ents.push({t:t,locs:tg.locs,eqs:tg.eqs,reps:tg.reps,sets:tg.sets,nums:tg.nums,qtys:tg.qtys,samp:tg.samp});
   });
   var multi=ents.length>1;
   var pmv=g.engs.map(telLink).join('<br>');
@@ -7068,6 +7069,7 @@ function evDetail(g){
       +dr('採樣時間',he(e.samp||g.samp))
       +dr('儀器',pills(e.eqs))
       +dr('申報人員',e.reps.map(telLink).join('<br>'))
+      +dr('架設人員',(e.sets||[]).map(telLink).join('<br>'))
       +dr('報告編號',rptHTML(e.nums));
     if(multi){
       // 多測項（或同測項多組報告）→ 各自一張小卡，卡頭標出測項與數量
