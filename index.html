@@ -1311,7 +1311,7 @@ html[data-fs="l"] body{zoom:1.25;}
    ESPC 監測行程 — 前端
    後端：Google Apps Script（下方 GAS_URL）
    ══════════════════════════════════════════════════════════ */
-var APP_VER='2026-11-24a';   // 每次更新就改這裡（登入頁、更多頁會顯示）
+var APP_VER='2026-11-25a';   // 每次更新就改這裡（登入頁、更多頁會顯示）
 /* ══ 通知列表＋App 圖示紅點 ══ sw.js 每收到一則推播就記下來；看過（點通知、在列表點開、全部已讀、廣播被看到）才算已讀 */
 var NOTES=[],SW_VER='';
 /* 問 Service Worker 版本；順便叫它檢查有沒有新版 sw.js */
@@ -8150,13 +8150,13 @@ function parseSheet(raw,sheet,fname,struck){
     }
   }else{
     // 日期是合併儲存格，需往下延續；工程師空白＝休假／註記列，整列略過
-    var last=null,lp='',lr='',lsm='',lc='',ln='',lst=[];
+    var last=null,lp='',lr='',lsm='',lc='',ln='',lst=[],pRaw=[],pProj='';
     // A 欄是「申報」：有打＊＝這筆要申報，才顯示申報人員；沒打＝只顯示現場人員
     var hasDecl=/申報/.test(sv(raw[0]&&raw[0][0])||'');
     for(var i=1;i<raw.length;i++){
       var row=raw[i];if(!row)continue;
       // 換日期時所有延續值歸零，人員不會跨日沿用
-      if(row[2]!=null){var d2=parseDate(row[2]);if(d2&&d2!==last){last=d2;lp='';lr='';lsm='';lc='';ln='';lst=[];}}
+      if(row[2]!=null){var d2=parseDate(row[2]);if(d2&&d2!==last){last=d2;lp='';lr='';lsm='';lc='';ln='';lst=[];pRaw=[];pProj='';}}
       if(!last||parseInt(last.slice(0,4),10)<2020)continue;
       var eng=sv(row[3]);if(!eng||/工程師|engineer/i.test(eng))continue;
       var proj=sv(row[5]),type=sv(row[6]);if(!proj&&!type)continue;
@@ -8169,6 +8169,10 @@ function parseSheet(raw,sheet,fname,struck){
       var car=sv(row[14]);if(car)lc=car;else car=lc;   // 空白＝沿用同一台車
       // 人員欄空白＝跟上一筆同一組；專案換了也繼續沿用，只有換日期才重來
       var st=[15,16,17,18,19].map(function(c){return sv(row[c]);}).filter(Boolean);
+      // 2026-11-25：上一列五格人員都填滿、這一列又是同一個案子 → 人太多寫到下一列，接著加進同一組（不是換一組）
+      var stRaw=st.slice();
+      if(st.length&&pRaw.length===5&&proj===pProj)st=lst.concat(st.filter(function(n){return lst.indexOf(n)<0;}));
+      pRaw=stRaw;pProj=proj;
       if(st.length)lst=st;else st=lst;
       if(struck[i]){PSTRUCK++;continue;}      // 刪除線＝已取消
       out.push({date:last,engineer:eng,project:proj,projectNo:no,type:type,
